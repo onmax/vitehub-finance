@@ -47,7 +47,7 @@ async function submit() {
 <template>
   <UModal
     :title="budget ? 'Edit budget' : 'Add a budget'"
-    description="A monthly limit for one category. Joxi counts what’s spent in it each month."
+    description="A monthly limit for one category. ViteHub Finance counts what’s spent in it each month."
     @update:open="(open) => !open && emit('close')"
   >
     <template #body>

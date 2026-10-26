@@ -51,6 +51,6 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   })
   await rememberOrigin(event)
   // The sync records its own failures; the connection exists either way.
-  await dispatchSync(id, "link").catch((error) => console.error("[joxi] First exchange sync failed", error))
+  await dispatchSync(id, "link").catch((error) => console.error("[finance] First exchange sync failed", error))
   return connectionSummary(who, id)
 })

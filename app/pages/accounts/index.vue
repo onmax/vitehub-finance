@@ -91,7 +91,7 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
           variant="outline"
           icon="i-lucide-landmark"
           title="No accounts yet"
-          description="Connect your bank and Joxi keeps balances and transactions up to date. For cash or a bank Joxi can’t reach, add an account by hand."
+          description="Connect your bank and ViteHub Finance keeps balances and transactions up to date. For cash or a bank ViteHub Finance can’t reach, add an account by hand."
           :actions="[
             { label: 'Connect a bank', icon: 'i-lucide-plug', to: '/connect' },
             { label: 'Add a manual account', color: 'neutral', variant: 'ghost', onClick: addAccount },

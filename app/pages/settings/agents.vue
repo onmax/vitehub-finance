@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// How to connect an AI agent to Joxi's MCP server: the URL, ready-to-paste setups, and personal API keys.
+// How to connect an AI agent to ViteHub Finance's MCP server: the URL, ready-to-paste setups, and personal API keys.
 useHead({ title: "Agents" })
 const origin = useRequestURL().origin
 const server = `${origin}/mcp`
@@ -9,10 +9,10 @@ const tabs = [
   { label: "JSON config", value: "json" },
   { label: "API key", value: "key" },
 ]
-const claude = `claude mcp add --transport http joxi ${server}`
-const json = JSON.stringify({ mcpServers: { joxi: { type: "http", url: server } } }, null, 2)
+const claude = `claude mcp add --transport http vitehub-finance ${server}`
+const json = JSON.stringify({ mcpServers: { "vitehub-finance": { type: "http", url: server } } }, null, 2)
 const withKey = JSON.stringify(
-  { mcpServers: { joxi: { type: "http", url: server, headers: { Authorization: "Bearer joxi_…" } } } },
+  { mcpServers: { "vitehub-finance": { type: "http", url: server, headers: { Authorization: "Bearer fin_…" } } } },
   null,
   2,
 )
@@ -28,7 +28,7 @@ const withKey = JSON.stringify(
       <div class="flex flex-col gap-3">
         <SegmentedControl v-model="tab" :options="tabs" label="Setup instructions" size="sm" class="self-start" />
         <template v-if="tab === 'claude'">
-          <p class="text-sm text-muted">Run this in a terminal. Claude Code opens Joxi to ask for your permission the first time.</p>
+          <p class="text-sm text-muted">Run this in a terminal. Claude Code opens ViteHub Finance to ask for your permission the first time.</p>
           <CodeSnippet :code="claude" label="Claude Code command" />
         </template>
         <template v-else-if="tab === 'json'">

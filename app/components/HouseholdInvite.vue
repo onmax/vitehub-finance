@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Invite someone by email, and the invitations still waiting. Without email on this Joxi, each invitation shows its
+// Invite someone by email, and the invitations still waiting. Without email on this ViteHub Finance, each invitation shows its
 // link to send yourself.
 const props = defineProps<{ open?: boolean }>()
 const { data: me } = useMe()
@@ -88,7 +88,7 @@ async function copyLink(invitation: Invitation | string, id: string) {
     :description="
       me?.email
         ? 'They get an email with a link to join. It works for 7 days.'
-        : 'This Joxi can’t send email, so you get a link to send them yourself. It works for 7 days.'
+        : 'This ViteHub Finance can’t send email, so you get a link to send them yourself. It works for 7 days.'
     "
   >
     <form class="flex flex-col gap-2 sm:flex-row sm:items-start" novalidate @submit.prevent="invite">

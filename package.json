@@ -1,5 +1,5 @@
 {
-  "name": "joxi",
+  "name": "vitehub-finance",
   "private": true,
   "type": "module",
   "description": "Household finance on ViteHub: bank and crypto sync, shared accounts, forecasts, and an MCP server.",

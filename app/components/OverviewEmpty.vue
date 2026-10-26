@@ -32,7 +32,7 @@ const options = [
           </span>
           <h2 class="mt-4 text-base font-semibold text-highlighted">Connect your bank</h2>
           <p class="mt-1 text-sm text-muted">
-            Joxi reads balances and transactions through your bank’s own open-banking access. Read only: it can’t move money.
+            ViteHub Finance reads balances and transactions through your bank’s own open-banking access. Read only: it can’t move money.
           </p>
           <UButton class="mt-5" to="/connect#bank" label="Connect a bank account" icon="i-lucide-plug" />
         </div>

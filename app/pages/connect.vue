@@ -29,7 +29,7 @@ function scrollTo(selector: string) {
 
 onMounted(() => {
   if (highlight.value) {
-    notify.success("Connected", "Joxi synced its accounts and keeps them up to date every day.")
+    notify.success("Connected", "ViteHub Finance synced its accounts and keeps them up to date every day.")
     void refresh()
     setTimeout(() => (highlight.value = null), 4000)
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One way to bring money into Joxi, as a card: an icon, a title, one line about it, then the form.
+// One way to bring money into ViteHub Finance, as a card: an icon, a title, one line about it, then the form.
 defineProps<{ icon: string; title: string; description: string }>()
 </script>
 

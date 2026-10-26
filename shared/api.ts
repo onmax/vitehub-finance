@@ -251,6 +251,6 @@ export interface Bank {
 
 export interface ProviderInfo {
   id: ProviderId
-  /** Whether this Joxi has the credentials the provider needs (Enable Banking's app id and key). */
+  /** Whether this ViteHub Finance has the credentials the provider needs (Enable Banking's app id and key). */
   available: boolean
 }

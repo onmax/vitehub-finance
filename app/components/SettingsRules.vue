@@ -56,7 +56,7 @@ async function remove(rule: Rule) {
 </script>
 
 <template>
-  <SettingsSection title="Rules" description="When a new transaction’s description contains these words, Joxi files it under the category. Changes you make by hand always win." flush>
+  <SettingsSection title="Rules" description="When a new transaction’s description contains these words, ViteHub Finance files it under the category. Changes you make by hand always win." flush>
     <UForm :state="state" :validate="validate" class="flex flex-col gap-3 border-b border-default p-4 sm:flex-row sm:items-start sm:px-5" @submit="add">
       <UFormField name="match" class="flex-1" label="Description contains">
         <UInput v-model="state.match" placeholder="mercadona" class="w-full" />

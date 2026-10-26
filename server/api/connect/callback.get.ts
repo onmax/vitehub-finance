@@ -64,7 +64,7 @@ export default defineHandler(async (event) => {
     const code = params.get("code")
     if (!code) return failed("The bank sent no authorization code.")
     const config = bankConfig()
-    if (!config) return failed("Bank connections aren't set up on this Joxi.")
+    if (!config) return failed("Bank connections aren't set up on this ViteHub Finance.")
 
     const session = await createSession(config, code)
     if (!session.accounts.length) return failed("The bank shared no accounts. Try again and select at least one.")
@@ -101,7 +101,7 @@ export default defineHandler(async (event) => {
       return toConnect({ error: `Linked, but the first sync failed: ${after.lastError ?? after.status}`.slice(0, 200) })
     return toConnect({ linked: row.id })
   } catch (error) {
-    console.error("[joxi] Bank callback failed", error)
+    console.error("[finance] Bank callback failed", error)
     return failed(errorMessage(error))
   }
 })

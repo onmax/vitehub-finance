@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Overview } from "#shared/api"
 
-// Net worth now, how it moved over the last 90 days, and the daily line. Days before Joxi recorded any balance are
+// Net worth now, how it moved over the last 90 days, and the daily line. Days before ViteHub Finance recorded any balance are
 // left out instead of drawn as zero, so a new household doesn't see a cliff.
 const props = defineProps<{ overview: Overview }>()
 const { format } = useMoney()
@@ -54,7 +54,7 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
       <span v-if="change.share !== null" class="money">({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span>
       <span>since {{ formatDay(change.since, { relative: false }) }}</span>
     </p>
-    <p v-else class="mt-1 text-sm text-muted">Joxi records balances every day. The chart fills in from here.</p>
+    <p v-else class="mt-1 text-sm text-muted">ViteHub Finance records balances every day. The chart fills in from here.</p>
     <AreaChart
       v-if="points.length >= 2"
       class="mt-4"

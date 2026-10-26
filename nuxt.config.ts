@@ -5,7 +5,7 @@ import { deployment, type Host } from "./scripts/deployment.ts"
 
 const target = deployment()
 // `nuxt dev` runs as a Node host whatever the target: local SQLite, KV files, inline syncs. It needs no Cloudflare
-// account, and Queue has no local provider. Build with JOXI_HOST to check a host's output.
+// account, and Queue has no local provider. Build with FINANCE_HOST to check a host's output.
 const dev = process.argv.includes("dev")
 const host: Host = dev ? "node" : target.host
 const email = target.email
@@ -20,7 +20,7 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     preset: "cloudflare",
     database: {
       driver: "d1",
-      databaseName: process.env.CLOUDFLARE_D1_DATABASE_NAME || "joxi",
+      databaseName: process.env.CLOUDFLARE_D1_DATABASE_NAME || "vitehub-finance",
       // `nuxt dev` and `nuxt prepare` run against a local D1; deploys read the real id from the environment.
       databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID || "00000000-0000-4000-8000-000000000000",
     },
@@ -32,7 +32,7 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     preset: "node",
     database: {
       connection: {
-        url: env({ source: env.source("JOXI_DATABASE_URL"), default: "file:.data/joxi.db" }),
+        url: env({ source: env.source("FINANCE_DATABASE_URL"), default: "file:.data/finance.db" }),
       },
     },
     kv: { driver: "fs-lite", base: ".data/kv" },
@@ -87,7 +87,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "en" },
-      title: "Joxi",
+      title: "ViteHub Finance",
       meta: [
         { name: "color-scheme", content: "light dark" },
         { name: "robots", content: "noindex" },
@@ -200,7 +200,7 @@ export default defineNuxtConfig({
     plugins: host === "node" ? [here("./server/database-migrate.ts")] : [],
     cloudflare: {
       wrangler: {
-        name: process.env.CLOUDFLARE_WORKER_NAME || "joxi",
+        name: process.env.CLOUDFLARE_WORKER_NAME || "vitehub-finance",
         observability: { enabled: true, logs: { enabled: true, invocation_logs: true } },
         placement: { mode: "smart" },
         // The sync Queue (server/queues/sync.ts). ViteHub's Nuxt module generates its runtime, but its wrangler entries
@@ -214,8 +214,8 @@ export default defineNuxtConfig({
               },
             }
           : {}),
-        ...(process.env.JOXI_DOMAIN
-          ? { routes: [{ pattern: process.env.JOXI_DOMAIN, custom_domain: true }], workers_dev: false }
+        ...(process.env.FINANCE_DOMAIN
+          ? { routes: [{ pattern: process.env.FINANCE_DOMAIN, custom_domain: true }], workers_dev: false }
           : {}),
       },
     },
@@ -247,14 +247,14 @@ export default defineNuxtConfig({
         auth: {
           secret: env({ secret: true, source: env.source("BETTER_AUTH_SECRET") }),
         },
-        joxi: {
+        finance: {
           // Emails allowed to create an account, comma-separated. Empty lets anyone sign up. Invited people always may.
-          allowedEmails: env({ secret: true, source: env.source("JOXI_ALLOWED_EMAILS"), default: "" }),
+          allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), default: "" }),
           // Encrypts bank sessions and exchange keys at rest (AES-GCM). Any long random string; changing it disconnects
           // every connection.
-          encryptionKey: env({ secret: true, source: env.source("JOXI_ENCRYPTION_KEY") }),
+          encryptionKey: env({ secret: true, source: env.source("FINANCE_ENCRYPTION_KEY") }),
           // The sender for invitations and reminders, when the build has Email.
-          emailFrom: env({ source: env.source("JOXI_EMAIL_FROM"), default: "Joxi <joxi@example.com>" }),
+          emailFrom: env({ source: env.source("FINANCE_EMAIL_FROM"), default: "ViteHub Finance <finance@example.com>" }),
         },
         // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
         enableBanking: {

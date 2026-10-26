@@ -102,7 +102,7 @@ export async function kraken(credentials: ExchangeCredentials) {
       "API-Key": credentials.key,
       "API-Sign": signature,
       "content-type": "application/x-www-form-urlencoded; charset=utf-8",
-      "user-agent": "Joxi",
+      "user-agent": "ViteHub Finance",
     },
     body: postData,
   })

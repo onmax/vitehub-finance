@@ -83,10 +83,10 @@ async function verify() {
 
 const { copy, copied } = useClipboard({ copiedDuring: 1500, legacy: true })
 function download() {
-  const blob = new Blob([`Joxi backup codes\nEach works once, instead of a code from your app.\n\n${backupCodes.value.join("\n")}\n`], { type: "text/plain" })
+  const blob = new Blob([`ViteHub Finance backup codes\nEach works once, instead of a code from your app.\n\n${backupCodes.value.join("\n")}\n`], { type: "text/plain" })
   const link = document.createElement("a")
   link.href = URL.createObjectURL(blob)
-  link.download = "joxi-backup-codes.txt"
+  link.download = "finance-backup-codes.txt"
   link.click()
   URL.revokeObjectURL(link.href)
 }
@@ -97,7 +97,7 @@ const title = computed(() =>
 </script>
 
 <template>
-  <SettingsSection title="Two-factor authentication" description="After your password, Joxi asks for a code from an authenticator app.">
+  <SettingsSection title="Two-factor authentication" description="After your password, ViteHub Finance asks for a code from an authenticator app.">
     <template #badge>
       <UBadge v-if="enabled" color="success" variant="subtle" icon="i-lucide-shield-check" size="sm" label="On" />
       <UBadge v-else color="neutral" variant="outline" size="sm" label="Off" />

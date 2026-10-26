@@ -1,16 +1,16 @@
 import { useServerEnv } from "#vitehub/env/server"
 
 /**
- * Bank sessions and exchange keys at rest: AES-GCM with a key derived from `JOXI_ENCRYPTION_KEY`. A database dump alone
+ * Bank sessions and exchange keys at rest: AES-GCM with a key derived from `FINANCE_ENCRYPTION_KEY`. A database dump alone
  * doesn't give anyone access to a bank or an exchange. WebCrypto, so it runs the same on Workers and Node.
  */
 let keyPromise: Promise<CryptoKey> | undefined
 
 function key() {
   keyPromise ??= (async () => {
-    const secret = useServerEnv().joxi.encryptionKey.unseal()
-    if (!secret || secret.length < 16) throw new Error("JOXI_ENCRYPTION_KEY must be set to a random string of 16 characters or more.")
-    const material = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`joxi:credentials:${secret}`))
+    const secret = useServerEnv().finance.encryptionKey.unseal()
+    if (!secret || secret.length < 16) throw new Error("FINANCE_ENCRYPTION_KEY must be set to a random string of 16 characters or more.")
+    const material = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`finance:credentials:${secret}`))
     return crypto.subtle.importKey("raw", material, "AES-GCM", false, ["encrypt", "decrypt"])
   })()
   return keyPromise

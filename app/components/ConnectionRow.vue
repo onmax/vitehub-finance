@@ -54,7 +54,7 @@ async function remove() {
   const count = props.connection.accountCount
   const { confirmed, checked } = await confirm({
     title: `Remove ${props.connection.name}?`,
-    description: "Joxi stops syncing it and forgets its credentials.",
+    description: "ViteHub Finance stops syncing it and forgets its credentials.",
     confirmLabel: "Remove",
     destructive: true,
     checkbox: count

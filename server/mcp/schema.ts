@@ -6,7 +6,7 @@ type Node = { type: string; wrapped?: Node; entries?: Record<string, Node>; opti
 /**
  * JSON Schema for the valibot subset the tools use (objects of strings, numbers, booleans, picklists, optional and
  * nullable, with descriptions and simple limits). h3-mcp lists a tool's input from `~standard.jsonSchema` and
- * validates with valibot's own `~standard.validate`; Joxi doesn't pull in @valibot/to-json-schema for this.
+ * validates with valibot's own `~standard.validate`; ViteHub Finance doesn't pull in @valibot/to-json-schema for this.
  */
 function toJson(schema: Node): Json {
   const json: Json = {}

@@ -8,7 +8,7 @@ const props = defineProps<{ insights: Insight[] }>()
 const emit = defineEmits<{ show: [ids: string[]] }>()
 const { format } = useMoney()
 
-const dismissed = useStorage<string[]>("joxi:dismissed-insights", [])
+const dismissed = useStorage<string[]>("finance:dismissed-insights", [])
 const idOf = (insight: Insight) => `${insight.kind}:${insight.recurringIds.join(",")}:${insight.savingsMinor}`
 const visible = computed(() => props.insights.filter((insight) => !dismissed.value.includes(idOf(insight))))
 const total = computed(() => visible.value.reduce((sum, insight) => sum + insight.savingsMinor, 0))

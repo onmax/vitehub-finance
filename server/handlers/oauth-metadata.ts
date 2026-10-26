@@ -14,7 +14,7 @@ export default defineHandler(async (event) => {
   if (path.startsWith("/.well-known/oauth-protected-resource")) {
     const response = mcpFor(event.url.origin).oauth.metadataHandler(event)
     if (response.status === 204) return response
-    // Clients show Joxi's name before they have an access token.
+    // Clients show ViteHub Finance's name before they have an access token.
     return Response.json({ ...(await response.json()), resource_name: MCP_SERVER_INFO.title }, { headers: response.headers })
   }
   const auth = authFor(event)

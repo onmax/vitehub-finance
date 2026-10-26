@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Sign in: email and password, a passkey (also offered by the browser's autofill on the email field), a magic link when
-// this Joxi can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code.
+// this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code.
 definePageMeta({ layout: "auth" })
 useHead({ title: "Sign in" })
 
@@ -147,7 +147,7 @@ watch(step, () => {
     </template>
 
     <template v-else>
-      <h1 class="text-lg font-semibold text-highlighted">Sign in to Joxi</h1>
+      <h1 class="text-lg font-semibold text-highlighted">Sign in to ViteHub Finance</h1>
       <p class="mt-1 text-sm text-muted">Your household’s money, in one place.</p>
 
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="signIn">

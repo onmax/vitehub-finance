@@ -74,7 +74,7 @@ async function call<T>(config: EnableBankingConfig, method: string, path: string
     throw new ProviderError("expired", "The bank consent has expired. Reconnect the bank to keep syncing.")
   }
   if (response.status === 429 || /RATE_LIMIT/i.test(text))
-    throw new ProviderError("rate_limited", "The bank limits how often Joxi may fetch (about 4 times a day). Try again later.")
+    throw new ProviderError("rate_limited", "The bank limits how often ViteHub Finance may fetch (about 4 times a day). Try again later.")
   if (response.status >= 500) throw new ProviderError("unavailable", `The bank or Enable Banking is unavailable: ${message}`)
   throw new ProviderError("unavailable", `Enable Banking: ${message}`)
 }
@@ -164,7 +164,7 @@ export async function createSession(config: EnableBankingConfig, code: string) {
   return { credentials, accounts, consentExpiresAt: until && !Number.isNaN(until.getTime()) ? until : null }
 }
 
-/** Best effort: a revoked session stops the bank's access even if Joxi's row is already gone. */
+/** Best effort: a revoked session stops the bank's access even if ViteHub Finance's row is already gone. */
 export async function deleteSession(config: EnableBankingConfig, sessionId: string) {
   await call(config, "DELETE", `/sessions/${encodeURIComponent(sessionId)}`).catch(() => undefined)
 }
@@ -201,7 +201,7 @@ export interface EbTransaction {
 }
 
 /**
- * Bank rows to Joxi rows: debits negative, the description from the remittance lines (else the counterparty), the
+ * Bank rows to ViteHub Finance rows: debits negative, the description from the remittance lines (else the counterparty), the
  * counterparty being whoever is on the other side (the creditor of a debit, the debtor of a credit).
  */
 export async function mapTransactions(rows: EbTransaction[]): Promise<ProviderTransaction[]> {

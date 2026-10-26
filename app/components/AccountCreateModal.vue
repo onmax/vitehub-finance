@@ -2,7 +2,7 @@
 import type { AccountKind, AccountSummary } from "#shared/api"
 import { parseAmount, toMinor } from "#shared/money"
 
-// A manual account: cash, a pension, a loan, or a bank Joxi can't reach. Opened through useOverlay; closes with the
+// A manual account: cash, a pension, a loan, or a bank ViteHub Finance can't reach. Opened through useOverlay; closes with the
 // new account, or nothing when dismissed.
 const props = defineProps<{ kind?: AccountKind }>()
 const emit = defineEmits<{ close: [account?: AccountSummary] }>()
@@ -53,7 +53,7 @@ async function submit() {
 </script>
 
 <template>
-  <UModal title="Add a manual account" description="For cash, a pension, a loan, or a bank Joxi can’t connect to. You update its balance yourself." @update:open="(open) => !open && emit('close')">
+  <UModal title="Add a manual account" description="For cash, a pension, a loan, or a bank ViteHub Finance can’t connect to. You update its balance yourself." @update:open="(open) => !open && emit('close')">
     <template #body>
       <UForm id="account-create" :state="state" :validate="validate" class="flex flex-col gap-4" @submit="submit">
         <UFormField label="Name" name="name">

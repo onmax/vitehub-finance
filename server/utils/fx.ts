@@ -29,7 +29,7 @@ export async function rates(base: string): Promise<Record<string, number>> {
   } catch (error) {
     // A stale rate beats no total; with nothing cached, other currencies count at 1:1 until the API answers.
     if (cached) return cached.rates
-    console.warn("[joxi] Exchange rates unavailable", error)
+    console.warn("[finance] Exchange rates unavailable", error)
     return { [base]: 1 }
   }
 }

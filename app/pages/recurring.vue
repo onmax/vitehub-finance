@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Recurring, RecurringResponse } from "#shared/api"
 
-// Subscriptions, bills, and regular income Joxi found in the transactions: what they cost a month and a year, ways to
+// Subscriptions, bills, and regular income ViteHub Finance found in the transactions: what they cost a month and a year, ways to
 // save, and each payment by when it's next due. Detected ones wait for a confirm or a dismiss.
 useHead({ title: "Recurring" })
 
@@ -97,7 +97,7 @@ async function show(ids: string[]) {
         v-else-if="items.length === 0"
         icon="i-lucide-repeat"
         title="No recurring payments yet"
-        description="Joxi spots subscriptions and bills once an account has two or three months of transactions. Connect a bank or import a statement to start."
+        description="ViteHub Finance spots subscriptions and bills once an account has two or three months of transactions. Connect a bank or import a statement to start."
         :actions="[
           { label: 'Connect a bank', to: '/connect' },
           { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect#import' },

@@ -36,6 +36,6 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
     externalId: address,
   })
   await rememberOrigin(event)
-  await dispatchSync(id, "link").catch((error) => console.error("[joxi] First wallet sync failed", error))
+  await dispatchSync(id, "link").catch((error) => console.error("[finance] First wallet sync failed", error))
   return connectionSummary(who, id)
 })

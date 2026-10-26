@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// End-to-end privacy check against a running Joxi (BASE_URL, default the dev server): owner A shares one account and
+// End-to-end privacy check against a running ViteHub Finance (BASE_URL, default the dev server): owner A shares one account and
 // keeps one private; member B must never see the private one, its transactions, or anything derived from them, through
 // the REST API or MCP. Exits non-zero on any leak.
 //
 //   node scripts/privacy-check.mjs
-//   BASE_URL=https://joxi.example.com node scripts/privacy-check.mjs   (needs open sign-ups or allowed emails)
+//   BASE_URL=https://finance.example.com node scripts/privacy-check.mjs   (needs open sign-ups or allowed emails)
 
 const BASE = (process.env.BASE_URL || "http://127.0.0.1:3417").replace(/\/$/, "")
 const run = Math.random().toString(36).slice(2, 8)
@@ -85,7 +85,7 @@ async function mcp(key, method, params, id = 1) {
 }
 
 async function main() {
-  console.log(`Joxi privacy check against ${BASE}\n`)
+  console.log(`ViteHub Finance privacy check against ${BASE}\n`)
   const a = person("A")
   const b = person("B")
   const emailA = `privacy-a-${run}@example.com`
@@ -225,9 +225,9 @@ async function main() {
   console.log("\nMCP as B (API key):")
   const created = await b.post("/api/auth/api-key/create", { name: "privacy-check" })
   const key = created.key
-  check(typeof key === "string" && key.startsWith("joxi_"), "B's API key has the joxi_ prefix")
+  check(typeof key === "string" && key.startsWith("fin_"), "B's API key has the fin_ prefix")
   const init = await mcp(key, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "privacy-check", version: "1" } })
-  check(init.body?.result?.serverInfo?.name === "joxi", "MCP initialize answers as joxi")
+  check(init.body?.result?.serverInfo?.name === "vitehub-finance", "MCP initialize answers as vitehub-finance")
   const callTool = async (name, args) => (await mcp(key, "tools/call", { name, arguments: args }, 2)).body
   for (const [name, args] of [
     ["list_accounts", {}],

@@ -69,9 +69,9 @@ async function signUp() {
   try {
     const { error: failure } = await $auth.signUp.email({ name: state.name.trim(), email: state.email.trim(), password: state.password })
     if (failure) {
-      // The server's user hook refuses emails outside JOXI_ALLOWED_EMAILS that no household invited.
+      // The server's user hook refuses emails outside FINANCE_ALLOWED_EMAILS that no household invited.
       if (failure.status === 422 || failure.status === 403 || /create user/i.test(failure.message ?? ""))
-        throw new Error("This Joxi only lets invited and allowed emails sign up. Use the email the invitation went to.")
+        throw new Error("This ViteHub Finance only lets invited and allowed emails sign up. Use the email the invitation went to.")
       throw new Error(failure.message)
     }
     await finish()
@@ -199,7 +199,7 @@ const switchMode = (next: "sign-in" | "sign-up") => {
       </template>
       <p v-if="allowSignUp" class="text-center text-sm text-muted">
         <template v-if="mode === 'sign-in'">
-          New to Joxi?
+          New to ViteHub Finance?
           <UButton variant="link" color="neutral" class="p-0 font-medium text-highlighted" label="Create an account" @click="switchMode('sign-up')" />
         </template>
         <template v-else>

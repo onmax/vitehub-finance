@@ -27,7 +27,7 @@ export default defineMcpTool({
     const total = accounts.filter((row) => row.includeInNetWorth && !row.archived).reduce((sum, row) => sum + row.balanceBaseMinor, 0)
     const body = accounts.length
       ? `${accounts.map((row) => accountLine(row, currency)).join("\n")}\nNet worth: ${money(total, currency)}.`
-      : "No accounts yet. The user connects banks and exchanges, or adds manual accounts, in Joxi."
+      : "No accounts yet. The user connects banks and exchanges, or adds manual accounts, in ViteHub Finance."
     return { content: text(body), structuredContent: { currency, accounts } }
   },
 })

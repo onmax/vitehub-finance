@@ -3,7 +3,7 @@
 import type { AccountKind } from "../../shared/api"
 
 /** Sent on every outgoing API call. Workers send none by default, and some APIs refuse requests without one. */
-export const USER_AGENT = "Joxi/0.1 (+https://github.com/onmax/joxi)"
+export const USER_AGENT = "ViteHubFinance/0.1 (+https://github.com/onmax/vitehub-finance)"
 
 export interface ProviderTransaction {
   externalId?: string | null

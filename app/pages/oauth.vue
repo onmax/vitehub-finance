@@ -79,7 +79,7 @@ const can = [
     </template>
 
     <template v-else-if="!loggedIn">
-      <h1 class="text-lg font-semibold text-highlighted">Connect an agent to Joxi</h1>
+      <h1 class="text-lg font-semibold text-highlighted">Connect an agent to ViteHub Finance</h1>
       <p class="mt-2 mb-5 text-sm text-muted">Sign in to choose whether it can read your household’s finances.</p>
       <InviteAuthForm :allow-sign-up="false" />
     </template>

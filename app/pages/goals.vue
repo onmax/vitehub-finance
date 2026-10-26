@@ -89,7 +89,7 @@ async function remove(goal: Goal) {
         variant="outline"
         icon="i-lucide-target"
         title="No goals yet"
-        description="Save toward something together, like an emergency fund or a trip. Joxi tells you how much to put aside each month."
+        description="Save toward something together, like an emergency fund or a trip. ViteHub Finance tells you how much to put aside each month."
         :actions="[{ label: 'Create a goal', icon: 'i-lucide-plus', onClick: () => open() }]"
       />
 

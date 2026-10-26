@@ -148,7 +148,7 @@ const permissionOptions = [
           label="Update balance"
           name="balance"
           :error="errors.balance || undefined"
-          :help="`Now ${format(account.balanceMinor, account.currency)}. Joxi records today’s balance in the history.`"
+          :help="`Now ${format(account.balanceMinor, account.currency)}. ViteHub Finance records today’s balance in the history.`"
         >
           <div class="flex gap-2">
             <UInput

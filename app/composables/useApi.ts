@@ -47,7 +47,7 @@ const request = $fetch as unknown as <R>(url: string, options?: { query?: Record
  * through to the SPA. Without this the page would treat a string as its data.
  */
 export function expectJson<T>(value: T): T {
-  if (typeof value === "string") throw new Error("This part of Joxi isn’t available on this server yet.")
+  if (typeof value === "string") throw new Error("This part of ViteHub Finance isn’t available on this server yet.")
   return value
 }
 

@@ -2,7 +2,7 @@
 import type { DropdownMenuItem } from "@nuxt/ui"
 
 // The sidebar's header: the household as a workspace switcher (shadcn's TeamSwitcher), with its members and settings.
-// Joxi has one household per person, so it opens the household's own pages instead of a list of others.
+// ViteHub Finance has one household per person, so it opens the household's own pages instead of a list of others.
 defineProps<{ collapsed?: boolean }>()
 const { data: me } = useMe()
 const items = computed<DropdownMenuItem[][]>(() => [
@@ -29,7 +29,7 @@ const subtitle = computed(() => {
     >
       <AppLogo mark-only />
       <span v-if="!collapsed" class="min-w-0 flex-1 leading-tight">
-        <span class="block truncate text-sm font-semibold text-highlighted">{{ me?.household.name ?? "Joxi" }}</span>
+        <span class="block truncate text-sm font-semibold text-highlighted">{{ me?.household.name ?? "ViteHub Finance" }}</span>
         <span class="block truncate text-xs text-muted">{{ subtitle }}</span>
       </span>
       <UIcon v-if="!collapsed" name="i-lucide-chevrons-up-down" class="size-4 shrink-0 text-dimmed" />

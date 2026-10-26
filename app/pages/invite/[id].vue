@@ -125,7 +125,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
       <p class="mt-2 text-sm text-muted">
         Invitations work for 7 days and only once. Ask whoever invited you to send a new one from their Household page.
       </p>
-      <UButton block class="mt-6" color="neutral" variant="outline" label="Go to Joxi" to="/" />
+      <UButton block class="mt-6" color="neutral" variant="outline" label="Go to ViteHub Finance" to="/" />
       <UButton v-if="loadError" block class="mt-2" color="neutral" variant="ghost" label="Try again" @click="refresh()" />
     </template>
 

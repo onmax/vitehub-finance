@@ -15,7 +15,7 @@ import { createHousehold } from "./utils/household"
  * Who can sign in, and how.
  *
  * Email and password, a passkey, or (when the build has Email) a magic link; two-factor is optional per person.
- * `JOXI_ALLOWED_EMAILS` keeps a private Joxi private: only those emails, plus anyone a household invited, can sign up.
+ * `FINANCE_ALLOWED_EMAILS` keeps a private ViteHub Finance private: only those emails, plus anyone a household invited, can sign up.
  *
  * A household is a Better Auth organization. Signing up makes your own, unless an invitation is waiting for your
  * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in.
@@ -24,20 +24,20 @@ import { createHousehold } from "./utils/household"
  * that can't do OAuth use a personal API key (`apiKey`) as a bearer token instead.
  */
 export default defineAuth(({ env, requestOrigin }) => ({
-  appName: "Joxi",
+  appName: "ViteHub Finance",
   baseURL: requestOrigin,
   secret: env.auth.secret.unseal(),
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // Mounted by server/api/auth/[...all].ts: the Nuxt module doesn't add ViteHub's generated Auth route.
   route: false,
   emailAndPassword: { enabled: true, minPasswordLength: 10 },
-  // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in Joxi needs.
+  // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in ViteHub Finance needs.
   disabledPaths: ["/token"],
   databaseHooks: {
     user: {
       create: {
         before: async (person) => {
-          if (isAllowedEmail(person.email, env.joxi.allowedEmails.unseal())) return
+          if (isAllowedEmail(person.email, env.finance.allowedEmails.unseal())) return
           return (await pendingInvitation(person.email)) ? undefined : false
         },
         // Invited people join the inviter's household from the invitation page; everyone else gets their own.
@@ -76,24 +76,24 @@ export default defineAuth(({ env, requestOrigin }) => ({
       sendInvitationEmail: async ({ id, email, inviter, organization: household }) => {
         await send({
           to: email,
-          subject: `${inviter.user.name} invited you to ${household.name} on Joxi`,
-          text: `${inviter.user.name} wants to share finances with you on Joxi.\n\nJoin here: ${requestOrigin}/invite/${id}\n\nThe link works for 7 days.`,
+          subject: `${inviter.user.name} invited you to ${household.name} on ViteHub Finance`,
+          text: `${inviter.user.name} wants to share finances with you on ViteHub Finance.\n\nJoin here: ${requestOrigin}/invite/${id}\n\nThe link works for 7 days.`,
         })
       },
     }),
     passkey({
       rpID: new URL(requestOrigin).hostname,
-      rpName: "Joxi",
+      rpName: "ViteHub Finance",
       origin: requestOrigin,
     }),
-    twoFactor({ issuer: "Joxi" }),
+    twoFactor({ issuer: "ViteHub Finance" }),
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        await send({ to: email, subject: "Sign in to Joxi", text: `Sign in to Joxi: ${url}\n\nThe link works for 5 minutes.` })
+        await send({ to: email, subject: "Sign in to ViteHub Finance", text: `Sign in to ViteHub Finance: ${url}\n\nThe link works for 5 minutes.` })
       },
     }),
     apiKey({
-      defaultPrefix: "joxi_",
+      defaultPrefix: "fin_",
       enableMetadata: true,
       rateLimit: { enabled: true, timeWindow: 60 * 1000, maxRequests: 120 },
     }),

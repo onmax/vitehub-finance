@@ -6,7 +6,7 @@ import type { Scope } from "#shared/api"
  * `?scope=` and puts it in its key, so views refetch when it changes. With one member there is nothing to narrow.
  */
 export function useScope() {
-  const stored = useStorage<Scope>("joxi:scope", "household")
+  const stored = useStorage<Scope>("finance:scope", "household")
   const shared = useShared()
   return computed<Scope>({
     get: () => (shared.value ? stored.value : "household"),

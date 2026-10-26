@@ -29,7 +29,7 @@ async function submit() {
       if (/already exists/i.test(failure.message ?? "") || failure.code === "USER_ALREADY_EXISTS") {
         throw new Error("There’s already an account with this email. Sign in instead.")
       }
-      // The server's user hook refuses emails outside JOXI_ALLOWED_EMAILS that no household invited.
+      // The server's user hook refuses emails outside FINANCE_ALLOWED_EMAILS that no household invited.
       if (failure.status === 422 || failure.status === 403 || /create user/i.test(failure.message ?? "")) {
         refused.value = true
         return
@@ -87,7 +87,7 @@ async function submit() {
         color="neutral"
         variant="subtle"
         icon="i-lucide-lock"
-        title="This Joxi is private"
+        title="This ViteHub Finance is private"
         description="Only allowed emails can sign up here. If someone invited you, open the link in their invitation and sign up with that email."
       />
       <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>

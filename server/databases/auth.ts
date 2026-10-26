@@ -76,7 +76,7 @@ export const verification = sqliteTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 )
 
-/** A household. Better Auth calls it an organization; Joxi never does in the UI. */
+/** A household. Better Auth calls it an organization; ViteHub Finance never does in the UI. */
 export const organization = sqliteTable(
   "organization",
   {

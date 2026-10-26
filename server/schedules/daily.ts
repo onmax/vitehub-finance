@@ -47,10 +47,10 @@ export default defineSchedule({
         await step(async () => {
           await send({
             to: row.email,
-            subject: `Reconnect ${row.name} in Joxi`,
+            subject: `Reconnect ${row.name} in ViteHub Finance`,
             text: [
-              `Your consent for ${row.name} ends on ${until}. After that, Joxi can't fetch its balances and transactions.`,
-              origin ? `Reconnect it here (it takes a minute at your bank): ${origin}/connect` : "Open Joxi and reconnect it on the Connect page.",
+              `Your consent for ${row.name} ends on ${until}. After that, ViteHub Finance can't fetch its balances and transactions.`,
+              origin ? `Reconnect it here (it takes a minute at your bank): ${origin}/connect` : "Open ViteHub Finance and reconnect it on the Connect page.",
             ].join("\n\n"),
           })
           await db.update(connection).set({ remindedAt: new Date(now) }).where(eq(connection.id, row.id))
@@ -67,12 +67,12 @@ export default defineSchedule({
     const active = await db.select({ id: connection.id }).from(connection).where(inArray(connection.status, ["active", "error"]))
     for (const { id } of active) {
       await dispatchSync(id, "schedule").catch((error) => {
-        console.error(`[joxi] Scheduled sync of ${id} failed: ${errorMessage(error)}`)
+        console.error(`[finance] Scheduled sync of ${id} failed: ${errorMessage(error)}`)
         errors.push(error)
       })
     }
 
-    if (errors.length) console.warn(`[joxi] Daily run finished with ${errors.length} failure(s).`)
+    if (errors.length) console.warn(`[finance] Daily run finished with ${errors.length} failure(s).`)
     return { synced: active.length, failures: errors.length }
   },
 })

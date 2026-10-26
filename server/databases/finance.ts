@@ -1,4 +1,4 @@
-// Joxi's own tables. Money is stored in minor units (cents) as integers, in the row's own currency.
+// ViteHub Finance's own tables. Money is stored in minor units (cents) as integers, in the row's own currency.
 // Every row carries its household; every account carries its owner, and only the owner sees a private account.
 import { sql } from "drizzle-orm"
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"

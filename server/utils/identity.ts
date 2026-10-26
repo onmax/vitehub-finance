@@ -7,7 +7,7 @@ import { db } from "vite-hub/database/drizzle"
 import { member, oauthClient, user as users } from "../databases/config"
 import type auth from "../auth"
 
-type JoxiAuth = Auth<ReturnType<typeof auth.options>>
+type FinanceAuth = Auth<ReturnType<typeof auth.options>>
 
 /** Who is calling, in which household, and how: in the browser, through an MCP client, or with an API key. */
 export interface Member {
@@ -21,20 +21,20 @@ export interface Member {
   clientName?: string
 }
 
-export const authFor = (event: H3Event) => getAuthForRequest(event.req, undefined, event) as unknown as JoxiAuth
+export const authFor = (event: H3Event) => getAuthForRequest(event.req, undefined, event) as unknown as FinanceAuth
 
 export const bearerFrom = (headers: Headers) => headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null
 
 /** Resolved once per request. Null when nobody is signed in or they belong to no household. */
 export function identify(event: H3Event): Promise<Member | null> {
-  return ((event.context as { joxiMember?: Promise<Member | null> }).joxiMember ??= resolve(event))
+  return ((event.context as { financeMember?: Promise<Member | null> }).financeMember ??= resolve(event))
 }
 
 export async function requireMember(event: H3Event): Promise<Member> {
   const who = await identify(event)
   if (who) return who
-  event.res.headers.set("WWW-Authenticate", 'Bearer realm="joxi"')
-  throw new HTTPError({ status: 401, statusText: "Sign in, or connect through Joxi's MCP server." })
+  event.res.headers.set("WWW-Authenticate", 'Bearer realm="vitehub-finance"')
+  throw new HTTPError({ status: 401, statusText: "Sign in, or connect through ViteHub Finance's MCP server." })
 }
 
 /** Household owners manage people and household settings. Agents never do, whoever connected them. */
@@ -47,7 +47,7 @@ export async function requireOwner(event: H3Event): Promise<Member> {
 
 async function resolve(event: H3Event): Promise<Member | null> {
   const token = bearerFrom(event.req.headers)
-  if (token) return token.startsWith("joxi_") ? fromApiKey(event, token) : fromAccessToken(event, token)
+  if (token) return token.startsWith("fin_") ? fromApiKey(event, token) : fromAccessToken(event, token)
   const session = await authFor(event)
     .api.getSession({ headers: event.req.headers })
     .catch(() => null)
@@ -59,7 +59,7 @@ async function resolve(event: H3Event): Promise<Member | null> {
 // Signing keys read in-process (a Worker fetching its own hostname loops). Better Auth caches them per isolate.
 const signingKeys = {}
 
-/** An MCP client's OAuth access token: a JWT this Joxi issued for its own `/mcp`. */
+/** An MCP client's OAuth access token: a JWT this ViteHub Finance issued for its own `/mcp`. */
 async function fromAccessToken(event: H3Event, token: string) {
   const origin = event.url.origin
   const payload = await verifyJwsAccessToken(token, {

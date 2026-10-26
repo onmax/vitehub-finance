@@ -122,7 +122,7 @@ const expiry = (key: ApiKey) => {
   <UModal
     v-model:open="open"
     :title="created ? 'Copy your key' : 'Create an API key'"
-    :description="created ? 'This is the only time Joxi shows it. Store it somewhere safe, like a password manager.' : 'Send it as a bearer token to Joxi’s MCP server or REST API.'"
+    :description="created ? 'This is the only time ViteHub Finance shows it. Store it somewhere safe, like a password manager.' : 'Send it as a bearer token to ViteHub Finance’s MCP server or REST API.'"
     :dismissible="!created"
     :ui="{ content: 'max-w-md' }"
   >

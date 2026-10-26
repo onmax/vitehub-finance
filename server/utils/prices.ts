@@ -47,7 +47,7 @@ async function coingecko(symbols: string[], currency: string): Promise<Record<st
         result[symbol] = typeof price === "number" && Number.isFinite(price) ? price : null
       }
     } catch (error) {
-      console.warn("[joxi] Crypto prices unavailable", error)
+      console.warn("[finance] Crypto prices unavailable", error)
       return null
     }
   }

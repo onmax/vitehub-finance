@@ -27,7 +27,7 @@ defineShortcuts(Object.fromEntries([...MAIN_PAGES, ...SECONDARY_PAGES].map((page
 </script>
 
 <template>
-  <UDashboardGroup unit="rem" storage="local" storage-key="joxi-sidebar">
+  <UDashboardGroup unit="rem" storage="local" storage-key="finance-sidebar">
     <UDashboardSidebar
       id="nav"
       v-model:open="open"

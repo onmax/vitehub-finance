@@ -160,7 +160,7 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
   const started = Date.now()
   try {
     const credentials = await unseal<unknown>(row.credentials).catch(() => {
-      throw new ProviderError("expired", "The stored credentials can't be read (was JOXI_ENCRYPTION_KEY changed?). Reconnect.")
+      throw new ProviderError("expired", "The stored credentials can't be read (was FINANCE_ENCRYPTION_KEY changed?). Reconnect.")
     })
     if (!credentials) throw new ProviderError("expired", "This connection has no credentials. Reconnect it.")
     const initial = trigger === "link" || !row.lastSyncedAt
@@ -192,18 +192,18 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
         added += outcome.added
         touched.push(outcome.accountId)
       } catch (error) {
-        console.error(`[joxi] Sync of ${row.id} failed for account ${remote.externalId}`, error)
+        console.error(`[finance] Sync of ${row.id} failed for account ${remote.externalId}`, error)
         failures.push(`${remote.name}: ${errorMessage(error)}`)
       }
     }
     if (!touched.length && failures.length) throw new Error(failures.join("; "))
 
     if (touched.length)
-      await detectRecurring(row.householdId, touched).catch((error) => console.error("[joxi] Recurring detection failed", error))
+      await detectRecurring(row.householdId, touched).catch((error) => console.error("[finance] Recurring detection failed", error))
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial)
       for (const accountId of touched)
-        await backfillSnapshots(accountId).catch((error) => console.error("[joxi] Snapshot backfill failed", error))
+        await backfillSnapshots(accountId).catch((error) => console.error("[finance] Snapshot backfill failed", error))
 
     const partial = failures.length ? `${failures.length} of ${result.accounts.length} accounts failed: ${failures.join("; ")}` : null
     await db
@@ -224,7 +224,7 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
   } catch (error) {
     const message = errorMessage(error).slice(0, 500)
     const expired = error instanceof ProviderError && error.code === "expired"
-    if (!(error instanceof ProviderError)) console.error(`[joxi] Sync of ${row.id} failed`, error)
+    if (!(error instanceof ProviderError)) console.error(`[finance] Sync of ${row.id} failed`, error)
     await db.update(syncRun).set({ status: "failed", error: message, finishedAt: new Date() }).where(eq(syncRun.id, runId))
     await db
       .update(connection)

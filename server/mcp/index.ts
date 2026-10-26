@@ -10,12 +10,12 @@ import searchTransactions from "./tools/search_transactions"
 import spendingByCategory from "./tools/spending_by_category"
 
 /**
- * Joxi's MCP server (nitro-mcp-toolkit on h3-mcp), one file per tool. Each tool is a thin wrapper over the utils the
+ * ViteHub Finance's MCP server (nitro-mcp-toolkit on h3-mcp), one file per tool. Each tool is a thin wrapper over the utils the
  * REST API uses, so an agent sees exactly what its user sees: never another member's private account.
  *
  * It's an OAuth 2.1 protected resource: a `401` points at `/.well-known/oauth-protected-resource/mcp`, which names
- * Joxi's Better Auth as the authorization server. A bearer is either a JWT Joxi issued for this `/mcp` or a personal
- * `joxi_` API key; `identify` checks both. The resource is the request's origin plus `/mcp`, so the handler is built
+ * ViteHub Finance's Better Auth as the authorization server. A bearer is either a JWT ViteHub Finance issued for this `/mcp` or a personal
+ * `fin_` API key; `identify` checks both. The resource is the request's origin plus `/mcp`, so the handler is built
  * once per origin.
  */
 const servers = new Map<string, { mcp: McpHandler; oauth: McpOAuth }>()

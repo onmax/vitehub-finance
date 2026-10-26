@@ -26,7 +26,7 @@ const RANGES = [
 ]
 const range = ref(90)
 
-// Joxi snapshots balances daily from the day an account arrives. A manual account with an imported CSV has its past in
+// ViteHub Finance snapshots balances daily from the day an account arrives. A manual account with an imported CSV has its past in
 // its transactions instead: walk back from today's balance through them (the latest 200), and say it's an estimate.
 const estimated = ref<Array<{ date: string; balanceMinor: number }> | null>(null)
 watch(
@@ -206,10 +206,10 @@ function updated(next: AccountSummary) {
                 />
                 <p v-if="estimated && points.length > 1" class="mt-3 flex items-center gap-1.5 text-xs text-muted">
                   <UIcon name="i-lucide-info" class="size-3.5 shrink-0" />
-                  Estimated from this account’s transactions until Joxi has daily balances of its own.
+                  Estimated from this account’s transactions until ViteHub Finance has daily balances of its own.
                 </p>
                 <p v-else-if="points.length <= 1" class="grid h-40 place-items-center text-center text-sm text-muted">
-                  Joxi records the balance every day. The chart fills in from tomorrow.
+                  ViteHub Finance records the balance every day. The chart fills in from tomorrow.
                 </p>
               </section>
 

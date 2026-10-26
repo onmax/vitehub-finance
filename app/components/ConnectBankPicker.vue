@@ -2,7 +2,7 @@
 import { useLocalStorage } from "@vueuse/core"
 import type { Bank, ProviderInfo } from "#shared/api"
 
-// Banks over PSD2 through Enable Banking: pick a country, find the bank, and go to its consent page. On a Joxi without
+// Banks over PSD2 through Enable Banking: pick a country, find the bank, and go to its consent page. On a ViteHub Finance without
 // Enable Banking's credentials it explains the setup instead.
 const props = defineProps<{ error?: string | null }>()
 const emit = defineEmits<{ dismissError: [] }>()
@@ -10,7 +10,7 @@ const emit = defineEmits<{ dismissError: [] }>()
 const COUNTRIES = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "GB"]
 const names = new Intl.DisplayNames(typeof navigator === "undefined" ? undefined : navigator.language, { type: "region" })
 const countryItems = COUNTRIES.map((code) => ({ value: code, label: names.of(code) ?? code })).sort((a, b) => a.label.localeCompare(b.label))
-const country = useLocalStorage("joxi:bank-country", "ES")
+const country = useLocalStorage("finance:bank-country", "ES")
 
 const { data: providers, status: providersStatus } = useScopedFetch<ProviderInfo[]>("/api/connect/providers", {
   key: "providers",
@@ -78,9 +78,9 @@ const shownError = computed(() => connectError.value || props.error || "")
     </div>
 
     <div v-else-if="!configured" class="rounded-lg border border-dashed border-default p-4">
-      <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this Joxi</p>
+      <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this ViteHub Finance</p>
       <p class="mt-1.5 text-sm text-muted">
-        Joxi reads banks through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
+        ViteHub Finance reads banks through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
         which is free for your own accounts. Create an app there, set <code class="font-mono text-xs">ENABLE_BANKING_APP_ID</code> and
         <code class="font-mono text-xs">ENABLE_BANKING_PRIVATE_KEY</code> on the server, and restart it. Until then, import a CSV from your bank.
       </p>
@@ -137,7 +137,7 @@ const shownError = computed(() => connectError.value || props.error || "")
         />
       </template>
       <p class="text-xs text-muted">
-        You sign in at your bank, which shares read-only access for up to 180 days. Joxi never sees your bank password and can’t move money.
+        You sign in at your bank, which shares read-only access for up to 180 days. ViteHub Finance never sees your bank password and can’t move money.
       </p>
     </template>
   </div>

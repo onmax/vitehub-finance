@@ -34,7 +34,7 @@ export async function readValid<S extends v.GenericSchema>(event: H3Event, schem
   throw fail(400, path ? `${path}: ${issue.message}` : issue.message)
 }
 
-/** Enable Banking's app id and key, or null when this Joxi has none. */
+/** Enable Banking's app id and key, or null when this ViteHub Finance has none. */
 export function bankConfig(): EnableBankingConfig | null {
   const env = useServerEnv()
   const appId = env.enableBanking.appId?.trim()
@@ -47,7 +47,7 @@ export function requireBankConfig() {
   if (!config)
     throw fail(
       503,
-      "Bank connections aren't set up on this Joxi. Set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY (enablebanking.com) and restart.",
+      "Bank connections aren't set up on this ViteHub Finance. Set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY (enablebanking.com) and restart.",
     )
   return config
 }

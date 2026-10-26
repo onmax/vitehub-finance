@@ -98,7 +98,7 @@ const change = computed(() => (forecast.value && end.value ? end.value.balanceMi
           class="absolute inset-0 bg-default/80"
           icon="i-lucide-chart-line"
           title="No forecast yet"
-          description="Connect an account and Joxi projects your balance from your income, bills, and usual spending."
+          description="Connect an account and ViteHub Finance projects your balance from your income, bills, and usual spending."
           :actions="[{ label: 'Connect an account', icon: 'i-lucide-plug', to: '/connect' }]"
         />
       </div>

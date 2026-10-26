@@ -1,10 +1,10 @@
-# Joxi
+# ViteHub Finance
 
 Household finance on ViteHub. People sign up, get a household (a Better Auth organization), invite a partner, connect
 banks (Enable Banking, PSD2), crypto exchanges, and wallets, and see their money together: accounts, transactions,
 recurring payments, budgets, goals, and a cash-flow forecast. An MCP server lets their agents read it.
 
-Private by default (`JOXI_ALLOWED_EMAILS`), forkable, deployable to Cloudflare or any Node host.
+Private by default (`FINANCE_ALLOWED_EMAILS`), forkable, deployable to Cloudflare or any Node host.
 
 ## Stack
 
@@ -49,7 +49,7 @@ accounts. The daily Schedule (`server/schedules/daily.ts`) dispatches every acti
 ## Commands
 
 Run heavy commands through `heavy` (shared machine): `heavy pnpm typecheck`, `HEAVY_WAIT=0 heavy pnpm build`.
-`JOXI_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
+`FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
 
 ## API
 
@@ -89,4 +89,4 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `POST /api/connections/:id/reconnect` | | `{ url }` (bank connections) |
 | `DELETE /api/connections/:id` | `keepAccounts=1` | `{ ok }` |
 | `GET /api/connections/:id/runs` | | `SyncRun[]` |
-| `POST /mcp` | OAuth bearer or `joxi_` API key | MCP (Streamable HTTP) |
+| `POST /mcp` | OAuth bearer or `fin_` API key | MCP (Streamable HTTP) |
