@@ -56,7 +56,9 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
     <h2>Who sees what</h2>
     <p>
       Accounts shared with your household are visible to its members. A private account is visible only to its owner, in
-      every list, total, chart, API response, and agent tool. Agents and API keys you connect see what you see. Your data is
+      every list, total, chart, API response, and agent tool. On a shared account, its owner can mark a single transaction
+      “Only me”: the rest of the household doesn’t see it anywhere, though the account’s balance still includes it. Agents
+      and API keys you connect see what you see. Your data is
       never sold or shared with anyone else. If this instance sends email (invitations, sign-in links, consent reminders),
       those messages go through its email provider.
     </p>

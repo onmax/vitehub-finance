@@ -1,7 +1,7 @@
 import { and, eq, inArray, or, type SQL } from "drizzle-orm"
 import { type H3Event, HTTPError } from "h3"
 import { db } from "vite-hub/database/drizzle"
-import { financialAccount } from "../databases/config"
+import { financialAccount, transaction } from "../databases/config"
 import { canEdit, canView, type AccountAccess, type Scope } from "#shared/access"
 import type { Member } from "./identity"
 
@@ -14,14 +14,27 @@ export function scopeOf(event: H3Event): Scope {
 
 /**
  * The accounts someone may see: their own, plus the ones another member shared with the household. A private account
- * never leaves its owner, in any view, list, total, MCP tool, or API response. Every query that reads accounts or their
- * transactions goes through this condition or `visibleAccountIds`.
+ * never leaves its owner, in any view, list, total, MCP tool, or API response. Every query that reads accounts goes
+ * through this condition or `visibleAccountIds`; queries that read transactions go through `visibleTransactions`.
  */
 export function visibleAccounts(who: Pick<Member, "userId" | "householdId">, scope: Scope = "household"): SQL {
   const mine = eq(financialAccount.ownerId, who.userId)
   return and(
     eq(financialAccount.householdId, who.householdId),
     scope === "me" ? mine : or(mine, eq(financialAccount.visibility, "household")),
+  )!
+}
+
+/**
+ * The transactions someone may see: those of their visible accounts, minus the ones another member hid (`hidden`: only
+ * the account's owner sees it). Every query that reads transactions, their sums, or anything derived from them uses
+ * this condition, joined with `financial_account` on `transaction.accountId`.
+ */
+export function visibleTransactions(who: Pick<Member, "userId" | "householdId">, scope: Scope = "household"): SQL {
+  return and(
+    visibleAccounts(who, scope),
+    eq(transaction.householdId, who.householdId),
+    or(eq(transaction.hidden, false), eq(financialAccount.ownerId, who.userId)),
   )!
 }
 

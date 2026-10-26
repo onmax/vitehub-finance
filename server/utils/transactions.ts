@@ -2,9 +2,9 @@ import { and, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql, type SQL } f
 import { HTTPError } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import type { Transaction, TransactionPage } from "#shared/api"
-import { canEdit } from "#shared/access"
+import { canEdit, canHide, canSeeTransaction } from "#shared/access"
 import { category, financialAccount, transaction, user as users } from "../databases/config"
-import { requireAccount, visibleAccounts, type Scope } from "./access"
+import { requireAccount, visibleTransactions, type Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
 import { applyRule, ensureRule, similarMatch, textMatches } from "./categorize"
 import { decodeCursor, encodeCursor } from "./cursor"
@@ -38,19 +38,22 @@ const columns = {
   ownerName: users.name,
 }
 
-/** Transactions on the caller's visible accounts (the only way this module reads them). */
+/** Transactions the caller may see (the only way this module reads them): visible accounts, without others' hidden rows. */
 function selectVisible(who: Pick<Member, "userId" | "householdId">, scope: Scope, where?: SQL) {
   return db
     .select(columns)
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
     .innerJoin(users, eq(users.id, financialAccount.ownerId))
-    .where(and(visibleAccounts(who, scope), eq(transaction.householdId, who.householdId), where))
+    .where(and(visibleTransactions(who, scope), where))
 }
 
 type Joined = Awaited<ReturnType<typeof selectVisible>>[number]
 
-/** The accounts on the other side of these rows' transfers, by transferId: only accounts the caller may see. */
+/**
+ * The accounts on the other side of these rows' transfers, by transferId: only accounts the caller may see, and only
+ * through a row they may see, so a hidden side never shows up as "To/From <account>" on its partner.
+ */
 async function transferPartners(who: Pick<Member, "userId" | "householdId">, rows: Joined[]) {
   const ids = [...new Set(rows.map((row) => row.row.transferId).filter((id): id is string => !!id))]
   const partners = new Map<string, Array<{ id: string; accountName: string }>>()
@@ -59,7 +62,7 @@ async function transferPartners(who: Pick<Member, "userId" | "householdId">, row
       .select({ id: transaction.id, transferId: transaction.transferId, accountName: financialAccount.name })
       .from(transaction)
       .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
-      .where(and(visibleAccounts(who, "household"), inArray(transaction.transferId, ids.slice(index, index + 90))))
+      .where(and(visibleTransactions(who, "household"), inArray(transaction.transferId, ids.slice(index, index + 90))))
     for (const row of found) partners.set(row.transferId!, [...(partners.get(row.transferId!) ?? []), row])
   }
   return (row: Joined) => {
@@ -68,7 +71,7 @@ async function transferPartners(who: Pick<Member, "userId" | "householdId">, row
   }
 }
 
-function toTransaction(row: Joined, who: Pick<Member, "userId">, transferWith: string | null = null): Transaction {
+function toTransaction(row: Joined, who: Pick<Member, "userId" | "via">, transferWith: string | null = null): Transaction {
   const t = row.row
   return {
     id: t.id,
@@ -85,8 +88,10 @@ function toTransaction(row: Joined, who: Pick<Member, "userId">, transferWith: s
     note: t.note,
     status: t.status,
     excluded: t.excluded,
+    hidden: t.hidden,
     transferWith,
     canEdit: canEdit(row, who.userId),
+    canHide: canHide(row, who.userId) && who.via === "browser",
   }
 }
 
@@ -146,7 +151,7 @@ export async function searchTransactions(
   return { items: page.map((row) => toTransaction(row, who, partner(row))), nextCursor, totals }
 }
 
-/** In and out (positive) over the matches, without excluded rows; `count` counts every match. */
+/** In and out (positive) over the matches, without excluded rows; `count` counts every match the caller may see. */
 async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, convert: Converter) {
   const rows = await db
     .select({
@@ -157,7 +162,7 @@ async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, con
     })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
-    .where(and(visibleAccounts(who, scope), eq(transaction.householdId, who.householdId), where))
+    .where(and(visibleTransactions(who, scope), where))
     .groupBy(transaction.currency)
   return rows.reduce(
     (sum, row) => ({
@@ -178,12 +183,15 @@ export interface TransactionChange {
   categoryId?: string | null
   note?: string | null
   excluded?: boolean
+  hidden?: boolean
   applyToSimilar?: boolean
 }
 
 /**
  * Categorize, annotate, or exclude one transaction on an account the caller may edit. A category picked by hand locks
  * it against rules; `applyToSimilar` also saves a rule and gives the category to similar uncategorized transactions.
+ * Hiding it from the household (`hidden`) is the account owner's call, made in the browser: agents and API keys act
+ * for the person but never decide who sees what. Someone else's hidden transaction is a 404, like a private account's.
  */
 export async function updateTransaction(who: Member, id: string, change: TransactionChange) {
   const [row] = await db
@@ -196,7 +204,10 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   const account = await requireAccount(who, row.accountId).catch(() => {
     throw notFound
   })
+  if (!canSeeTransaction(account, row, who.userId)) throw notFound
   if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "This account is shared view-only." })
+  if (change.hidden !== undefined && (!canHide(account, who.userId) || who.via !== "browser"))
+    throw new HTTPError({ status: 403, statusText: "Only the account's owner hides its transactions, in the browser." })
   if (change.categoryId) {
     const [found] = await db
       .select({ id: category.id })
@@ -209,22 +220,27 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   if (change.categoryId !== undefined) Object.assign(set, { categoryId: change.categoryId, categoryLocked: true })
   if (change.note !== undefined) set.note = change.note?.trim() || null
   if (change.excluded !== undefined) set.excluded = change.excluded
+  if (change.hidden !== undefined) set.hidden = change.hidden
   if (Object.keys(set).length) await db.update(transaction).set(set).where(eq(transaction.id, id))
   // Someone said one side of a detected transfer is something else: the two rows stop being a pair.
   if (change.categoryId !== undefined && row.transferId && !(await isTransferCategory(change.categoryId))) await unpairTransfer(row.transferId)
 
   if (change.applyToSimilar && change.categoryId) {
     const match = similarMatch(row)
-    // Rules are household-wide and every member lists them, so a private account's counterparty never becomes one:
-    // similar transactions on the caller's own accounts get the category, and no rule is saved.
-    if (match && account.visibility === "private") await applyRule(who, match, change.categoryId, { ownOnly: true })
+    // Rules are household-wide and every member lists them, so the counterparty of a private account or a hidden
+    // transaction never becomes one: similar transactions on the caller's own accounts get the category, and no rule
+    // is saved.
+    if (match && (account.visibility === "private" || (change.hidden ?? row.hidden)))
+      await applyRule(who, match, change.categoryId, { ownOnly: true })
     else if (match) {
       await ensureRule(who.householdId, match, change.categoryId)
       await applyRule(who, match, change.categoryId)
     }
   }
-  // Excluding a charge (a duplicate the bank sent) changes which payments repeat.
-  if (change.excluded !== undefined && change.excluded !== row.excluded) await detectRecurring(who.householdId, [row.accountId])
+  // Excluding a charge (a duplicate the bank sent) changes which payments repeat; so does hiding one, since recurring
+  // payments are seen by everyone who sees the account.
+  if ((change.excluded !== undefined && change.excluded !== row.excluded) || (change.hidden !== undefined && change.hidden !== row.hidden))
+    await detectRecurring(who.householdId, [row.accountId])
   return (await getTransaction(who, id))!
 }
 
@@ -272,8 +288,7 @@ export async function cashFlow(who: Member, options: FlowOptions, convert: Conve
 
 function flowConditions(who: Member, options: FlowOptions) {
   return and(
-    visibleAccounts(who, options.scope),
-    eq(transaction.householdId, who.householdId),
+    visibleTransactions(who, options.scope),
     eq(transaction.excluded, false),
     gte(transaction.date, options.from),
     lte(transaction.date, options.to),
@@ -291,8 +306,7 @@ export async function movedOut(who: Member, options: FlowOptions, convert: Conve
     .innerJoin(category, eq(category.id, transaction.categoryId))
     .where(
       and(
-        visibleAccounts(who, options.scope),
-        eq(transaction.householdId, who.householdId),
+        visibleTransactions(who, options.scope),
         eq(transaction.excluded, false),
         gte(transaction.date, options.from),
         lte(transaction.date, options.to),
@@ -347,7 +361,7 @@ export async function flowByCategory(who: Member, options: FlowOptions, convert:
   return totals
 }
 
-/** Raw rows of visible accounts for in-memory analysis (forecast's variable spending). */
+/** Raw visible rows for in-memory analysis (forecast's variable spending). */
 export async function flowRows(who: Member, options: FlowOptions) {
   return db
     .select({

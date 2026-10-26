@@ -176,6 +176,9 @@ export const transaction = sqliteTable(
       .default("booked"),
     // Hidden from spending and forecasts (a refund pair, a duplicate the bank sent).
     excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
+    // Only the account's owner sees it (a gift, a personal purchase), even on a shared account. server/utils/access.ts
+    // `visibleTransactions` applies it; the balance, which the bank reports, still includes it.
+    hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
     // Shared by the two rows of one move between the household's accounts (server/utils/transfers.ts).
     transferId: text("transfer_id"),
     createdAt: createdAt(),

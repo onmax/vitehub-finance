@@ -16,3 +16,10 @@ export const canEdit = (account: AccountAccess, userId: string) =>
   account.ownerId === userId || (account.visibility === "household" && account.householdPermission === "edit")
 
 export const canManage = (account: AccountAccess, userId: string) => account.ownerId === userId
+
+/** A hidden transaction stays with its account's owner: nobody else sees it, in any list or total. */
+export const canSeeTransaction = (account: AccountAccess, transaction: { hidden: boolean }, userId: string) =>
+  canView(account, userId) && (!transaction.hidden || account.ownerId === userId)
+
+/** Only the account's owner hides one of its transactions or shows it again. */
+export const canHide = canManage

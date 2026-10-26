@@ -5,7 +5,7 @@ export interface TransferCandidate {
   id: string
   accountId: string
   ownerId: string
-  /** A private account pairs only with accounts of the same owner, so a pair never hints at it. */
+  /** On a private account, or hidden: pairs only with accounts of the same owner, so a pair never hints at it. */
   private: boolean
   /** The account owner's name: a payment to or from yourself is a move between your accounts. */
   ownerName?: string | null

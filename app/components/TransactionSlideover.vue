@@ -2,7 +2,8 @@
 import type { Transaction } from "#shared/api"
 
 // One transaction's details: category, a note (saved as you pause typing or leave the field), whether it counts in
-// totals, and where it came from. View-only accounts show the same, without the controls.
+// totals, whether the rest of the household sees it (the account's owner decides), and where it came from. View-only
+// accounts show the same, without the controls.
 const props = defineProps<{ transaction: Transaction | null }>()
 const open = defineModel<boolean>("open", { default: false })
 const emit = defineEmits<{ saved: [transaction: Transaction]; category: [transaction: Transaction, categoryId: string | null] }>()
@@ -10,10 +11,12 @@ const emit = defineEmits<{ saved: [transaction: Transaction]; category: [transac
 const notify = useNotify()
 const { find } = useCategories()
 const shared = useShared()
+const { data: me } = useMe()
 const note = ref("")
 const savingNote = ref<"idle" | "saving" | "saved">("idle")
 const noteError = ref("")
 const excluding = ref(false)
+const hiding = ref(false)
 watch(
   () => props.transaction?.id,
   () => {
@@ -57,6 +60,19 @@ async function setExcluded(value: boolean) {
   }
 }
 
+async function setHidden(value: boolean) {
+  if (!props.transaction) return
+  hiding.value = true
+  try {
+    await patch({ hidden: value })
+    await refreshStems("overview", "budgets", "recurring", "forecast")
+  } catch (error) {
+    notify.error(error, "Couldn’t change that")
+  } finally {
+    hiding.value = false
+  }
+}
+
 const title = computed(() => props.transaction?.counterparty || props.transaction?.description || "Transaction")
 const category = computed(() => find(props.transaction?.categoryId))
 </script>
@@ -68,6 +84,7 @@ const category = computed(() => find(props.transaction?.categoryId))
         <Monogram :name="title" />
         <Money :minor="transaction.amountMinor" :currency="transaction.currency" tone="in" class="text-2xl font-semibold tracking-[-0.02em] text-highlighted" :class="transaction.excluded && 'line-through'" />
         <UBadge v-if="transaction.status === 'pending'" color="neutral" variant="outline" label="Pending" />
+        <UBadge v-if="transaction.hidden" color="neutral" variant="outline" icon="i-lucide-lock" label="Only you" />
       </div>
 
       <p v-if="transaction.transferWith" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-pretty text-muted">
@@ -110,6 +127,15 @@ const category = computed(() => find(props.transaction?.categoryId))
         label="Leave out of totals"
         description="For duplicates the bank sent. It stays in the list, struck through. Moves between your accounts go in Transfers instead."
         @update:model-value="setExcluded"
+      />
+
+      <USwitch
+        v-if="transaction.canHide && shared"
+        :model-value="transaction.hidden"
+        :loading="hiding"
+        label="Only me"
+        :description="`Others in ${me?.household.name ?? 'your household'} won’t see it in lists, totals, or charts. The account’s balance still includes it.`"
+        @update:model-value="setHidden"
       />
 
       <p v-if="!transaction.canEdit" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-muted">

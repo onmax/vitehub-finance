@@ -49,6 +49,8 @@ export interface DemoTransaction {
   /** Picked by hand: a rule would have chosen another category, or none. */
   locked?: boolean
   note?: string
+  /** Only the account's owner sees it. */
+  hidden?: boolean
 }
 
 export interface DemoGoal {
@@ -136,7 +138,7 @@ export function demoScenario(today: string): DemoScenario {
     description: string,
     counterparty: string | null,
     category: string | null,
-    extra: { locked?: boolean; note?: string; variable?: boolean } = {},
+    extra: { locked?: boolean; note?: string; hidden?: boolean; variable?: boolean } = {},
   ) => {
     if (date < start || date > today) return
     transactions.push({ account, date, amountMinor: Math.round(amount * 100), description, counterparty, category, ...extra })
@@ -313,6 +315,9 @@ export function demoScenario(today: string): DemoScenario {
   add("revolut", xmas(9), -64.99, "Amazon.es", "Amazon", "Gifts", { locked: true, note: "Lego for the nephews" })
   add("revolut", xmas(17), -89.99, "LEGO Store Madrid", "LEGO", "Gifts", { locked: true })
   add("common", xmas(22), -118.4, card(ING_CARD, "MERCADONA MADRID"), "Mercadona", "Groceries", { note: "Nochebuena" })
+
+  // Pablo's present for Lucía, on his shared Revolut but hidden from her: he sees it with a lock, she never does.
+  add("revolut", addDays(today, -6), -145, "Joyeria Grassy Madrid", "Grassy", "Gifts", { locked: true, hidden: true, note: "Lucía's birthday" })
 
   // ── This month's budgets: eating out over its limit, shopping close to it, the rest comfortably under ─────────
   const budget = (name: string) => DEMO_BUDGETS.find((entry) => entry.category === name)!.amountMinor

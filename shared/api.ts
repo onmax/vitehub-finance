@@ -99,9 +99,13 @@ export interface Transaction {
   note: string | null
   status: "booked" | "pending"
   excluded: boolean
+  /** Only the account's owner sees it. Others get it in no list, total, or chart; only the owner gets `hidden: true`. */
+  hidden: boolean
   /** The other account of a detected move between the household's accounts, when the caller can see it. */
   transferWith: string | null
   canEdit: boolean
+  /** The caller owns the account, so they may hide it from the household or show it again. */
+  canHide: boolean
 }
 
 export interface TransactionPage {

@@ -48,7 +48,10 @@ const items = computed(() => data.value?.items ?? [])
       <li v-for="item in items" :key="item.id" class="flex min-h-14 items-center gap-3 px-4 py-2 sm:px-5" :class="item.excluded && 'opacity-60'">
         <Monogram :name="item.counterparty || item.description" />
         <div class="min-w-0 flex-1">
-          <p class="truncate text-sm text-highlighted" :title="item.description">{{ item.counterparty || item.description }}</p>
+          <p class="flex items-center gap-1.5 text-sm text-highlighted">
+            <span class="truncate" :title="item.description">{{ item.counterparty || item.description }}</span>
+            <UIcon v-if="item.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" aria-label="Only you see this" />
+          </p>
           <p class="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             <span class="money shrink-0">{{ formatDay(item.date) }}</span>
             <template v-if="find(item.categoryId)">

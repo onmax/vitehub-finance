@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // End-to-end privacy check against a running ViteHub Finance (BASE_URL, default the dev server): owner A shares one account and
-// keeps one private; member B must never see the private one, its transactions, or anything derived from them, through
-// the REST API or MCP. Exits non-zero on any leak.
+// keeps one private, and hides some transactions on the shared one; member B must never see the private account, the
+// hidden transactions, or anything derived from them (totals, recurring series, transfer labels), through the REST API
+// or MCP. Exits non-zero on any leak.
 //
 //   node scripts/privacy-check.mjs
 //   BASE_URL=https://finance.example.com node scripts/privacy-check.mjs   (needs open sign-ups or allowed emails)
@@ -10,6 +11,7 @@ const BASE = (process.env.BASE_URL || "http://127.0.0.1:3417").replace(/\/$/, ""
 const run = Math.random().toString(36).slice(2, 8)
 const SECRET_NAME = `Secret Stash ${run}`
 const SECRET_MARK = `PRIVMARK${run}`
+const HIDDEN_MARK = `HIDEMARK${run}`
 const failures = []
 let checks = 0
 
@@ -120,6 +122,14 @@ async function main() {
   const importAvailable = (await a.request("POST", `/api/accounts/${shared.id}/import`, { rows: sharedRows })).status < 400
   if (importAvailable) await a.post(`/api/accounts/${secret.id}/import`, { rows: secretRows })
   else console.log("POST /api/accounts/:id/import is not available: checking accounts and balances only.\n")
+  // On the shared account, rows A hides from B: a monthly series, a purchase and income this month, income last month.
+  const hiddenRows = [
+    ...series(`${HIDDEN_MARK} therapy`, -60, `${HIDDEN_MARK} Therapy`),
+    { date: daysAgo(0), amount: -88.8, description: `${HIDDEN_MARK} gift` },
+    { date: daysAgo(0), amount: 750, description: `${HIDDEN_MARK} side income` },
+    { date: monthsAgo(1, 10), amount: 600, description: `${HIDDEN_MARK} side income` },
+  ]
+  if (importAvailable) await a.post(`/api/accounts/${shared.id}/import`, { rows: hiddenRows })
 
   const subscriptions = (await a.get("/api/categories")).find((row) => row.name === "Subscriptions")
   await a.post("/api/budgets", { categoryId: subscriptions.id, amountMinor: 5000 })
@@ -135,13 +145,31 @@ async function main() {
     check(secretTransactions.length === secretRows.length, "A sees their own private transactions (sanity)")
   }
 
-  /** Nothing about the private account may appear anywhere in what B gets. */
+  // A confirms the hidden series, then hides its rows (in Subscriptions, so B's budget would show a leak) and the rest.
+  const hiddenSeries = recurringA.items.find((row) => row.accountId === shared.id && row.name.toLowerCase().includes("therapy"))
+  if (hiddenSeries) await a.must("PATCH", `/api/recurring/${hiddenSeries.id}`, { status: "confirmed" })
+  const toHide = (await a.get(`/api/transactions?account=${shared.id}&q=${HIDDEN_MARK}&limit=200`)).items
+  for (const row of toHide)
+    await a.must("PATCH", `/api/transactions/${row.id}`, { hidden: true, ...(row.amountMinor < 0 ? { categoryId: subscriptions.id } : {}) })
+  const hiddenIds = [...toHide.map((row) => row.id), ...(hiddenSeries ? [hiddenSeries.id] : [])]
+  if (importAvailable) {
+    check(Boolean(hiddenSeries), "A's shared account had the series A then hides (sanity)")
+    const ownView = await a.get(`/api/transactions?account=${shared.id}&limit=200`)
+    check(
+      ownView.items.filter((row) => row.hidden).length === hiddenRows.length && ownView.totals.count === sharedRows.length + hiddenRows.length,
+      "A still sees their hidden rows, marked hidden, and counts them (sanity)",
+    )
+    const ownRecurring = await a.get("/api/recurring")
+    check(!ownRecurring.items.some((row) => row.id === hiddenSeries?.id), "hiding a series' rows removes its recurring row, even a confirmed one")
+  }
+
+  /** Nothing about the private account or the hidden rows may appear anywhere in what B gets. */
   const secretIds = [secret.id, ...secretRecurring, ...secretTransactions]
   const noTrace = (what, value) => {
     // Case-insensitive: rules, for one, store their match lowercased.
     const text = (typeof value === "string" ? value : JSON.stringify(value)).toLowerCase()
-    const found = [SECRET_NAME, SECRET_MARK, ...secretIds].find((needle) => text.includes(needle.toLowerCase()))
-    check(!found, `${what}: no trace of the private account`, found && `found ${found}`)
+    const found = [SECRET_NAME, SECRET_MARK, ...secretIds, HIDDEN_MARK, ...hiddenIds].find((needle) => text.includes(needle.toLowerCase()))
+    check(!found, `${what}: no trace of the private account or hidden rows`, found && `found ${found}`)
   }
 
   console.log("REST as B (before B has accounts of their own):")
@@ -168,6 +196,20 @@ async function main() {
     const edit = await b.request("PATCH", `/api/transactions/${secretTransactions[0]}`, { note: "peek" })
     check(edit.status === 404, `PATCH /api/transactions/<private> is 404 (got ${edit.status})`)
   }
+  const sharedView = await b.get(`/api/transactions?account=${shared.id}&limit=200`)
+  noTrace("GET /api/transactions?account=<shared>", sharedView)
+  check(sharedView.totals.count === (importAvailable ? sharedRows.length : 0), `the shared account's totals leave hidden rows out (${sharedView.totals.count})`)
+  check(sharedView.items.every((row) => !row.hidden && !row.canHide), "B's rows of A's account are neither hidden nor hideable")
+  check((await b.get(`/api/transactions?q=${HIDDEN_MARK}`)).totals.count === 0, "GET /api/transactions?q=<hidden text> finds nothing")
+  if (toHide[0]) {
+    const edit = await b.request("PATCH", `/api/transactions/${toHide[0].id}`, { note: "peek" })
+    check(edit.status === 404, `PATCH /api/transactions/<hidden> is 404 (got ${edit.status})`)
+    noTrace("PATCH /api/transactions/<hidden> body", edit.text)
+  }
+  if (sharedView.items[0]) {
+    const hide = await b.request("PATCH", `/api/transactions/${sharedView.items[0].id}`, { hidden: true })
+    check(hide.status === 403, `B can't hide a row on A's account, even with edit access (got ${hide.status})`)
+  }
 
   const overview = await b.get("/api/overview")
   noTrace("GET /api/overview", overview)
@@ -179,7 +221,12 @@ async function main() {
   const thisMonth = iso(today).slice(0, 7)
   const sharedSpent = sharedRows.filter((row) => row.date.slice(0, 7) === thisMonth && row.amount < 0).reduce((sum, row) => sum - Math.round(row.amount * 100), 0)
   check(spent === (importAvailable ? sharedSpent : 0), `overview spending is the shared account's only (${spent})`)
-  check(overview.month.inMinor === 0, "overview money in excludes the private bonus")
+  check(overview.month.inMinor === 0, "overview money in excludes the private bonus and the hidden income")
+
+  const flow = await b.get("/api/flow")
+  noTrace("GET /api/flow", flow)
+  check(flow.inMinor === 0, `money flow in excludes private and hidden income (${flow.inMinor})`)
+  check(flow.outMinor === (importAvailable ? sharedSpent : 0), `money flow out is the shared account's visible spending (${flow.outMinor})`)
 
   const recurring = await b.get("/api/recurring")
   noTrace("GET /api/recurring", recurring)
@@ -220,6 +267,21 @@ async function main() {
   check(!duplicate || duplicate.recurringIds.every((id) => !secretRecurring.includes(id)), "duplicate insights never use the private series")
   if (importAvailable)
     check(Boolean(duplicate) && duplicate.recurringIds.length === 2, "the couples insight finds the Spotify A and B both pay on shared accounts (sanity)")
+
+  if (importAvailable) {
+    // A pays into B's account, the pair is detected, then A hides their side: B's side must not name A's account.
+    await a.post(`/api/accounts/${shared.id}/import`, { rows: [{ date: daysAgo(1), amount: -250, description: `${HIDDEN_MARK} transfer to own account` }] })
+    await b.post(`/api/accounts/${own.id}/import`, { rows: [{ date: daysAgo(1), amount: 250, description: "Incoming payment" }] })
+    const incoming = async () => (await b.get(`/api/transactions?account=${own.id}&q=incoming payment`)).items[0]
+    check((await incoming())?.transferWith === "Joint checking", "B's incoming payment pairs with A's joint account before A hides it (sanity)")
+    const moveOut = (await a.get(`/api/transactions?account=${shared.id}&q=transfer to own`)).items[0]
+    hiddenIds.push(moveOut.id)
+    await a.must("PATCH", `/api/transactions/${moveOut.id}`, { hidden: true })
+    const after = await incoming()
+    check(after && after.transferWith === null, `B's side of a hidden transfer names no account (got ${after?.transferWith})`)
+    noTrace("B's side of a hidden transfer", after)
+    noTrace("GET /api/transactions after the hidden transfer", await b.get("/api/transactions?limit=200"))
+  }
   noTrace("GET /api/overview?scope=me", await b.get("/api/overview?scope=me"))
 
   console.log("\nMCP as B (API key):")
@@ -251,6 +313,19 @@ async function main() {
   if (secretTransactions[0]) {
     const categorize = await callTool("categorize_transaction", { id: secretTransactions[0], categoryId: "Groceries" })
     check(categorize?.result?.isError === true, "MCP categorize_transaction on a private transaction fails")
+  }
+  if (toHide[0]) {
+    const categorize = await callTool("categorize_transaction", { id: toHide[0].id, categoryId: "Groceries" })
+    check(categorize?.result?.isError === true, "MCP categorize_transaction on a hidden transaction fails")
+    // The error repeats the id it was given; apart from that it must read like one for an id that doesn't exist.
+    const missing = await callTool("categorize_transaction", { id: "no-such-id", categoryId: "Groceries" })
+    const message = (result) => JSON.stringify(result?.result?.content).replace(toHide[0].id, "no-such-id")
+    check(message(categorize) === message(missing), "MCP categorize_transaction answers a hidden id like a missing one")
+  }
+  const ownRow = (await b.get(`/api/transactions?account=${own.id}&limit=1`)).items[0]
+  if (ownRow) {
+    const viaKey = await b.request("PATCH", `/api/transactions/${ownRow.id}`, { hidden: true }, { authorization: `Bearer ${key}` })
+    check(viaKey.status === 403, `an API key can't hide even its owner's transaction (got ${viaKey.status})`)
   }
 
   console.log("\nA removes B from the household:")

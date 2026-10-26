@@ -86,6 +86,7 @@ function onKeydown(event: KeyboardEvent) {
           </div>
           <UBadge v-if="row.original.status === 'pending'" color="neutral" variant="outline" size="sm" label="Pending" class="shrink-0" />
           <UBadge v-if="row.original.excluded" color="neutral" variant="outline" size="sm" icon="i-lucide-eye-off" label="Excluded" class="shrink-0" />
+          <UBadge v-if="row.original.hidden" color="neutral" variant="outline" size="sm" icon="i-lucide-lock" label="Only you" class="shrink-0" />
         </div>
       </template>
       <template #category-cell="{ row }">
@@ -135,7 +136,10 @@ function onKeydown(event: KeyboardEvent) {
             >
               <CategoryIcon :icon="find(row.categoryId)?.icon" :color="find(row.categoryId)?.color" />
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-highlighted">{{ title(row) }}</span>
+                <span class="flex items-center gap-1.5 text-sm font-medium text-highlighted">
+                  <span class="truncate">{{ title(row) }}</span>
+                  <UIcon v-if="row.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" aria-label="Only you see this" />
+                </span>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted">
                   <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
                   <span v-else class="truncate">{{ find(row.categoryId)?.name ?? "Uncategorized" }} · {{ row.accountName }}</span>

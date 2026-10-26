@@ -40,6 +40,7 @@ export async function detectTransfers(householdId: string) {
       ownerId: financialAccount.ownerId,
       ownerName: users.name,
       visibility: financialAccount.visibility,
+      hidden: transaction.hidden,
       date: transaction.date,
       amountMinor: transaction.amountMinor,
       currency: transaction.currency,
@@ -61,9 +62,11 @@ export async function detectTransfers(householdId: string) {
     )
   if (!rows.length) return { paired: 0, marked: 0 }
 
+  // A hidden row pairs like a private account's: only with its owner's own accounts, so no one else's row turns into
+  // a transfer because of it.
   const candidates = rows
     .filter((row) => row.amountMinor !== 0)
-    .map((row) => ({ ...row, private: row.visibility === "private" }))
+    .map((row) => ({ ...row, private: row.visibility === "private" || row.hidden }))
   const toBase = await converterTo(await householdCurrency(householdId))
   const pairs = pairTransfers(candidates, toBase)
   for (const pair of pairs) {
