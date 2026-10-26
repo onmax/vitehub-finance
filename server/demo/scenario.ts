@@ -196,6 +196,13 @@ export function demoScenario(today: string): DemoScenario {
     add("revolut", on(m, 6), -85, "Goethe-Institut Madrid", "Goethe-Institut", "Education")
     // Bitcoin bought every month and withdrawn to his own wallet.
     add("revolut", on(m, 10), -BTC_MONTHLY / 100, "Bit2Me Global SL", "Bit2Me", "Transfers")
+
+    // Lucía illustrates on the side: a publisher pays her invoice around the 10th, more some months than others and
+    // nothing in August, and she pays the quarter's income tax (modelo 130) on the 20th of January, April, July, and
+    // October. The forecast is less sure of either than of the salaries.
+    if (monthNumber !== 8)
+      add("bbva", addDays(on(m, 10), pick([-2, -1, 0, 0, 1, 2, 3])), euros(560, 760), "TRANSFERENCIA DE EDITORIAL LUMBRE SL", "Editorial Lumbre", "Other income")
+    if (monthNumber % 3 === 1) add("bbva", on(m, 20), -euros(340, 410), "AEAT MODELO 130 PAGO FRACCIONADO", "Agencia Tributaria", "Fees")
   }
 
   // Netflix went from 12.99 to 15.99 three charges ago (server/utils/recurring-core.ts `priceChange`).

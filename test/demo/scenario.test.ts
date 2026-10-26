@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { DEMO_BUDGETS, demoScenario } from "../../server/demo/scenario"
 import { DEFAULT_CATEGORIES } from "../../shared/categories"
-import { detectSeries, findInsights, monthlyAmount, type RecurringItem } from "../../server/utils/recurring-core"
+import { regularity } from "../../server/utils/forecast-core"
+import { detectSeries, findInsights, monthlyAmount, seriesKey, type RecurringItem } from "../../server/utils/recurring-core"
 
 const TODAY = "2026-10-26"
 
@@ -96,6 +97,26 @@ describe("demoScenario", () => {
           expect(balance, `${account.name} on ${row.date}`).toBeGreaterThanOrEqual(0)
         }
       }
+    })
+
+  for (const today of [TODAY, "2027-03-15", "2027-08-12", "2027-09-05"])
+    it(`gives the forecast two sure salaries, freelance income it's less sure of, and a quarterly tax bill on ${today}`, () => {
+      const scenario = demoScenario(today)
+      const found = new Map<string, { series: ReturnType<typeof detectSeries>[number]; account: string }>()
+      for (const account of scenario.accounts) {
+        const rows = scenario.transactions.filter((row) => row.account === account.key).map((row, index) => ({ ...row, id: String(index), categoryId: row.category }))
+        for (const series of detectSeries(rows, today)) found.set(series.key, { series, account: account.key })
+      }
+      const sureness = (key: string) => {
+        const { series, account } = found.get(key)!
+        const history = scenario.transactions.filter((row) => row.account === account && seriesKey(row) === key)
+        return regularity({ ...series, status: "detected" }, history).confidence
+      }
+      expect(sureness("in:estudio norte diseño")).toBe("high")
+      expect(sureness("in:comunidad madrid")).toBe("high")
+      expect(found.get("in:editorial lumbre")!.series.cadence).toBe("monthly")
+      expect(sureness("in:editorial lumbre")).not.toBe("high")
+      expect(found.get("out:agencia tributaria")!.series.cadence).toBe("quarterly")
     })
 
   it("keeps the private accounts' names out of the shared accounts' statements", () => {
