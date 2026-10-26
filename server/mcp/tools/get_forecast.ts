@@ -12,7 +12,7 @@ export default defineMcpTool({
   name: "get_forecast",
   title: "Cash-flow forecast",
   description:
-    "Projects the cash balance (checking, savings, cash, and credit accounts) day by day: recurring income and bills when they fall due, plus the usual spending and moves to other accounts from the last 3 full months, with a likely range (8 in 10) that widens further ahead. Returns the lowest expected balance and its date, the first day the low end of the range goes below zero, each month's income, bills, everyday spending, money moved out, and end balance, each account's own lowest point, and the expected payments of the next 30 days, incoming (salaries and other income) and outgoing, with how sure each is (sure, likely, unsure: from how regular its date and amount have been). Household currency.",
+    "Projects the cash balance of checking, savings, cash, and credit accounts day by day, in the household's currency. It adds recurring income and bills on their due dates, plus the usual spending and moves to other accounts from the last 3 full months. The likely range covers 8 in 10 outcomes and widens further ahead. Returns the lowest expected balance and its date; the first day the low end of the range goes below zero; per month, income, bills, everyday spending, money moved out, and end balance; each account's lowest point; and the payments expected in the next 30 days, in and out. Each payment says how sure it is (sure, likely, unsure), from how regular its date and amount have been.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(
     v.object({

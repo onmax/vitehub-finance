@@ -9,7 +9,7 @@ export default defineMcpTool({
   name: "list_recurring",
   title: "Recurring payments",
   description:
-    "Subscriptions, bills, and income that repeat (weekly, monthly, quarterly, yearly), found in the transactions: amount, next date, monthly cost in the household's currency, and insights with what they'd save a year: price increases, the same subscription paid by two members, and large subscriptions. Dismissed ones come last.",
+    "Subscriptions, bills, and income that repeat weekly, monthly, quarterly, or yearly, detected from the transactions. Each has its amount in its account's currency, cadence, next date (YYYY-MM-DD), and monthly cost in the household's currency. Also returns totals per month and year, and ways to save with the yearly saving of each: price increases, the same subscription paid by two members, and large subscriptions. Dismissed ones come last.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(v.object({ scope: ScopeInput })),
   handler: async ({ scope }, event) => {
@@ -23,6 +23,6 @@ export default defineMcpTool({
         ? ["Ways to save:", ...data.insights.map((row) => `- ${row.title}. ${row.detail} (saves ${money(row.savingsMinor, c)}/year)`)]
         : []),
     ]
-    return { content: text(data.items.length ? lines.join("\n") : "No recurring payments found yet."), structuredContent: { ...data } }
+    return { content: text(data.items.length ? lines.join("\n") : "No recurring payments found yet. They appear once a payment repeats in the transactions."), structuredContent: { ...data } }
   },
 })

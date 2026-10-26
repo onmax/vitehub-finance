@@ -24,7 +24,7 @@ export default defineHandler(async (event) => {
   const bank = await findBank(config, body.name, body.country).catch((error) => {
     throw providerHttpError(error)
   })
-  if (!bank) throw fail(400, `Enable Banking doesn't list "${body.name}" in ${body.country}.`)
+  if (!bank) throw fail(400, `Couldn't find "${body.name}" in the bank list for ${body.country}. Pick a bank from the list.`)
   const [row] = await db
     .insert(connection)
     .values({

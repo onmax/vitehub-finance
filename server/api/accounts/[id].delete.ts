@@ -13,7 +13,7 @@ export default defineHandler(async (event) => {
   refuseInDemo()
   const who = await requireMember(event)
   const account = await requireAccount(who, param(event))
-  if (!canManage(account, who.userId)) throw new HTTPError({ status: 403, statusText: "Only the account's owner deletes it." })
+  if (!canManage(account, who.userId)) throw new HTTPError({ status: 403, statusText: "Only the account's owner can delete it." })
   await db.delete(transaction).where(eq(transaction.accountId, account.id))
   await db.delete(recurring).where(eq(recurring.accountId, account.id))
   await db.delete(holding).where(eq(holding.accountId, account.id))

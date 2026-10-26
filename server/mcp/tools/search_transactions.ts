@@ -13,13 +13,13 @@ export default defineMcpTool({
   name: "search_transactions",
   title: "Search transactions",
   description:
-    "Transactions on the accounts the user can see, newest first, with totals (money in, money out, count) over every match, not only the page returned. Filter by text in the description, counterparty, or note; dates; an account id from list_accounts; a category (id or name, or \"none\" for uncategorized); and direction. Pass nextCursor back as cursor for more.",
+    "Transactions on the accounts the user can see, newest first, each in its account's currency. Also returns the count and the money in and out over every match, not only this page, in the household's currency, without excluded transactions. Filter by text in the description, counterparty, or note; a date range; an account id from list_accounts; a category id or name, or \"none\" for uncategorized; and direction. Pass nextCursor back as cursor for the next page.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(
     v.object({
       q: v.optional(v.pipe(v.string(), v.maxLength(200), v.description("Text to find, case-insensitive: \"netflix\", \"rent\"."))),
-      from: date("First date, YYYY-MM-DD."),
-      to: date("Last date, YYYY-MM-DD."),
+      from: date("First date, YYYY-MM-DD, inclusive."),
+      to: date("Last date, YYYY-MM-DD, inclusive."),
       account: v.optional(v.pipe(v.string(), v.description("Account id from list_accounts."))),
       category: v.optional(v.pipe(v.string(), v.description("Category id or name, or \"none\" for uncategorized."))),
       direction: v.optional(v.pipe(v.picklist(["in", "out"]), v.description("in: money received. out: money spent."))),

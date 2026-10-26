@@ -21,7 +21,7 @@ export default defineHandler(async (event) => {
     const next = new Date(row.lastSyncedAt.getTime() + BANK_INTERVAL)
     throw fail(
       429,
-      `Banks allow only a few updates a day. ${row.name} synced at ${row.lastSyncedAt.toISOString().slice(11, 16)} UTC; try again after ${next.toISOString().slice(11, 16)} UTC.`,
+      `Try again after ${next.toISOString().slice(11, 16)} UTC. Banks allow only a few syncs a day.`,
     )
   }
   const started = new Date(Date.now() - 1000)
@@ -37,6 +37,6 @@ export default defineHandler(async (event) => {
     .where(and(eq(syncRun.connectionId, row.id), gte(syncRun.startedAt, started)))
     .orderBy(desc(syncRun.startedAt))
     .limit(1)
-  if (run?.status === "failed") throw fail(502, run.error ?? "The sync failed.")
+  if (run?.status === "failed") throw fail(502, run.error ?? "Sync failed. Try again later.")
   return { ok: true }
 })

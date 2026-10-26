@@ -17,6 +17,6 @@ export default defineHandler(async (event): Promise<AiCategorizeResult> => {
   const outcome = await categorizeWithAi(who.householdId, editableAccounts(who), { limit: ACTION_LIMIT, log }).catch((error) => {
     throw new HTTPError({ status: 502, statusText: "The AI service didn't answer. Try again in a minute.", cause: error })
   })
-  if (!outcome) throw new HTTPError({ status: 409, statusText: "AI categories are turned off for this household (Settings)." })
+  if (!outcome) throw new HTTPError({ status: 409, statusText: "AI categories are turned off for this household. Turn them on in Settings." })
   return outcome
 })

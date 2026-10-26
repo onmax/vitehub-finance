@@ -49,7 +49,7 @@ export function requireBankConfig() {
   if (!config)
     throw fail(
       503,
-      "Bank connections aren't set up on this ViteHub Finance. Set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY (enablebanking.com) and restart.",
+      "Bank connections aren't set up on this server. Set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY from enablebanking.com, then restart.",
     )
   return config
 }

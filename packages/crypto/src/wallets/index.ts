@@ -43,10 +43,10 @@ const day = (milliseconds: number) => new Date(milliseconds).toISOString().slice
 async function okJson(context: Context, url: string, label: string, init?: RequestInit) {
   const response = await context.request(url, init)
   const body = await readBody(response)
-  if (response.status === 429) throw context.fail("rate_limited", `${label} is rate limiting requests. Try again later.`)
+  if (response.status === 429) throw context.fail("rate_limited", `${label} is busy. Try again in a few minutes.`)
   if (!response.ok) {
-    if (response.status === 400) throw context.fail("invalid_address", `${label}: ${describeBody(body, "the address was rejected.")}`)
-    throw context.fail("unavailable", `${label} answered ${response.status}.`)
+    if (response.status === 400) throw context.fail("invalid_address", `${label} rejected the address. Check it and connect again. Details: ${describeBody(body, "HTTP 400")}`)
+    throw context.fail("unavailable", `${label} returned HTTP ${response.status}. Try again later.`)
   }
   return body as any
 }
@@ -111,8 +111,8 @@ async function xrplCall(context: Context, method: string, params: Record<string,
   }
   const reasons = failures.map((failure) => failure.reason).join("; ")
   if (failures.every((failure) => failure.code === "rate_limited"))
-    throw context.fail("rate_limited", `XRP Ledger: every server is rate limiting requests (${reasons}). Try again later.`)
-  throw context.fail("unavailable", `XRP Ledger could not be reached (${reasons}).`)
+    throw context.fail("rate_limited", "XRP Ledger servers are busy. Try again in a few minutes.")
+  throw context.fail("unavailable", `Couldn't reach the XRP Ledger servers. Try again later. Details: ${reasons}`)
 }
 
 // The XRP Ledger counts time from 2000-01-01 UTC.
@@ -244,16 +244,16 @@ const READERS: Record<ChainId, Reader> = {
   ethereum: {
     async balance({ request, fail, address, rpcUrl = "https://ethereum-rpc.publicnode.com" }) {
       const { response, body } = await jsonRpc(request, rpcUrl, "eth_getBalance", [address, "latest"])
-      if (!response.ok || body.error) throw fail("unavailable", `Ethereum RPC: ${describeBody(body.error, `answered ${response.status}`)}`)
+      if (!response.ok || body.error) throw fail("unavailable", `The Ethereum server returned an error. Try again later. Details: ${describeBody(body.error, `HTTP ${response.status}`)}`)
       return liquid(BigInt(body.result ?? "0x0"))
     },
   },
   solana: {
     async balance({ request, fail, address, rpcUrl = "https://api.mainnet-beta.solana.com" }) {
       const { response, body } = await jsonRpc(request, rpcUrl, "getBalance", [address])
-      if (response.status === 429) throw fail("rate_limited", "Solana RPC is rate limiting requests. Try again later.")
-      if (!response.ok) throw fail("unavailable", `Solana RPC answered ${response.status}.`)
-      if (body.error) throw fail("invalid_address", `Solana RPC: ${describeBody(body.error, "the address was rejected")}`)
+      if (response.status === 429) throw fail("rate_limited", "The Solana server is busy. Try again in a few minutes.")
+      if (!response.ok) throw fail("unavailable", `The Solana server returned HTTP ${response.status}. Try again later.`)
+      if (body.error) throw fail("invalid_address", `The Solana server rejected the address. Check it and connect again. Details: ${describeBody(body.error, "invalid address")}`)
       return liquid(BigInt(body.result?.value ?? 0))
     },
   },
@@ -262,7 +262,7 @@ const READERS: Record<ChainId, Reader> = {
       const result = await xrplCall(context, "account_info", { account: context.address, ledger_index: "validated" })
       // An address nobody has funded yet doesn't exist on the ledger: it holds nothing.
       if (result.error === "actNotFound") return liquid(0n)
-      if (result.error) throw context.fail("unavailable", `XRP Ledger: ${result.error_message || result.error}`)
+      if (result.error) throw context.fail("unavailable", `The XRP Ledger server returned an error. Try again later. Details: ${result.error_message || result.error}`)
       return liquid(BigInt(result.account_data?.Balance ?? "0"))
     },
     async transactions(context, since) {
@@ -278,7 +278,7 @@ const READERS: Record<ChainId, Reader> = {
           ...(marker ? { marker } : {}),
         })
         if (result.error === "actNotFound") return []
-        if (result.error) throw context.fail("unavailable", `XRP Ledger: ${result.error_message || result.error}`)
+        if (result.error) throw context.fail("unavailable", `The XRP Ledger server returned an error. Try again later. Details: ${result.error_message || result.error}`)
         for (const entry of result.transactions ?? []) {
           const parsed = xrplTransaction(context, entry)
           if (parsed && since && parsed.date < since) return out
@@ -297,7 +297,7 @@ const READERS: Record<ChainId, Reader> = {
   nimiq: {
     async balance(context) {
       const account = await nimiqCall(context, "getAccountByAddress", [context.address])
-      if (account.error) throw context.fail("unavailable", `Nimiq RPC: ${describeBody(account.error, "the request failed")}`)
+      if (account.error) throw context.fail("unavailable", `The Nimiq server returned an error. Try again later. Details: ${describeBody(account.error, "unknown error")}`)
       const staker = await nimiqCall(context, "getStakerByAddress", [context.address])
       // An address that never staked answers "No staker with address…": it stakes nothing.
       const stake = staker.error
@@ -311,7 +311,7 @@ const READERS: Record<ChainId, Reader> = {
       let startAt: string | null = null
       for (let page = 0; page < MAX_PAGES; page++) {
         const body = await nimiqCall(context, "getTransactionsByAddress", [context.address, PAGE_SIZE, startAt])
-        if (body.error) throw context.fail("unavailable", `Nimiq RPC: ${describeBody(body.error, "the request failed")}`)
+        if (body.error) throw context.fail("unavailable", `The Nimiq server returned an error. Try again later. Details: ${describeBody(body.error, "unknown error")}`)
         const list: any[] = body.result?.data ?? []
         for (const tx of list) {
           if (since && day(tx.timestamp) < since) return out
@@ -328,8 +328,8 @@ const READERS: Record<ChainId, Reader> = {
 
 async function nimiqCall(context: Context, method: string, params: unknown[]) {
   const { response, body } = await jsonRpc(context.request, context.rpcUrl ?? "https://rpc.nimiqwatch.com", method, params)
-  if (response.status === 429) throw context.fail("rate_limited", "Nimiq RPC is rate limiting requests. Try again later.")
-  if (!response.ok) throw context.fail("unavailable", `Nimiq RPC answered ${response.status}.`)
+  if (response.status === 429) throw context.fail("rate_limited", "The Nimiq server is busy. Try again in a few minutes.")
+  if (!response.ok) throw context.fail("unavailable", `The Nimiq server returned HTTP ${response.status}. Try again later.`)
   return body
 }
 
@@ -341,7 +341,7 @@ export function wallet(chain: ChainId, address: string, options: WalletOptions =
   const context: Context = {
     address: parsed,
     info,
-    request: requester(chain, info.name, options),
+    request: requester(chain, `the ${info.name} servers`, options),
     fail: (code, message) => new CryptoError(code, message, chain),
     rpcUrl: options.rpcUrl,
   }

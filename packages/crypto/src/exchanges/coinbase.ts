@@ -13,7 +13,7 @@ export async function coinbaseJwt(credentials: ExchangeCredentials, method: stri
   try {
     signing = await importCdpKey(credentials.secret)
   } catch (error) {
-    throw new CryptoError("invalid_credentials", `Coinbase: the private key couldn't be read (${error instanceof Error ? error.message : error}).`, "coinbase")
+    throw new CryptoError("invalid_credentials", `Couldn't read the Coinbase private key. Copy it again from the Coinbase Developer Platform. Details: ${error instanceof Error ? error.message : error}`, "coinbase")
   }
   return signJwt(
     { kid: credentials.key, nonce: randomHex(16), typ: "JWT" },
@@ -50,10 +50,10 @@ export function coinbase(credentials: ExchangeCredentials, options: ClientOption
           errors?: Array<{ message?: string }>
         }
         if (!response.ok) {
-          const message = body?.errors?.[0]?.message ?? describeBody(body, `Coinbase answered ${response.status}.`)
-          if (response.status === 401 || response.status === 403) throw fail("invalid_credentials", `Coinbase rejected the key: ${message}`)
-          if (response.status === 429) throw fail("rate_limited", `Coinbase: ${message}`)
-          throw fail("unavailable", `Coinbase: ${message}`)
+          const message = body?.errors?.[0]?.message ?? describeBody(body, `HTTP ${response.status}`)
+          if (response.status === 401 || response.status === 403) throw fail("invalid_credentials", `Coinbase rejected the API key. Check the key name and private key, then connect again. Details: ${message}`)
+          if (response.status === 429) throw fail("rate_limited", "Coinbase is limiting requests. Try again in a few minutes.")
+          throw fail("unavailable", `Coinbase returned an error. Try again later. Details: ${message}`)
         }
         for (const account of body.data ?? []) {
           const code = typeof account.currency === "string" ? account.currency : account.currency?.code

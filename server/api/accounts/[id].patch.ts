@@ -30,12 +30,12 @@ export default defineHandler(async (event): Promise<AccountSummary> => {
   const account = await requireAccount(who, param(event))
   const body = await readInput(event, Body)
   if ((body.visibility !== undefined || body.householdPermission !== undefined) && !canManage(account, who.userId))
-    throw new HTTPError({ status: 403, statusText: "Only the account's owner changes who sees it." })
+    throw new HTTPError({ status: 403, statusText: "Only the account's owner can change who sees it." })
   const { visibility, householdPermission, balanceMinor, ...rest } = body
   if ((Object.keys(rest).length || balanceMinor !== undefined) && !canEdit(account, who.userId))
-    throw new HTTPError({ status: 403, statusText: "This account is shared view-only." })
+    throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
   if (balanceMinor !== undefined && account.connectionId)
-    throw new HTTPError({ status: 400, statusText: "A connected account's balance comes from its provider." })
+    throw new HTTPError({ status: 400, statusText: "You can't edit a connected account's balance. It updates when the connection syncs." })
   const set = {
     ...rest,
     ...(visibility ? { visibility } : {}),

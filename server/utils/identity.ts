@@ -46,14 +46,14 @@ export async function requireMember(event: H3Event): Promise<Member> {
   const who = await identify(event)
   if (who) return who
   event.res.headers.set("WWW-Authenticate", 'Bearer realm="vitehub-finance"')
-  throw new HTTPError({ status: 401, statusText: "Sign in, or connect through ViteHub Finance's MCP server." })
+  throw new HTTPError({ status: 401, statusText: "Sign in, or send a valid access token or API key." })
 }
 
 /** Household owners manage people and household settings. Agents never do, whoever connected them. */
 export async function requireOwner(event: H3Event): Promise<Member> {
   const who = await requireMember(event)
   if (who.role !== "owner" || who.via !== "browser")
-    throw new HTTPError({ status: 403, statusText: "Only the household's owner can do that, in the browser." })
+    throw new HTTPError({ status: 403, statusText: "Only a household owner can do this, from the browser." })
   return who
 }
 

@@ -32,9 +32,9 @@ export default defineHandler(async (event) => {
   if (!id) throw fail(404, "No such account.")
   const account = await requireAccount(who, id, "edit")
   const { rows } = await readValid(event, Body)
-  const mapped = rows.map((row, index) => {
+  const mapped = rows.map((row) => {
     const amountMinor = decimalToMinor(row.amount, account.currency)
-    if (amountMinor === null || !Number.isSafeInteger(amountMinor)) throw fail(400, `rows.${index}.amount: not a usable amount.`)
+    if (amountMinor === null || !Number.isSafeInteger(amountMinor)) throw fail(400, "Couldn't read one of the amounts. Check the amount column and try again.")
     return {
       date: row.date,
       amountMinor,

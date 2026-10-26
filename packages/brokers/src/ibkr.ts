@@ -32,14 +32,14 @@ const NOT_READY = new Set(["1001", "1004", "1005", "1006", "1007", "1008", "1009
 // Too many requests for this token (one a second, ten a minute), or too many failed ones.
 const TOO_MANY = new Set(["1018", "1025"])
 const NEEDS_FIXING: Record<string, string> = {
-  "1010": "this is a legacy Flex Query. Create a new Activity Flex Query.",
-  "1011": "the Flex Web Service is off for this account. Turn it on under Flex Web Service Configuration.",
-  "1012": "the Flex token has expired. Generate a new one and connect again.",
-  "1013": "the Flex token only works from one IP address. Generate one with “Valid for IP Address” left empty.",
-  "1014": "the Query ID isn't valid. Copy it from the query's info in Flex Queries.",
-  "1015": "the Flex token isn't valid. Copy it again from Flex Web Service Configuration.",
-  "1016": "an account in the Flex Query isn't valid.",
-  "1020": "IBKR couldn't validate the request. Check the Flex token and the Query ID.",
+  "1010": "This is a legacy Flex Query. Create a new Activity Flex Query.",
+  "1011": "The Flex Web Service is off for this account. Turn it on under Flex Web Service Configuration.",
+  "1012": "The Flex token has expired. Generate a new one and connect again.",
+  "1013": "The Flex token only works from one IP address. Generate one with 'Valid for IP Address' left empty.",
+  "1014": "The Query ID isn't valid. Copy it from the query's info in Flex Queries.",
+  "1015": "The Flex token isn't valid. Copy it again from Flex Web Service Configuration.",
+  "1016": "An account in the Flex Query isn't valid. Check the query's Accounts setting.",
+  "1020": "Interactive Brokers couldn't validate the request. Check the Flex token and the Query ID.",
 }
 
 /** IBKR's numbers are plain decimals, sometimes with thousands separators; empty is 0. */
@@ -64,10 +64,14 @@ function flexResponse(xml: string) {
 
 function flexError(code: string, message: string) {
   const fix = NEEDS_FIXING[code]
-  if (fix) return new BrokerError("invalid_credentials", `${LABEL}: ${fix}`, "ibkr")
+  if (fix) return new BrokerError("invalid_credentials", fix, "ibkr")
   const kind: BrokerErrorCode = TOO_MANY.has(code) ? "rate_limited" : "unavailable"
   const reason = message.replace(/\.$/, "") || "the request failed"
-  return new BrokerError(kind, `${LABEL}: ${reason}${code ? ` (error ${code})` : ""}.`, "ibkr")
+  const text =
+    kind === "rate_limited"
+      ? `${LABEL} is limiting requests for this Flex token. Try again in a few minutes.`
+      : `${LABEL} couldn't send the statement. Try again later. Details: ${reason}${code ? ` (error ${code})` : ""}.`
+  return new BrokerError(kind, text, "ibkr")
 }
 
 /** The open positions of one statement. Summary rows when the query has them, otherwise its lots added up per instrument. */
@@ -119,9 +123,9 @@ function cashOf(statement: XmlElement): CashBalance[] {
 export function parseFlexStatement(xml: string): BrokerAccount[] {
   const document = parseXml(xml)
   const response = find(document, "FlexQueryResponse")
-  if (!response) throw new BrokerError("unavailable", `${LABEL} sent something other than a Flex statement.`, "ibkr")
+  if (!response) throw new BrokerError("unavailable", `${LABEL} sent something other than a Flex statement. Try again later.`, "ibkr")
   if (!find(response, "OpenPositions") && !find(response, "CashReport"))
-    throw new BrokerError("invalid_credentials", `${LABEL}: the Flex Query needs the Open Positions and Cash Report sections.`, "ibkr")
+    throw new BrokerError("invalid_credentials", `The Flex Query needs the Open Positions and Cash Report sections. Add them in ${LABEL}'s Flex Queries and save.`, "ibkr")
   return findAll(response, "FlexStatement").map((statement) => ({
     id: statement.attributes.accountId ?? "",
     positions: positionsOf(statement),
@@ -142,8 +146,8 @@ export function ibkr(credentials: IbkrCredentials, options: IbkrOptions = {}): B
   async function get(path: string, params: Record<string, string>) {
     const response = await request(`${base}/${path}?${new URLSearchParams({ ...params, v: VERSION })}`)
     const text = await response.text().catch(() => "")
-    if (response.status === 429) throw new BrokerError("rate_limited", `${LABEL} is rate limiting requests. Try again later.`, "ibkr")
-    if (!response.ok) throw new BrokerError("unavailable", `${LABEL} answered ${response.status}.`, "ibkr")
+    if (response.status === 429) throw new BrokerError("rate_limited", `${LABEL} is limiting requests. Try again in a few minutes.`, "ibkr")
+    if (!response.ok) throw new BrokerError("unavailable", `${LABEL} returned HTTP ${response.status}. Try again later.`, "ibkr")
     return text
   }
 
@@ -154,9 +158,9 @@ export function ibkr(credentials: IbkrCredentials, options: IbkrOptions = {}): B
       const token = credentials.token.trim()
       const queryId = credentials.queryId.trim()
       if (!token || !/^\d+$/.test(queryId))
-        throw new BrokerError("invalid_credentials", `${LABEL}: paste the Flex token and the Query ID (a number).`, "ibkr")
+        throw new BrokerError("invalid_credentials", `Paste the Flex token and the Query ID, which is a number.`, "ibkr")
       const sent = flexResponse(await get("SendRequest", { t: token, q: queryId }))
-      if (!sent) throw new BrokerError("unavailable", `${LABEL} sent something other than a Flex response.`, "ibkr")
+      if (!sent) throw new BrokerError("unavailable", `${LABEL} sent something other than a Flex response. Try again later.`, "ibkr")
       if (sent.status !== "Success" || !sent.reference) throw flexError(sent.code, sent.message)
       for (let poll = 0; poll < maxPolls; poll++) {
         if (poll > 0) await sleep(pollIntervalMs)
@@ -164,7 +168,7 @@ export function ibkr(credentials: IbkrCredentials, options: IbkrOptions = {}): B
         if (body.includes("<FlexQueryResponse")) return parseFlexStatement(body)
         const answer = flexResponse(body)
         if (!answer)
-          throw new BrokerError("invalid_credentials", `${LABEL}: the Flex Query must be in XML. Edit it, set Format to XML, and save.`, "ibkr")
+          throw new BrokerError("invalid_credentials", `The Flex Query must be in XML. Edit it in ${LABEL}, set Format to XML, and save.`, "ibkr")
         if (NOT_READY.has(answer.code) || TOO_MANY.has(answer.code)) continue
         throw flexError(answer.code, answer.message)
       }

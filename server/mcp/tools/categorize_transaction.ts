@@ -11,7 +11,7 @@ export default defineMcpTool({
   name: "categorize_transaction",
   title: "Categorize a transaction",
   description:
-    "Sets a transaction's category (by id or name) on an account the user may edit; rules won't change it afterwards. With applyToSimilar it also saves a rule (the counterparty, or the description's first words) and gives the category to similar uncategorized transactions. Use ids from search_transactions. Only categorize what the user asked for or clearly agreed to.",
+    "Sets a transaction's category, by category id or name, on an account the user may edit. Rules won't change it afterwards. With applyToSimilar it also saves a household rule that matches the counterparty, or the description's first words, and gives the category to similar uncategorized transactions. Take ids from search_transactions. Only categorize what the user asked for or clearly agreed to.",
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   inputSchema: toolInput(
     v.object({
@@ -26,7 +26,7 @@ export default defineMcpTool({
     if (!(await getTransaction(who, id, scope ?? "household"))) throw new HTTPError({ status: 404, message: `No transaction with id ${id}.` })
     const names = await categoryNames(who)
     const resolved = await resolveCategory(who, categoryId, names)
-    if (resolved === "none") throw new HTTPError({ status: 400, message: "Pass a category." })
+    if (resolved === "none") throw new HTTPError({ status: 400, message: "categoryId can't be \"none\". Pass a category id or name." })
     const updated = await updateTransaction(who, id, { categoryId: resolved, applyToSimilar: applyToSimilar ?? false })
     return {
       content: text(`Categorized as ${names.get(resolved)}${applyToSimilar ? ", with a rule for similar ones" : ""}:\n${transactionLine(updated, names)}`),

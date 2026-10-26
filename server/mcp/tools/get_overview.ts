@@ -9,7 +9,7 @@ export default defineMcpTool({
   name: "get_overview",
   title: "Overview",
   description:
-    "The household's money at a glance: net worth, this month's money in and out against last month, this month's spending by category, recurring payments due in the next 14 days, the 8 latest transactions, and bank connections that failed or expire soon. Amounts are in the household's currency.",
+    "Net worth, this month's money in and out next to last month's, this month's spending by category, recurring payments due in the next 14 days, the 8 latest transactions, and connections whose last sync failed or whose bank access ends within 14 days. Totals are in the household's currency; each transaction and payment is in its own.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(v.object({ scope: ScopeInput })),
   handler: async ({ scope }, event) => {

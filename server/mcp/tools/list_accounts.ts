@@ -10,7 +10,7 @@ export default defineMcpTool({
   name: "list_accounts",
   title: "List accounts",
   description:
-    "The accounts the user can see, by kind (checking, savings, credit, investment, crypto, cash, loan): balance in the account's currency (and in the household's when different), owner, whether it's shared or private, and its id for search_transactions.",
+    "The accounts the user can see, with kind (checking, savings, credit, investment, crypto, cash, loan), balance in the account's currency and in the household's when they differ, owner, whether it's shared or private, and the id to pass to search_transactions. Ends with the net worth of the non-archived accounts that count toward it.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(
     v.object({
@@ -27,7 +27,7 @@ export default defineMcpTool({
     const total = accounts.filter((row) => row.includeInNetWorth && !row.archived).reduce((sum, row) => sum + row.balanceBaseMinor, 0)
     const body = accounts.length
       ? `${accounts.map((row) => accountLine(row, currency)).join("\n")}\nNet worth: ${money(total, currency)}.`
-      : "No accounts yet. The user connects banks and exchanges, or adds manual accounts, in ViteHub Finance."
+      : "No accounts the user can see yet. They add them in the browser by connecting a bank, exchange, wallet, or broker, or by adding a manual account."
     return { content: text(body), structuredContent: { currency, accounts } }
   },
 })

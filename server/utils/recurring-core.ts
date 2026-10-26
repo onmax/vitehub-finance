@@ -293,7 +293,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
     insights.push({
       kind: "price_increase",
       title: `${item.name} went up ${percent}%`,
-      detail: `${money(previous, item.currency)} → ${money(latest, item.currency)} ${CADENCE_WORD[item.cadence]} on ${item.accountName}: ${money(savingsMinor)} more a year.`,
+      detail: `Now ${money(latest, item.currency)} ${CADENCE_WORD[item.cadence]} on ${item.accountName}, up from ${money(previous, item.currency)}. That's ${money(savingsMinor)} more a year.`,
       savingsMinor,
       recurringIds: [item.id],
     })
@@ -313,7 +313,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
     insights.push({
       kind: "duplicate",
       title: `${sorted[0]!.name} is paid ${group.length === 2 ? "twice" : `${group.length} times`}`,
-      detail: `${who} each pay for ${sorted[0]!.name} (${sorted.map((item) => `${money(-item.monthlyMinor)}`).join(" + ")} a month). One shared or family plan saves up to ${money(savingsMinor)} a year.`,
+      detail: `${who} each pay for ${sorted[0]!.name}, ${sorted.map((item) => `${money(-item.monthlyMinor)}`).join(" + ")} a month. One shared or family plan saves up to ${money(savingsMinor)} a year.`,
       savingsMinor,
       recurringIds: sorted.map((item) => item.id),
     })
@@ -325,7 +325,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
       insights.push({
         kind: "large_subscription",
         title: `${item.name} costs ${money(-item.monthlyMinor)} a month`,
-        detail: `${money(yearly(item))} a year on ${item.accountName}. Worth checking it's still used, or whether a cheaper plan fits.`,
+        detail: `${money(yearly(item))} a year on ${item.accountName}. Check that you still use it, or look for a cheaper plan.`,
         savingsMinor: yearly(item),
         recurringIds: [item.id],
       })

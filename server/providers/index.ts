@@ -15,7 +15,7 @@ export function providerFor(id: ProviderId, config: { enableBanking: EnableBanki
   switch (id) {
     case "enable_banking":
       if (!config.enableBanking)
-        throw new ProviderError("auth", "Bank sync isn't configured: set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY.")
+        throw new ProviderError("auth", "Bank connections aren't set up on this server. Set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY, then restart.")
       return enableBanking(config.enableBanking)
     case "ibkr":
       return ibkrProvider

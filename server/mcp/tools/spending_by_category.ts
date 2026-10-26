@@ -12,7 +12,7 @@ export default defineMcpTool({
   name: "spending_by_category",
   title: "Spending by category",
   description:
-    "What went out in a month, by category, largest first, in the household's currency. Transfers between the household's own accounts and excluded transactions don't count.",
+    "Money that went out in one month, by category, largest first, with each category's share, in the household's currency. Uncategorized spending shows as Uncategorized. Transfers between the household's own accounts and excluded transactions don't count.",
   annotations: { readOnlyHint: true },
   inputSchema: toolInput(
     v.object({

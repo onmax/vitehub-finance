@@ -129,7 +129,7 @@ describe("XRP Ledger servers", () => {
     expect(calls).toHaveLength(3)
   })
 
-  it("says rate_limited when every server is, and keeps their reasons", async () => {
+  it("says rate_limited when every server is, in words a person can act on", async () => {
     const { stub } = urlStub({
       [first]: [json({ result: { error: "slowDown", error_message: "You are placing too much load on the server." } }, 503)],
       [second]: [() => new Response("", { status: 429 })],
@@ -137,7 +137,7 @@ describe("XRP Ledger servers", () => {
     })
     const failure = await xrpl(address, { fetch: stub }).balances().catch((error) => error)
     expect(failure).toMatchObject({ code: "rate_limited", provider: "xrpl" })
-    expect(failure.message).toContain("xrplcluster.com: rate limit: units quota")
+    expect(failure.message).toBe("XRP Ledger servers are busy. Try again in a few minutes.")
   })
 
   it("only asks the server it's given, and reads an unfunded address as empty", async () => {

@@ -27,12 +27,12 @@ export function binance(credentials: ExchangeCredentials, options: ClientOptions
       })
       const body = (await readBody(response)) as { balances?: Array<{ asset: string; free: string; locked: string }>; code?: number }
       if (!response.ok) {
-        const message = describeBody(body, `Binance answered ${response.status}.`)
+        const message = describeBody(body, `HTTP ${response.status}`)
         if (response.status === 401 || [-2014, -2015, -1022, -2008].includes(Number(body?.code)))
-          throw fail("invalid_credentials", `Binance rejected the key: ${message}`)
-        if (response.status === 429 || response.status === 418) throw fail("rate_limited", `Binance: ${message}`)
-        if (response.status === 451) throw fail("unavailable", "Binance refuses requests from this server's region.")
-        throw fail("unavailable", `Binance: ${message}`)
+          throw fail("invalid_credentials", `Binance rejected the API key. Check the key and secret, then connect again. Details: ${message}`)
+        if (response.status === 429 || response.status === 418) throw fail("rate_limited", "Binance is limiting requests. Try again in a few minutes.")
+        if (response.status === 451) throw fail("unavailable", "Binance blocks requests from the region this server runs in.")
+        throw fail("unavailable", `Binance returned an error. Try again later. Details: ${message}`)
       }
       return mergeHoldings(
         (body.balances ?? []).map((balance) => ({

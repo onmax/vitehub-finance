@@ -206,9 +206,9 @@ export async function updateTransaction(who: Member, id: string, change: Transac
     throw notFound
   })
   if (!canSeeTransaction(account, row, who.userId)) throw notFound
-  if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "This account is shared view-only." })
+  if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
   if (change.hidden !== undefined && (!canHide(account, who.userId) || who.via !== "browser"))
-    throw new HTTPError({ status: 403, statusText: "Only the account's owner hides its transactions, in the browser." })
+    throw new HTTPError({ status: 403, statusText: "Only the account's owner can hide its transactions, from the browser." })
   if (change.categoryId) {
     const [found] = await db
       .select({ id: category.id })

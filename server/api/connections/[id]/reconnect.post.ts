@@ -8,11 +8,11 @@ export default defineHandler(async (event) => {
   refuseInDemo()
   const who = await requireMember(event)
   const row = await requireOwnConnection(who, event.context.params?.id)
-  if (row.provider !== "enable_banking") throw fail(400, "Only bank connections are reconnected. Remove and add exchanges or wallets again.")
+  if (row.provider !== "enable_banking") throw fail(400, "Only bank connections can be reconnected. Remove this connection and connect it again.")
   const config = requireBankConfig()
   try {
     const bank = await findBank(config, row.institution ?? row.name, row.country ?? "")
-    if (!bank) throw fail(400, `Enable Banking no longer lists ${row.institution ?? row.name}.`)
+    if (!bank) throw fail(400, `${row.institution ?? row.name} isn't in the bank list anymore. Remove this connection.`)
     return { url: await startBankLink(event, who, row, bank) }
   } catch (error) {
     throw providerHttpError(error)

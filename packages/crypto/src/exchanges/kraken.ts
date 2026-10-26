@@ -76,7 +76,7 @@ export function kraken(credentials: ExchangeCredentials, options: ClientOptions 
       try {
         signature = await krakenSignature(path, nonce, postData, credentials.secret)
       } catch {
-        throw fail("invalid_credentials", "Kraken: the private key isn't valid base64. Copy it again from Kraken's API settings.")
+        throw fail("invalid_credentials", "The Kraken private key isn't valid. Copy it again from Kraken's API settings.")
       }
       const response = await request(`https://api.kraken.com${path}`, {
         method: "POST",
@@ -88,11 +88,11 @@ export function kraken(credentials: ExchangeCredentials, options: ClientOptions 
       if (errors.length) {
         const message = errors.join(", ")
         if (/EAPI:Invalid (key|signature|nonce)|Permission denied|EGeneral:Permission/i.test(message))
-          throw fail("invalid_credentials", `Kraken rejected the key: ${message}`)
-        if (/Rate limit|Throttled/i.test(message)) throw fail("rate_limited", `Kraken: ${message}`)
-        throw fail("unavailable", `Kraken: ${message}`)
+          throw fail("invalid_credentials", `Kraken rejected the API key. Check the key and its private key, then connect again. Details: ${message}`)
+        if (/Rate limit|Throttled/i.test(message)) throw fail("rate_limited", "Kraken is limiting requests. Try again in a few minutes.")
+        throw fail("unavailable", `Kraken returned an error. Try again later. Details: ${message}`)
       }
-      if (!response.ok || typeof body !== "object" || !body.result) throw fail("unavailable", `Kraken answered ${response.status}.`)
+      if (!response.ok || typeof body !== "object" || !body.result) throw fail("unavailable", `Kraken returned HTTP ${response.status}. Try again later.`)
       return mergeHoldings(
         Object.entries(body.result).map(([code, amount]) => ({
           symbol: normalizeKrakenAsset(code),

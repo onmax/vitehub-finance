@@ -44,17 +44,17 @@ export default defineHandler(async (event) => {
   }
 
   try {
-    if (!/^[a-f0-9]{32}$/.test(state)) return failed("The bank sent no valid state. Start connecting again.")
+    if (!/^[a-f0-9]{32}$/.test(state)) return failed("The bank sent back an incomplete link. Connect the bank again.")
     const key = `eb-state:${state}`
     const [, entry] = await kv.get<LinkState>(key)
     // One use only: a replayed redirect finds nothing.
     await kv.del(key)
-    if (!entry || Date.now() - entry.at > STATE_TTL) return failed("This bank link expired. Start connecting again.")
+    if (!entry || Date.now() - entry.at > STATE_TTL) return failed("This bank link expired. Connect the bank again.")
 
     ;[row] = await db.select().from(connection).where(eq(connection.id, entry.connectionId)).limit(1)
     if (!row || row.status === "revoked") {
       row = undefined
-      return failed("This connection no longer exists.")
+      return failed("This connection no longer exists. Connect the bank again.")
     }
     // The consent must land with whoever started it, never in someone else's household.
     const who = await identify(event)
@@ -65,11 +65,11 @@ export default defineHandler(async (event) => {
     }
 
     const bankError = params.get("error")
-    if (bankError) return failed(params.get("error_description") || `The bank didn't give access (${bankError}).`)
+    if (bankError) return failed(params.get("error_description") || `The bank didn't give access. Try again and approve it at your bank. Details: ${bankError}`)
     const code = params.get("code")
-    if (!code) return failed("The bank sent no authorization code.")
+    if (!code) return failed("The bank didn't confirm access. Connect the bank again.")
     const config = bankConfig()
-    if (!config) return failed("Bank connections aren't set up on this ViteHub Finance.")
+    if (!config) return failed("Bank connections aren't set up on this server.")
 
     const session = await createSession(config, code)
     if (!session.accounts.length) return failed("The bank shared no accounts. Try again and select at least one.")
@@ -96,7 +96,7 @@ export default defineHandler(async (event) => {
       await dispatchSync(row.id, "link")
     } catch (error) {
       log.warn("First sync failed", { callback: { outcome: "linked", syncError: errorMessage(error) } })
-      return toConnect({ error: `Linked, but the first sync failed: ${errorMessage(error)}`.slice(0, 200) })
+      return toConnect({ error: `Connected, but the first sync failed. ${errorMessage(error)}`.slice(0, 200) })
     }
     // Inline syncs record expected failures instead of throwing; read how it went.
     const [after] = await db
@@ -106,7 +106,7 @@ export default defineHandler(async (event) => {
       .limit(1)
     log.set({ callback: { outcome: "linked", syncStatus: after?.status } })
     if (after && after.status !== "active")
-      return toConnect({ error: `Linked, but the first sync failed: ${after.lastError ?? after.status}`.slice(0, 200) })
+      return toConnect({ error: `Connected, but the first sync failed. ${after.lastError ?? "Try again later."}`.slice(0, 200) })
     return toConnect({ linked: row.id })
   } catch (error) {
     // An error, not the warning `failed` adds: something other than the bank or the person went wrong.

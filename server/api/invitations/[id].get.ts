@@ -19,6 +19,6 @@ export default defineHandler(async (event) => {
         .where(and(eq(invitation.id, id), eq(invitation.status, "pending"), gt(invitation.expiresAt, new Date())))
         .limit(1)
     : []
-  if (!row) throw new HTTPError({ status: 404, statusText: "This invitation has expired or was already used." })
+  if (!row) throw new HTTPError({ status: 404, statusText: "This invitation expired or was already used. Ask for a new one." })
   return row
 })

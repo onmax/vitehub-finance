@@ -168,7 +168,7 @@ export async function updateRecurringStatus(who: Member, id: string, status: Rec
   const account = await requireAccount(who, row.accountId).catch(() => {
     throw notFound
   })
-  if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "This account is shared view-only." })
+  if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
   await db.update(recurring).set({ status }).where(eq(recurring.id, id))
   const { convert } = await baseCurrency(who)
   const [listed] = await listRecurringRows(who, "household", convert, id)

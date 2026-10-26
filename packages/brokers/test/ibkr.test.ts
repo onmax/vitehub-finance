@@ -74,9 +74,9 @@ describe("Interactive Brokers", () => {
 
   it("says what to fix when IBKR refuses the token or the query", async () => {
     for (const [code, message, expected] of [
-      ["1015", "Token is invalid.", "the Flex token isn't valid"],
+      ["1015", "Token is invalid.", "The Flex token isn't valid"],
       ["1012", "Token has expired.", "has expired"],
-      ["1014", "Query is invalid.", "the Query ID isn't valid"],
+      ["1014", "Query is invalid.", "The Query ID isn't valid"],
       ["1020", "Invalid request or unable to validate request.", "Check the Flex token and the Query ID"],
     ] as const) {
       const { stub } = flexStub(failure(code, message))
@@ -90,7 +90,7 @@ describe("Interactive Brokers", () => {
     const busy = flexStub(failure("1003", "Statement is not available."))
     await expect(ibkr(credentials, { fetch: busy.stub }).accounts()).rejects.toMatchObject({
       code: "unavailable",
-      message: "Interactive Brokers: Statement is not available (error 1003).",
+      message: "Interactive Brokers couldn't send the statement. Try again later. Details: Statement is not available (error 1003).",
     })
     const edge = (async () => new Response("Error 403 - Access Denied", { status: 403 })) as typeof fetch
     await expect(ibkr(credentials, { fetch: edge }).accounts()).rejects.toMatchObject({ code: "unavailable" })

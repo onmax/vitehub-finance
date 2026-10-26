@@ -25,7 +25,7 @@ export default defineHandler(async (event) => {
     headers: event.req.headers,
     asResponse: true,
   })
-  if (!response.ok) throw fail(502, "Couldn’t open the demo. Try again in a minute.")
+  if (!response.ok) throw fail(502, "Couldn't open the demo. Try again in a minute.")
   for (const cookie of response.headers.getSetCookie()) event.res.headers.append("set-cookie", cookie)
   return { ok: true }
 })

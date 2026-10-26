@@ -54,18 +54,18 @@ export function enableBanking(options: EnableBankingOptions): BankingProvider {
     })
     const parsed = await readBody(response)
     if (response.ok) return parsed as T
-    const message = describeBody(parsed, `Enable Banking answered ${response.status}.`)
+    const message = describeBody(parsed, `HTTP ${response.status}`)
     const text = typeof parsed === "string" ? parsed : JSON.stringify(parsed)
     if (response.status === 401 || response.status === 403 || /EXPIRED_SESSION|SESSION_EXPIRED|CLOSED_SESSION/i.test(text)) {
       // A rejected app JWT is a setup problem, not an expired consent.
       if (/jwt|application|kid\b/i.test(message) && !/session/i.test(message))
-        throw fail("invalid_credentials", `Enable Banking rejected the app credentials: ${message}`)
+        throw fail("invalid_credentials", `Enable Banking rejected the app ID or private key. Details: ${message}`)
       throw fail("expired", "The bank consent has expired. Reconnect the bank to keep syncing.")
     }
     if (response.status === 429 || /RATE_LIMIT/i.test(text))
-      throw fail("rate_limited", options.rateLimitMessage ?? "The bank limits how often accounts may be fetched (about 4 times a day). Try again later.")
-    if (response.status >= 500) throw fail("unavailable", `The bank or Enable Banking is unavailable: ${message}`)
-    throw fail("unavailable", `Enable Banking: ${message}`)
+      throw fail("rate_limited", options.rateLimitMessage ?? "Your bank allows about 4 syncs a day. Try again in a few hours.")
+    if (response.status >= 500) throw fail("unavailable", `The bank or Enable Banking isn't answering. Try again later. Details: ${message}`)
+    throw fail("unavailable", `Enable Banking returned an error. Try again later. Details: ${message}`)
   }
 
   return {
@@ -86,7 +86,7 @@ export function enableBanking(options: EnableBankingOptions): BankingProvider {
         redirect_url: input.redirectUrl,
         psu_type: "personal",
       })
-      if (!body.url) throw fail("unavailable", "Enable Banking returned no authorization link.")
+      if (!body.url) throw fail("unavailable", "Enable Banking didn't return a link to your bank. Try again.")
       return body.url
     },
 

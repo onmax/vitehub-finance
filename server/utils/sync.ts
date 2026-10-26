@@ -194,7 +194,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
   const started = Date.now()
   try {
     const credentials = await unseal<unknown>(row.credentials).catch(() => {
-      throw new ProviderError("expired", "The stored credentials can't be read (was FINANCE_ENCRYPTION_KEY changed?). Reconnect.")
+      throw new ProviderError("expired", "Couldn't read this connection's saved credentials. Reconnect it. If you run this server, check whether FINANCE_ENCRYPTION_KEY changed.")
     })
     if (!credentials) throw new ProviderError("expired", "This connection has no credentials. Reconnect it.")
     const initial = trigger === "link" || !row.lastSyncedAt
@@ -234,7 +234,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
       }
     }
     log.set({ sync: { added, touched: touched.length, failedAccounts: failures.length } })
-    if (!touched.length && failures.length) throw new Error(failures.join("; "))
+    if (!touched.length && failures.length) throw new Error(failures.join(" "))
 
     // Transfers first: a move between two accounts often arrives with the second account's sync.
     const step = (name: string, run: () => Promise<unknown>) =>
@@ -247,7 +247,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial) for (const accountId of backfill) await step("Snapshot backfill", () => backfillSnapshots(accountId))
 
-    const partial = failures.length ? `${failures.length} of ${result.accounts.length} accounts failed: ${failures.join("; ")}` : null
+    const partial = failures.length ? `Couldn't sync ${failures.length} of ${result.accounts.length} accounts. ${failures.join(" ")}` : null
     if (partial) log.warn("Some accounts failed", { sync: { partial: partial.slice(0, 500) } })
     await db
       .update(connection)

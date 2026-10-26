@@ -21,7 +21,7 @@ export const bankClient = (config: EnableBankingConfig) =>
   enableBankingClient({
     ...config,
     userAgent: USER_AGENT,
-    rateLimitMessage: "The bank limits how often ViteHub Finance may fetch (about 4 times a day). Try again later.",
+    rateLimitMessage: "Your bank allows about 4 syncs a day. Try again in a few hours.",
   })
 
 export const listBanks = (config: EnableBankingConfig, country: string): Promise<Institution[]> =>
@@ -47,7 +47,7 @@ export const deleteSession = (config: EnableBankingConfig, sessionId: string) =>
 /** One sync: every account's balance and booked transactions since `since`. One account failing leaves the rest. */
 export function enableBanking(config: EnableBankingConfig) {
   return async (credentials: EnableBankingCredentials, options: FetchOptions): Promise<ProviderResult<EnableBankingCredentials>> => {
-    if (!credentials?.sessionId) throw new ProviderError("expired", "This bank has no session yet. Reconnect it.")
+    if (!credentials?.sessionId) throw new ProviderError("expired", "This bank isn't connected yet. Reconnect it.")
     const accounts = credentials.accounts.map(
       (uid): BankAccount => credentials.details?.[uid] ?? { uid, name: "Bank account", iban: null, currency: "EUR", kind: "checking" },
     )

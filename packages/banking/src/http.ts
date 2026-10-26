@@ -21,9 +21,8 @@ export function requester(provider: string, label: string, options: ClientOption
     if (!headers.has("user-agent")) headers.set("user-agent", options.userAgent ?? DEFAULT_USER_AGENT)
     try {
       return await send(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(options.timeoutMs ?? 20_000) })
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      throw new BankingError("unavailable", `${label} could not be reached (${reason}).`, provider)
+    } catch {
+      throw new BankingError("unavailable", `Couldn't reach ${label}. Try again later.`, provider)
     }
   }
 }
