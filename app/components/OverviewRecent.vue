@@ -25,7 +25,11 @@ const shared = useShared()
               <span class="size-1.5 shrink-0 rounded-full" :class="categoryColor(find(item.categoryId)?.color).solid" aria-hidden="true" />
               <span class="truncate">{{ find(item.categoryId)?.name ?? "Uncategorized" }}</span>
             </span>
-            <span class="hidden truncate sm:inline">· {{ item.accountName }}</span>
+            <span aria-hidden="true" class="hidden sm:inline">·</span>
+            <span class="hidden min-w-0 items-center gap-1.5 sm:flex">
+              <AccountMark :account-id="item.accountId" size="xs" />
+              <span class="truncate">{{ item.accountName }}</span>
+            </span>
           </span>
         </span>
         <OwnerAvatar v-if="shared" :name="item.ownerName" :user-id="item.ownerId" size="2xs" class="hidden sm:inline-flex" />

@@ -123,10 +123,10 @@ function updated(next: AccountSummary) {
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <UEmpty
           v-if="notFound"
-          variant="outline"
+          variant="naked"
           icon="i-lucide-landmark"
           title="This account isn’t here"
           description="It was deleted, or its owner made it private."
@@ -144,15 +144,13 @@ function updated(next: AccountSummary) {
             </div>
           </div>
           <USkeleton class="h-9 w-56" />
-          <USkeleton class="h-72 w-full rounded-xl" />
+          <USkeleton class="h-72 w-full rounded-lg" />
         </template>
 
         <template v-else-if="account && kind">
           <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div class="flex min-w-0 items-start gap-3">
-              <span class="grid size-10 shrink-0 place-items-center rounded-lg border border-default bg-default text-muted shadow-xs">
-                <UIcon :name="kind.icon" class="size-5" />
-              </span>
+              <InstitutionMark :provider="account.provider" :name="account.institution" :logo="account.logo" :icon="kind.icon" size="lg" />
               <div class="min-w-0">
                 <h1 class="truncate text-xl font-semibold text-highlighted" :title="account.name">{{ account.name }}</h1>
                 <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
@@ -190,10 +188,10 @@ function updated(next: AccountSummary) {
             </div>
           </header>
 
-          <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div class="flex min-w-0 flex-col gap-6">
-              <section class="rounded-xl border border-default bg-default p-4 shadow-xs sm:p-5" aria-labelledby="balance-history">
-                <div class="mb-4 flex items-center justify-between gap-3">
+          <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <div class="flex min-w-0 flex-col gap-10">
+              <section class="border-t border-default" aria-labelledby="balance-history">
+                <div class="flex h-12 items-center justify-between gap-3">
                   <h2 id="balance-history" class="text-sm font-medium text-highlighted">Balance</h2>
                   <SegmentedControl v-model="range" :options="RANGES" label="Period" size="sm" />
                 </div>

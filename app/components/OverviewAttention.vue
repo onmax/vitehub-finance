@@ -34,16 +34,17 @@ const items = computed(() => props.connections)
 </script>
 
 <template>
-  <section aria-labelledby="attention-title" class="rounded-xl border border-default bg-default shadow-xs">
-    <h2 id="attention-title" class="flex h-11 items-center gap-2 px-4 text-sm font-medium text-highlighted sm:px-5">
+  <section aria-labelledby="attention-title" class="rounded-lg bg-warning/8 px-4 dark:bg-warning/10">
+    <h2 id="attention-title" class="flex h-10 items-center gap-2 text-sm font-medium text-highlighted">
       <UIcon name="i-lucide-triangle-alert" class="size-4 text-warning" aria-hidden="true" />
       Needs attention
     </h2>
-    <ul class="divide-y divide-default border-t border-default">
-      <li v-for="connection in items" :key="connection.id" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
+    <ul class="divide-y divide-warning/15">
+      <li v-for="connection in items" :key="connection.id" class="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
+        <InstitutionMark :provider="connection.provider" :name="connection.institution ?? connection.name" :logo="connection.logo" />
         <span class="min-w-0 flex-1">
           <span class="block truncate text-sm font-medium text-highlighted">{{ connection.institution ?? connection.name }}</span>
-          <span class="block text-sm text-muted">{{ reason(connection) }}</span>
+          <span class="block text-sm text-toned">{{ reason(connection) }}</span>
         </span>
         <DemoLock v-if="connection.canManage" v-slot="{ locked }">
           <UButton
@@ -53,6 +54,7 @@ const items = computed(() => props.connections)
             :label="connection.provider === 'enable_banking' ? 'Reconnect' : 'Try again'"
             :loading="pending === connection.id"
             :disabled="locked"
+            class="bg-default"
             @click="reconnect(connection)"
           />
         </DemoLock>

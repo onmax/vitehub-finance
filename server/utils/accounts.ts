@@ -5,6 +5,7 @@ import { canEdit, canManage } from "#shared/access"
 import { ACCOUNT_KINDS, balanceSnapshot, connection, financialAccount, holding, householdSettings, user as users } from "../databases/config"
 import { visibleAccounts, type Scope } from "./access"
 import { addDays, todayIso } from "./dates"
+import { bankLogos } from "./bank-logos"
 import { converterTo } from "./fx"
 import type { Member } from "./identity"
 import { carryForward } from "./series"
@@ -33,6 +34,8 @@ const accountColumns = {
   ownerName: users.name,
   provider: connection.provider,
   connectionStatus: connection.status,
+  connectionInstitution: connection.institution,
+  country: connection.country,
 }
 
 /** Visible accounts with their owner's name and connection, for any extra condition. */
@@ -47,12 +50,22 @@ export function selectAccounts(who: Pick<Member, "userId" | "householdId">, scop
 
 type Joined = Awaited<ReturnType<typeof selectAccounts>>[number]
 
-export function toSummary(row: Joined, who: Pick<Member, "userId">, convert: Converter): AccountSummary {
+/** The bank logo lookup `toSummary` takes, for the accounts in `rows`. */
+export const accountLogos = (rows: Joined[]) =>
+  bankLogos(rows.filter((row) => row.provider === "enable_banking").map((row) => ({ institution: row.connectionInstitution, country: row.country })))
+
+export function toSummary(
+  row: Joined,
+  who: Pick<Member, "userId">,
+  convert: Converter,
+  logoOf: (bank: { institution: string | null; country: string | null }) => string | null = () => null,
+): AccountSummary {
   const account = row.account
   return {
     id: account.id,
     name: account.name,
     institution: account.institution,
+    logo: row.provider === "enable_banking" ? logoOf({ institution: row.connectionInstitution, country: row.country }) : null,
     kind: account.kind,
     currency: account.currency,
     balanceMinor: account.balanceMinor,
@@ -84,14 +97,15 @@ export async function listAccounts(
 ): Promise<AccountSummary[]> {
   const { convert } = await baseCurrency(who)
   const rows = await selectAccounts(who, options.scope ?? "household", options.archived ? undefined : eq(financialAccount.archived, false))
-  return rows.map((row) => toSummary(row, who, convert)).sort(sortAccounts)
+  const logoOf = await accountLogos(rows)
+  return rows.map((row) => toSummary(row, who, convert, logoOf)).sort(sortAccounts)
 }
 
 /** One visible account as a summary, or null (callers answer 404). */
 export async function accountSummary(who: Pick<Member, "userId" | "householdId">, accountId: string) {
   const { convert } = await baseCurrency(who)
   const [row] = await selectAccounts(who, "household", eq(financialAccount.id, accountId)).limit(1)
-  return row ? toSummary(row, who, convert) : null
+  return row ? toSummary(row, who, convert, await accountLogos([row])) : null
 }
 
 /** Daily balances per account from `from` to `to`, carrying the last value over days without a snapshot. */

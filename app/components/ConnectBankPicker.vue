@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLocalStorage } from "@vueuse/core"
 import type { Bank, ProviderInfo } from "#shared/api"
+import { bankMark } from "#shared/banks"
 
 // Banks over PSD2 through Enable Banking: pick a country, find the bank, and go to its consent page. On a ViteHub Finance without
 // Enable Banking's credentials it explains the setup instead.
@@ -41,8 +42,16 @@ const filtered = computed(() => {
   const term = search.value.trim().toLocaleLowerCase()
   return term ? banks.value.filter((bank) => bank.name.toLocaleLowerCase().includes(term)) : banks.value
 })
+// Without a search, the banks people use most (the ones shared/banks.ts has a mark for) come first, like Xero's
+// "Popular in…", then the rest alphabetically.
+const popular = computed(() => (search.value ? [] : filtered.value.filter((bank) => bankMark(bank.name))))
+const rest = computed(() => (popular.value.length ? filtered.value.filter((bank) => !popular.value.includes(bank)) : filtered.value))
 const LIMIT = 24
-const shown = computed(() => (showAll.value || search.value ? filtered.value : filtered.value.slice(0, LIMIT)))
+const shown = computed(() => (showAll.value || search.value ? rest.value : rest.value.slice(0, LIMIT)))
+const lists = computed(() => [
+  { id: "popular", label: `Popular in ${names.of(country.value)}`, banks: popular.value },
+  { id: "all", label: popular.value.length ? "All banks" : "", banks: shown.value },
+])
 watch(country, () => ((search.value = ""), (showAll.value = false)))
 
 const connecting = ref<string | null>(null)
@@ -74,7 +83,7 @@ const shownError = computed(() => connectError.value || props.error || "")
       @update:open="(open) => !open && ((connectError = ''), emit('dismissError'))"
     />
 
-    <div v-if="demo" class="flex items-start gap-3 rounded-lg border border-dashed border-default p-4">
+    <div v-if="demo" class="flex items-start gap-3 rounded-lg bg-muted p-4">
       <UIcon name="i-lucide-lock" class="mt-0.5 size-4 shrink-0 text-muted" />
       <div>
         <p class="text-sm font-medium text-highlighted">{{ DEMO_LOCKED }}</p>
@@ -91,7 +100,7 @@ const shownError = computed(() => connectError.value || props.error || "")
       <USkeleton v-for="row in 3" :key="row" class="h-12 w-full" />
     </div>
 
-    <div v-else-if="!configured" class="rounded-lg border border-dashed border-default p-4">
+    <div v-else-if="!configured" class="rounded-lg bg-muted p-4">
       <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this ViteHub Finance</p>
       <p class="mt-1.5 text-sm text-muted">
         ViteHub Finance reads banks through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
@@ -118,35 +127,40 @@ const shownError = computed(() => connectError.value || props.error || "")
       <div v-else-if="status === 'pending'" class="grid gap-2 sm:grid-cols-2">
         <USkeleton v-for="row in 6" :key="row" class="h-14 w-full rounded-lg" />
       </div>
-      <p v-else-if="filtered.length === 0" class="rounded-lg border border-dashed border-default p-4 text-sm text-muted">
+      <p v-else-if="filtered.length === 0" class="rounded-lg bg-muted p-4 text-sm text-muted">
         {{ search ? `No bank matches “${search}” in ${names.of(country)}.` : `Enable Banking lists no banks in ${names.of(country)}.` }}
       </p>
       <template v-else>
-        <ul class="grid gap-2 sm:grid-cols-2" aria-label="Banks">
-          <li v-for="bank in shown" :key="bank.name">
-            <button
-              type="button"
-              class="group flex h-14 w-full cursor-pointer items-center gap-3 rounded-lg border border-default bg-default px-3 text-left transition-colors duration-150 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait"
-              :disabled="connecting !== null"
-              :aria-label="`Connect ${bank.name}`"
-              @click="connect(bank)"
-            >
-              <ConnectProviderIcon provider="enable_banking" :name="bank.name" :logo="bank.logo" />
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-highlighted" :title="bank.name">{{ bank.name }}</span>
-                <span v-if="bank.maxConsentDays" class="block text-xs text-muted">Reconnect every <span class="tabular-nums">{{ bank.maxConsentDays }}</span> days</span>
-              </span>
-              <UIcon v-if="connecting === bank.name" name="i-lucide-loader-circle" class="size-4 shrink-0 animate-spin text-muted" />
-              <span v-else class="shrink-0 text-sm font-medium text-muted transition-colors duration-150 group-hover:text-highlighted">Connect</span>
-            </button>
-          </li>
-        </ul>
+        <template v-for="list in lists" :key="list.id">
+          <div v-if="list.banks.length" class="flex flex-col gap-1">
+            <h4 v-if="list.label" class="text-xs font-medium text-muted">{{ list.label }}</h4>
+            <ul class="grid gap-x-4 sm:grid-cols-2" :aria-label="list.label || 'Banks'">
+              <li v-for="bank in list.banks" :key="bank.name">
+                <button
+                  type="button"
+                  class="group -mx-2 flex h-14 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 text-left transition-colors duration-150 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait"
+                  :disabled="connecting !== null"
+                  :aria-label="`Connect ${bank.name}`"
+                  @click="connect(bank)"
+                >
+                  <InstitutionMark provider="enable_banking" :name="bank.name" :logo="bank.logo" />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium text-highlighted" :title="bank.name">{{ bank.name }}</span>
+                    <span v-if="bank.maxConsentDays" class="block text-xs text-muted">Reconnect every <span class="tabular-nums">{{ bank.maxConsentDays }}</span> days</span>
+                  </span>
+                  <UIcon v-if="connecting === bank.name" name="i-lucide-loader-circle" class="size-4 shrink-0 animate-spin text-muted" />
+                  <span v-else class="shrink-0 text-sm font-medium text-muted transition-colors duration-150 group-hover:text-primary">Connect</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </template>
         <UButton
-          v-if="!showAll && !search && filtered.length > LIMIT"
+          v-if="!showAll && !search && rest.length > LIMIT"
           color="neutral"
           variant="outline"
           class="self-center"
-          :label="`Show all ${filtered.length} banks`"
+          :label="`Show all ${rest.length} banks`"
           @click="showAll = true"
         />
       </template>

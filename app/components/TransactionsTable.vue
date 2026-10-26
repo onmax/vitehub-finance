@@ -111,8 +111,9 @@ function onKeydown(event: KeyboardEvent) {
       </template>
       <template #account-cell="{ row }">
         <span class="flex min-w-0 items-center gap-2">
-          <OwnerAvatar v-if="shared" :name="row.original.ownerName" :user-id="row.original.ownerId" size="3xs" />
+          <AccountMark :account-id="row.original.accountId" />
           <span class="truncate text-muted" :title="row.original.accountName">{{ row.original.accountName }}</span>
+          <OwnerAvatar v-if="shared" :name="row.original.ownerName" :user-id="row.original.ownerId" size="3xs" class="shrink-0" />
         </span>
       </template>
       <template #amountMinor-cell="{ row }">

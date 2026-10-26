@@ -9,6 +9,7 @@ import { connection, financialAccount, syncRun, user as users } from "../databas
 import type { Institution } from "@vitehub-finance/banking"
 import { listBanks, startAuth, type EnableBankingConfig } from "../providers/enable-banking"
 import { ProviderError } from "../providers/types"
+import { bankLogos } from "./bank-logos"
 import type { Member } from "./identity"
 
 export type ConnectionRow = typeof connection.$inferSelect
@@ -158,6 +159,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
     if (account.ownerId === who.userId || account.visibility === "household")
       visible.set(account.connectionId, (visible.get(account.connectionId) ?? 0) + 1)
   }
+  const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
   return rows
     .filter(({ connection: row }) => row.ownerId === who.userId || shared.has(row.id))
     .map(({ connection: row, ownerName }) => ({
@@ -165,6 +167,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       provider: row.provider,
       name: row.name,
       institution: row.institution,
+      logo: row.provider === "enable_banking" ? logoOf(row) : null,
       status: row.status,
       ownerId: row.ownerId,
       ownerName,

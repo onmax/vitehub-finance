@@ -4,6 +4,7 @@ import type { ConnectionSummary, Overview } from "#shared/api"
 import { category, connection, financialAccount, user as users } from "../databases/config"
 import { visibleAccounts, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts, type Converter } from "./accounts"
+import { bankLogos } from "./bank-logos"
 import { addDays, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
 import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
@@ -121,6 +122,7 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
         .where(and(eq(connection.householdId, who.householdId), inArray(connection.id, ids.slice(index, index + 90))))),
     )
   const limit = Date.now() + SOON
+  const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
   return rows
     .filter(
       ({ connection: row }) =>
@@ -133,6 +135,7 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
       provider: row.provider,
       name: row.name,
       institution: row.institution,
+      logo: row.provider === "enable_banking" ? logoOf(row) : null,
       status: row.status,
       ownerId: row.ownerId,
       ownerName,

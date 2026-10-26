@@ -58,6 +58,8 @@ export interface AccountSummary {
   id: string
   name: string
   institution: string | null
+  /** The bank's logo from Enable Banking, for accounts of a bank connection; shared/banks.ts covers the rest. */
+  logo: string | null
   kind: AccountKind
   currency: string
   balanceMinor: number
@@ -250,6 +252,8 @@ export interface ConnectionSummary {
   provider: ProviderId
   name: string
   institution: string | null
+  /** The bank's logo from Enable Banking; null for other providers and banks without a cached one. */
+  logo: string | null
   status: ConnectionStatus
   ownerId: string
   ownerName: string

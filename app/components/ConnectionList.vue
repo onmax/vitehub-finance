@@ -7,9 +7,9 @@ defineEmits<{ changed: [] }>()
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-default bg-default shadow-xs">
+  <div>
     <ul v-if="loading && connections.length === 0" class="divide-y divide-default" aria-busy="true">
-      <li v-for="row in 2" :key="row" class="flex items-center gap-3 px-4 py-3 sm:px-5">
+      <li v-for="row in 2" :key="row" class="flex items-center gap-3 py-3">
         <USkeleton class="size-9 rounded-lg" />
         <div class="flex flex-1 flex-col gap-1.5"><USkeleton class="h-4 w-40" /><USkeleton class="h-3 w-64" /></div>
         <USkeleton class="h-8 w-24" />

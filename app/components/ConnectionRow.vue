@@ -104,10 +104,10 @@ const menu = computed<DropdownMenuItem[][]>(() => [
 <template>
   <li
     :id="`connection-${connection.id}`"
-    class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors duration-700 sm:flex-nowrap sm:px-5"
-    :class="highlighted && 'bg-elevated'"
+    class="flex scroll-mt-4 flex-wrap items-center gap-x-3 gap-y-2 py-3 transition-colors duration-700 sm:flex-nowrap"
+    :class="highlighted && 'bg-primary/8'"
   >
-    <ConnectProviderIcon :provider="connection.provider" :name="connection.institution ?? connection.name" />
+    <InstitutionMark :provider="connection.provider" :name="connection.institution ?? connection.name" :logo="connection.logo" />
     <div class="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto">
       <p class="flex items-center gap-2">
         <span class="truncate text-sm font-medium text-highlighted" :title="connection.name">{{ connection.name }}</span>

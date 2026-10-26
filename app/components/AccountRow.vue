@@ -14,11 +14,9 @@ const foreign = computed(() => props.account.currency !== currency.value)
 <template>
   <NuxtLink
     :to="`/accounts/${account.id}`"
-    class="group flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-elevated/50 focus-visible:bg-elevated/50 focus-visible:outline-none sm:px-5"
+    class="group -mx-2 my-px flex min-h-14 items-center gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-elevated/60 focus-visible:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary"
   >
-    <span class="grid size-9 shrink-0 place-items-center rounded-lg border border-default bg-default text-muted">
-      <UIcon :name="kind.icon" class="size-4" />
-    </span>
+    <InstitutionMark :provider="account.provider" :name="account.institution" :logo="account.logo" :icon="kind.icon" />
     <span class="min-w-0 flex-1">
       <span class="flex min-w-0 items-center gap-2">
         <span class="truncate text-sm font-medium text-highlighted" :title="account.name">{{ account.name }}</span>
