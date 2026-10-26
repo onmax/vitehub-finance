@@ -84,7 +84,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
 </script>
 
 <template>
-  <div class="rounded-xl border border-default bg-default p-6 shadow-xs">
+  <div>
     <template v-if="!known || (loggedIn && status === 'pending' && !invitation)">
       <USkeleton class="h-6 w-2/3" />
       <USkeleton class="mt-3 h-4 w-full" />
@@ -94,7 +94,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
 
     <template v-else-if="!loggedIn">
       <div class="mb-5 flex flex-col items-center gap-3 text-center">
-        <span class="grid size-11 place-items-center rounded-lg border border-default bg-elevated">
+        <span class="grid size-11 place-items-center rounded-lg bg-elevated">
           <UIcon name="i-lucide-users" class="size-5 text-toned" />
         </span>
         <div>
@@ -131,7 +131,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
 
     <template v-else>
       <div class="flex items-center gap-3">
-        <span class="grid size-11 shrink-0 place-items-center rounded-lg border border-default bg-elevated">
+        <span class="grid size-11 shrink-0 place-items-center rounded-lg bg-elevated">
           <UIcon name="i-lucide-house" class="size-5 text-toned" />
         </span>
         <div class="min-w-0">

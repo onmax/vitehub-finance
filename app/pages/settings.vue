@@ -23,7 +23,7 @@ const links = computed<NavigationMenuItem[]>(() =>
       </UDashboardToolbar>
     </template>
     <template #body>
-      <div class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-8 [&>form:first-child>section]:border-t-0 [&>form:first-child>section]:pt-0">
         <NuxtPage />
         <LegalLinks class="pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]" />
       </div>

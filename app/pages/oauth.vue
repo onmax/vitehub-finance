@@ -66,7 +66,7 @@ const can = [
 </script>
 
 <template>
-  <div class="rounded-xl border border-default bg-default p-6 shadow-xs">
+  <div>
     <template v-if="!valid">
       <h1 class="text-lg font-semibold text-highlighted">This link has expired</h1>
       <p class="mt-2 text-sm text-muted">Start the connection again from your agent. It opens a fresh link.</p>
@@ -86,7 +86,7 @@ const can = [
 
     <template v-else>
       <div class="flex items-center gap-3">
-        <span class="grid size-10 shrink-0 place-items-center rounded-lg border border-default bg-elevated">
+        <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-elevated">
           <UIcon name="i-lucide-bot" class="size-5 text-toned" />
         </span>
         <h1 class="text-lg leading-snug font-semibold text-highlighted">Allow {{ agentName }} to read your household’s finances?</h1>

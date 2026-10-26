@@ -6,7 +6,7 @@ const letters = computed(() => initials(props.name))
 
 <template>
   <span
-    class="grid shrink-0 place-items-center rounded-md border border-default bg-elevated font-medium text-toned"
+    class="grid shrink-0 place-items-center rounded-md bg-elevated font-medium text-toned"
     :class="size === 'sm' ? 'size-6 text-[10px]' : 'size-8 text-xs'"
     aria-hidden="true"
     >{{ letters }}</span

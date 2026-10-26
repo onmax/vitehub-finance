@@ -19,7 +19,7 @@ const mark = computed(() => MARKS.find((entry) => entry.match.test(props.name)) 
 </script>
 
 <template>
-  <span class="grid size-8 shrink-0 place-items-center rounded-md border border-default bg-elevated text-muted" aria-hidden="true">
+  <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated text-muted" aria-hidden="true">
     <UIcon :name="mark.icon" class="size-4" :style="{ color: mark.color }" />
   </span>
 </template>

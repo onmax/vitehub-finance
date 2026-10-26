@@ -124,7 +124,7 @@ watch(step, () => {
 </script>
 
 <template>
-  <div class="rounded-xl border border-default bg-default p-6 shadow-xs">
+  <div>
     <template v-if="step === '2fa'">
       <h1 class="text-lg font-semibold text-highlighted">Two-factor check</h1>
       <p class="mt-1 text-sm text-muted">

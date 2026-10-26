@@ -49,7 +49,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="rounded-xl border border-default bg-default p-6 shadow-xs">
+  <div>
     <h1 class="text-lg font-semibold text-highlighted">Create your account</h1>
     <p class="mt-1 text-sm text-muted">You get a household of your own. Invite your partner once you’re in.</p>
     <UAlert

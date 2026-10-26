@@ -2,7 +2,8 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: "zinc",
+      // The accent ramp, `--color-brand-*` in main.css.
+      primary: "brand",
       neutral: "zinc",
       success: "emerald",
       info: "sky",
@@ -18,7 +19,7 @@ export default defineAppConfig({
     },
     card: {
       slots: {
-        root: "rounded-xl shadow-xs",
+        root: "rounded-lg",
         header: "p-4 sm:px-5",
         body: "p-4 sm:p-5",
         footer: "p-4 sm:px-5",

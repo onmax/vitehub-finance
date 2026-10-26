@@ -5,7 +5,7 @@ const { copy, copied } = useClipboard({ copiedDuring: 1500, legacy: true })
 </script>
 
 <template>
-  <div class="group relative flex items-start gap-2 rounded-lg border border-default bg-muted">
+  <div class="group relative flex items-start gap-2 rounded-lg bg-muted">
     <pre
       class="min-w-0 flex-1 overflow-x-auto px-3 py-2.5 font-mono text-[13px] leading-5 text-highlighted"
       :class="wrap ? 'whitespace-pre-wrap break-all' : multiline ? 'whitespace-pre' : 'whitespace-nowrap'"

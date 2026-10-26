@@ -4,25 +4,41 @@
 @source "../../../shared";
 
 /*
- * shadcn's look on Nuxt UI: zinc neutrals, a near-black primary (near-white in dark), Geist, small radii, hairline
- * borders with the faintest shadow. Components use Nuxt UI's semantic tokens (bg-default, text-muted, border-default),
- * never palette classes, so this file is the whole theme.
+ * Flat and quiet, after Executor's design.md: zinc neutrals, Geist, small radii, structure from space and type with a
+ * hairline where something needs separating, and no shadows on surfaces that sit on the page. One accent, a cobalt
+ * blue (`brand`, Nuxt UI's `primary`), marks the one key action per view, the current page, links, focus, and the
+ * charts' own line; category colors (app/utils/categories.ts) and money in carry the rest. Components use Nuxt UI's
+ * semantic tokens (bg-default, text-muted, border-default), never palette classes, so this file is the whole theme.
  */
 @theme static {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  /* Chart series, shadcn's defaults in OKLCH. */
-  --color-chart-1: oklch(0.646 0.222 41.116);
-  --color-chart-2: oklch(0.6 0.118 184.704);
-  --color-chart-3: oklch(0.398 0.07 227.392);
-  --color-chart-4: oklch(0.828 0.189 84.429);
-  --color-chart-5: oklch(0.769 0.188 70.08);
+  /* The accent ramp: one hue (OKLCH 262), most vivid mid-ramp, finer steps at the light end. */
+  --color-brand-50: oklch(0.975 0.012 262);
+  --color-brand-100: oklch(0.945 0.028 262);
+  --color-brand-200: oklch(0.895 0.055 262);
+  --color-brand-300: oklch(0.82 0.095 262);
+  --color-brand-400: oklch(0.72 0.145 262);
+  --color-brand-500: oklch(0.62 0.18 262);
+  --color-brand-600: oklch(0.54 0.19 262);
+  --color-brand-700: oklch(0.47 0.17 262);
+  --color-brand-800: oklch(0.4 0.14 262);
+  --color-brand-900: oklch(0.34 0.11 262);
+  --color-brand-950: oklch(0.25 0.08 262);
+
+  /* Chart series: the accent first, then hues far enough from it and from each other to tell apart. */
+  --color-chart-1: oklch(0.6 0.17 262);
+  --color-chart-2: oklch(0.68 0.12 180);
+  --color-chart-3: oklch(0.78 0.14 80);
+  --color-chart-4: oklch(0.66 0.16 20);
+  --color-chart-5: oklch(0.7 0.02 285);
 }
 
 :root {
-  --ui-radius: 0.5rem;
-  --ui-primary: var(--ui-color-neutral-900);
+  /* Executor's radii: sm 4px, md 6px (buttons, inputs), lg 8px (tiles, menus), xl 12px (dialogs). */
+  --ui-radius: 0.25rem;
+  --ui-primary: var(--ui-color-primary-600);
   --ui-bg: var(--color-white);
   --ui-bg-muted: var(--ui-color-neutral-50);
   --ui-bg-elevated: var(--ui-color-neutral-100);
@@ -37,11 +53,11 @@
   /* Money moving in. Out stays the default text color, as banks do; color marks only what's unusual. */
   --color-money-in: oklch(0.527 0.154 150.069);
   --chart-grid: var(--ui-color-neutral-200);
-  --chart-line: var(--ui-color-neutral-900);
+  --chart-line: var(--ui-color-primary-600);
 }
 
 .dark {
-  --ui-primary: var(--ui-color-neutral-50);
+  --ui-primary: var(--ui-color-primary-400);
   --ui-bg: var(--ui-color-neutral-950);
   --ui-bg-muted: oklch(0.18 0.005 285.823);
   --ui-bg-elevated: var(--ui-color-neutral-900);
@@ -55,7 +71,7 @@
 
   --color-money-in: oklch(0.765 0.177 163.223);
   --chart-grid: oklch(1 0 0 / 0.08);
-  --chart-line: var(--ui-color-neutral-50);
+  --chart-line: var(--ui-color-primary-400);
 }
 
 @layer base {

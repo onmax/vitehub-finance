@@ -1,26 +1,27 @@
 <script setup lang="ts">
-// A dashboard card: a quiet title, an optional link to the full view, and its content.
+// A dashboard section, flat: a hairline on top, a quiet title, an optional link to the full view, and its content.
 defineProps<{ title: string; to?: string; linkLabel?: string; bodyClass?: string }>()
+const id = useId()
 </script>
 
 <template>
-  <section class="flex min-w-0 flex-col rounded-xl border border-default bg-default shadow-xs">
-    <header class="flex h-12 items-center justify-between gap-2 px-4 sm:px-5">
-      <h2 class="text-sm font-medium text-muted">{{ title }}</h2>
+  <section class="flex min-w-0 flex-col border-t border-default" :aria-labelledby="id">
+    <header class="flex h-11 items-center justify-between gap-2">
+      <h2 :id="id" class="text-sm font-medium text-highlighted">{{ title }}</h2>
       <slot name="action">
         <UButton
           v-if="to"
           :to="to"
           :label="linkLabel ?? 'See all'"
           color="neutral"
-          variant="ghost"
+          variant="link"
           size="sm"
           trailing-icon="i-lucide-arrow-right"
-          class="-me-2 text-muted"
+          class="-me-1.5 text-muted"
         />
       </slot>
     </header>
-    <div class="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5 sm:pb-5" :class="bodyClass">
+    <div class="flex min-h-0 flex-1 flex-col pt-1" :class="bodyClass">
       <slot />
     </div>
   </section>

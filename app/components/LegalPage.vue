@@ -1,12 +1,12 @@
 <script setup lang="ts">
-// The frame of /privacy and /terms: a readable card in the auth layout, with links to the other page and back.
+// The frame of /privacy and /terms: a readable column in the auth layout, with links to the other page and back.
 defineProps<{ title: string; updated: string }>()
 const { loggedIn } = useAuthSession()
 </script>
 
 <template>
   <article
-    class="rounded-xl border border-default bg-default p-6 shadow-xs sm:p-8 [&_a]:font-medium [&_a]:text-highlighted [&_a]:underline [&_a]:underline-offset-4 [&_h2]:mt-7 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-highlighted [&_li]:mt-1.5 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:ps-5 text-sm/6 text-toned"
+    class="[&_a]:font-medium [&_a]:text-highlighted [&_a]:underline [&_a]:underline-offset-4 [&_h2]:mt-7 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-highlighted [&_li]:mt-1.5 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:ps-5 text-sm/6 text-toned"
   >
     <h1 class="text-xl font-semibold text-highlighted">{{ title }}</h1>
     <p class="text-muted">Last updated {{ updated }}</p>
