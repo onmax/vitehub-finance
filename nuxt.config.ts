@@ -108,6 +108,8 @@ export default defineNuxtConfig({
 
   icon: {
     provider: "none",
+    // Marks Simple Icons doesn't have (Nimiq), as `i-finance-<file>`.
+    customCollections: [{ prefix: "finance", dir: "./app/assets/icons" }],
     clientBundle: {
       scan: true,
       // Nuxt UI's own icons and the ones picked at runtime (category and account kinds): the scanner reads

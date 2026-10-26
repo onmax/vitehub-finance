@@ -1,13 +1,13 @@
 // Which code fetches which connection. Kept free of ViteHub imports: the caller passes the configuration in.
+import { CHAIN_IDS, EXCHANGE_IDS } from "@vitehub-finance/crypto"
 import type { ProviderId } from "../../shared/api"
+import { cryptoProvider } from "./crypto"
 import { enableBanking, type EnableBankingConfig } from "./enable-banking"
-import { EXCHANGES } from "./exchanges"
 import { ProviderError, type Provider } from "./types"
-import { wallet } from "./wallets"
 
 export const BANK_PROVIDERS = ["enable_banking"] as const
-export const EXCHANGE_PROVIDERS = ["kraken", "binance", "coinbase"] as const
-export const WALLET_PROVIDERS = ["bitcoin", "ethereum", "solana", "xrpl"] as const
+export const EXCHANGE_PROVIDERS = EXCHANGE_IDS
+export const WALLET_PROVIDERS = CHAIN_IDS
 
 export function providerFor(id: ProviderId, config: { enableBanking: EnableBankingConfig | null }): Provider<any> {
   switch (id) {
@@ -15,16 +15,9 @@ export function providerFor(id: ProviderId, config: { enableBanking: EnableBanki
       if (!config.enableBanking)
         throw new ProviderError("auth", "Bank sync isn't configured: set ENABLE_BANKING_APP_ID and ENABLE_BANKING_PRIVATE_KEY.")
       return enableBanking(config.enableBanking)
-    case "kraken":
-    case "binance":
-    case "coinbase":
-      return EXCHANGES[id]
-    case "bitcoin":
-    case "ethereum":
-    case "solana":
-    case "xrpl":
-      return wallet(id)
     case "manual":
       throw new ProviderError("auth", "Manual accounts have nothing to sync.")
+    default:
+      return cryptoProvider(id)
   }
 }

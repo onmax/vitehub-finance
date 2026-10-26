@@ -1,5 +1,8 @@
-// What every provider (a bank through Enable Banking, an exchange, a wallet) hands the sync engine.
-// Providers only fetch and map; the engine (server/utils/sync.ts) owns the database.
+// What every provider (a bank, an exchange, a wallet) hands the sync engine. The fetching lives in the workspace
+// packages (@vitehub-finance/banking, @vitehub-finance/crypto); these adapters map their models and errors to the
+// engine's. Providers only fetch and map; the engine (server/utils/sync.ts) owns the database.
+import { BankingError } from "@vitehub-finance/banking"
+import { CryptoError } from "@vitehub-finance/crypto"
 import type { AccountKind } from "../../shared/api"
 
 /** Sent on every outgoing API call. Workers send none by default, and some APIs refuse requests without one. */
@@ -68,38 +71,19 @@ export class ProviderError extends Error {
   }
 }
 
-/** A short, readable reason from a provider's error body, for `lastError` and API responses. */
-export function describeBody(body: unknown, fallback: string) {
-  if (typeof body === "string") return body.slice(0, 200) || fallback
-  if (body && typeof body === "object") {
-    const record = body as Record<string, unknown>
-    for (const key of ["message", "msg", "error_description", "detail", "error"]) {
-      const value = record[key]
-      if (typeof value === "string" && value) return value.slice(0, 200)
-      if (Array.isArray(value) && value.length) return value.map(String).join(", ").slice(0, 200)
-    }
-  }
-  return fallback
+/** The packages' errors in the engine's terms: anything the person must fix (a key, an address) is `auth`. */
+export function asProviderError(error: unknown): unknown {
+  if (error instanceof BankingError) return new ProviderError(error.code === "invalid_credentials" ? "auth" : error.code, error.message)
+  if (error instanceof CryptoError)
+    return new ProviderError(error.code === "invalid_credentials" || error.code === "invalid_address" ? "auth" : error.code, error.message)
+  return error
 }
 
-/** Reads a JSON (or text) body without throwing on malformed responses. */
-export async function readBody(response: Response): Promise<unknown> {
-  const text = await response.text().catch(() => "")
+/** Runs a package call and rethrows its error as a ProviderError. */
+export async function mapped<T>(run: () => Promise<T>): Promise<T> {
   try {
-    return JSON.parse(text)
-  } catch {
-    return text
-  }
-}
-
-/** Network failures and timeouts become `unavailable`, so the run records a readable reason. */
-export async function request(name: string, url: string, init: RequestInit = {}) {
-  try {
-    const headers = new Headers(init.headers)
-    if (!headers.has("user-agent")) headers.set("user-agent", USER_AGENT)
-    return await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(20_000) })
+    return await run()
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error)
-    throw new ProviderError("unavailable", `${name} could not be reached (${reason}).`)
+    throw asProviderError(error)
   }
 }

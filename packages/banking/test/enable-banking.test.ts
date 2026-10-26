@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { accountKind, appToken, mapTransactions, pickBalance, type EbTransaction } from "../../server/providers/enable-banking"
-import { fromBase64Url, importRsaKey, normalizePem, signRs256, toBase64, utf8 } from "../../server/providers/crypto"
+import { accountKind, appToken, importRsaKey, mapTransactions, normalizePem, pickBalance, signRs256, type EbTransaction } from "../src/enable-banking/index.ts"
+import { toBase64 } from "../src/enable-banking/jwt.ts"
+
+const utf8 = (text: string) => new TextEncoder().encode(text)
+const fromBase64Url = (text: string) => {
+  const base64 = text.replace(/-/g, "+").replace(/_/g, "/")
+  return Uint8Array.from(atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4)), (char) => char.charCodeAt(0))
+}
 
 const row = (overrides: Partial<EbTransaction>): EbTransaction => ({
   transaction_amount: { amount: "12.30", currency: "EUR" },
@@ -13,8 +19,8 @@ const row = (overrides: Partial<EbTransaction>): EbTransaction => ({
 })
 
 describe("Enable Banking transactions", () => {
-  it("signs debits negative and credits positive", async () => {
-    const [debit, credit] = await mapTransactions([
+  it("signs debits negative and credits positive", () => {
+    const [debit, credit] = mapTransactions([
       row({}),
       row({ credit_debit_indicator: "CRDT", transaction_amount: { amount: "2500.00", currency: "EUR" } }),
     ])
@@ -22,8 +28,8 @@ describe("Enable Banking transactions", () => {
     expect(credit!.amountMinor).toBe(250000)
   })
 
-  it("joins remittance lines for the description and picks the other side as counterparty", async () => {
-    const [debit, credit] = await mapTransactions([
+  it("joins remittance lines for the description and picks the other side as counterparty", () => {
+    const [debit, credit] = mapTransactions([
       row({}),
       row({ credit_debit_indicator: "CRDT", remittance_information: [], debtor: { name: "ACME Payroll" } }),
     ])
@@ -33,29 +39,8 @@ describe("Enable Banking transactions", () => {
     expect(credit!.counterparty).toBe("ACME Payroll")
   })
 
-  it("prefers the bank's id for the dedupe key", async () => {
-    const [withId, withReference] = await mapTransactions([
-      row({ transaction_id: "T-1", entry_reference: "E-1" }),
-      row({ entry_reference: "E-2" }),
-    ])
-    expect(withId!.dedupeKey).toBe("id:T-1")
-    expect(withReference!.dedupeKey).toBe("id:E-2")
-  })
-
-  it("keeps hash keys stable across fetches and distinct for identical same-day rows", async () => {
-    const fetch = [row({}), row({}), row({ booking_date: "2026-10-21" })]
-    const first = await mapTransactions(fetch)
-    const second = await mapTransactions(structuredClone(fetch))
-    expect(first.map((item) => item.dedupeKey)).toEqual(second.map((item) => item.dedupeKey))
-    expect(first[0]!.dedupeKey).not.toBe(first[1]!.dedupeKey)
-    expect(first.every((item) => item.dedupeKey?.startsWith("h:"))).toBe(true)
-    // Whitespace and case in the description don't make a new transaction.
-    const [noisy] = await mapTransactions([row({ remittance_information: ["card  payment", "Mercadona valencia "] })])
-    expect(noisy!.dedupeKey).toBe(first[0]!.dedupeKey)
-  })
-
-  it("skips rows without a date or an amount", async () => {
-    const mapped = await mapTransactions([
+  it("skips rows without a date or an amount", () => {
+    const mapped = mapTransactions([
       row({ booking_date: null, value_date: null, transaction_date: null }),
       row({ transaction_amount: { amount: "abc", currency: "EUR" } }),
       row({ booking_date: null, value_date: "2026-10-19" }),

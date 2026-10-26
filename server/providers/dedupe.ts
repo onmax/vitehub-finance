@@ -1,7 +1,9 @@
 // What makes a transaction "the same one" across fetches, and the rules that categorize new ones. Pure logic, so the
 // sync engine, the CSV import, and the tests share it.
 import { currencyDigits } from "../../shared/money"
-import { sha256, toHex } from "./crypto"
+
+const toHex = (bytes: Uint8Array) => Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
+const sha256 = async (text: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))
 
 export const normalizeText = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim()
 

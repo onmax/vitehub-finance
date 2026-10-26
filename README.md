@@ -9,7 +9,10 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers o
 ## What it does
 
 - **Bank sync** for EU banks through [Enable Banking](https://enablebanking.com) (PSD2), daily, with re-consent reminders.
-- **Crypto**: Kraken, Binance, and Coinbase with read-only keys; Bitcoin, Ethereum, Solana, and XRP Ledger addresses.
+- **Crypto**: Kraken, Binance, and Coinbase with read-only keys; Bitcoin, Ethereum, Solana, XRP Ledger, and Nimiq
+  addresses (staked NIM included).
+- **Transfers** between your own accounts (a top-up from another bank, a currency exchange, a broker deposit) are
+  found and left out of spending and income.
 - **CSV import** for everything else (brokers, old statements), with column mapping and a preview.
 - **Households**: invite a partner. Each account is private to its owner or shared with the household; a private
   account never shows up for anyone else, in any list, total, chart, or MCP tool.
@@ -101,6 +104,9 @@ FINANCE_DEMO=1 CLOUDFLARE_WORKER_NAME=vitehub-finance-demo CLOUDFLARE_D1_DATABAS
   data is generated from the date, so it always ends today.
 
 ## Develop
+
+The bank and crypto clients are workspace packages you can use on their own:
+[`@vitehub-finance/banking`](./packages/banking) and [`@vitehub-finance/crypto`](./packages/crypto).
 
 - `pnpm test` — unit tests (sync mapping, dedupe, signatures, recurring detection, forecast, the demo scenario).
 - `node scripts/privacy-check.mjs` — two members against a running server; fails if a private account leaks anywhere.

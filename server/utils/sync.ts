@@ -238,15 +238,20 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
   }
 }
 
-/** Accounts by provider id, then IBAN: after a reconnect a bank hands out new ids, and the history should stay. */
-export async function matchReconnectedAccounts(connectionId: string, accounts: Array<{ uid: string; iban: string | null }>) {
+/**
+ * Accounts by provider id, then IBAN and currency: after a reconnect a bank hands out new ids, and the history should
+ * stay. Currency matters because some banks (Revolut) put every currency account behind one IBAN.
+ */
+export async function matchReconnectedAccounts(connectionId: string, accounts: Array<{ uid: string; iban: string | null; currency: string }>) {
   const existing = await db.select().from(financialAccount).where(eq(financialAccount.connectionId, connectionId))
   const uids = new Set(accounts.map((account) => account.uid))
   const claimed = new Set(existing.filter((row) => row.externalId && uids.has(row.externalId)).map((row) => row.id))
   for (const account of accounts) {
     if (existing.some((row) => row.externalId === account.uid) || !account.iban) continue
     const normalized = account.iban.replace(/\s+/g, "").toUpperCase()
-    const match = existing.find((row) => !claimed.has(row.id) && row.iban?.replace(/\s+/g, "").toUpperCase() === normalized)
+    const match = existing.find(
+      (row) => !claimed.has(row.id) && row.iban?.replace(/\s+/g, "").toUpperCase() === normalized && row.currency === account.currency,
+    )
     if (!match) continue
     claimed.add(match.id)
     await db

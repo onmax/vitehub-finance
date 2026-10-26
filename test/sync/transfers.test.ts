@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { sessionAccounts } from "../../server/providers/enable-banking"
+import { sessionAccounts } from "@vitehub-finance/banking/enable-banking"
 import { looksLikeTransfer, pairTransfers, type TransferCandidate } from "../../server/utils/transfers-core"
 
 // Rough ECB rates into EUR, as minor units per minor unit.

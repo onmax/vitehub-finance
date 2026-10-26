@@ -4,8 +4,8 @@ import { db } from "vite-hub/database/drizzle"
 import { dispatchSync } from "#dispatch"
 import type { ConnectionSummary } from "#shared/api"
 import { connection } from "../../databases/config"
+import { CHAINS, parseAddress } from "@vitehub-finance/crypto"
 import { WALLET_PROVIDERS } from "../../providers/index"
-import { CHAINS, validAddress } from "../../providers/wallets"
 import { assertNotLinked, connectionSummary, fail, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
@@ -22,7 +22,7 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   refuseInDemo()
   const who = await requireMember(event)
   const body = await readValid(event, Body)
-  const address = validAddress(body.chain, body.address)
+  const address = parseAddress(body.chain, body.address)
   if (!address) throw fail(400, `That isn't a valid ${CHAINS[body.chain].name} address.`)
   await assertNotLinked(who, body.chain, address)
   const id = crypto.randomUUID()

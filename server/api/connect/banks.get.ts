@@ -13,7 +13,7 @@ export default defineHandler(async (event): Promise<Bank[]> => {
     throw providerHttpError(error)
   })
   return banks
-    .filter((bank) => !bank.psu_types?.length || bank.psu_types.includes("personal"))
+    .filter((bank) => bank.personal)
     .map(toBank)
     .sort((a, b) => a.name.localeCompare(b.name))
 })

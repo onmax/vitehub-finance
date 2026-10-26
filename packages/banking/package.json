@@ -1,0 +1,14 @@
+{
+  "name": "@vitehub-finance/banking",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One client for bank accounts through open banking (PSD2): consent, accounts, balances, and transactions in one data model.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./enable-banking": "./src/enable-banking/index.ts",
+    "./fake": "./src/fake.ts"
+  }
+}

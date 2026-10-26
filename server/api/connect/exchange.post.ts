@@ -4,7 +4,8 @@ import { db } from "vite-hub/database/drizzle"
 import { dispatchSync } from "#dispatch"
 import type { ConnectionSummary } from "#shared/api"
 import { connection } from "../../databases/config"
-import { EXCHANGE_NAMES, EXCHANGES } from "../../providers/exchanges"
+import { EXCHANGES } from "@vitehub-finance/crypto"
+import { cryptoProvider } from "../../providers/crypto"
 import { EXCHANGE_PROVIDERS } from "../../providers/index"
 import {
   assertNotLinked,
@@ -36,7 +37,7 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   // A label to recognize the key by, never enough to use it.
   const externalId = `${body.key.slice(0, 8)}…`
   await assertNotLinked(who, body.provider, externalId)
-  await EXCHANGES[body.provider](credentials).catch((error) => {
+  await cryptoProvider(body.provider)(credentials).catch((error) => {
     throw providerHttpError(error)
   })
   const id = crypto.randomUUID()
@@ -45,8 +46,8 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
     householdId: who.householdId,
     ownerId: who.userId,
     provider: body.provider,
-    name: body.name || EXCHANGE_NAMES[body.provider],
-    institution: EXCHANGE_NAMES[body.provider],
+    name: body.name || EXCHANGES[body.provider].name,
+    institution: EXCHANGES[body.provider].name,
     status: "active",
     credentials: await seal(credentials),
     externalId,

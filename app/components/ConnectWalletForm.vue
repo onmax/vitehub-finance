@@ -3,12 +3,13 @@ import type { ConnectionSummary } from "#shared/api"
 
 // Watches a public wallet address: its balance, priced in the household's currency. No keys, nothing to sign.
 const emit = defineEmits<{ connected: [connection: ConnectionSummary] }>()
-type Chain = "bitcoin" | "ethereum" | "solana" | "xrpl"
+type Chain = "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq"
 const CHAINS: Record<Chain, { label: string; placeholder: string; icon: string }> = {
   bitcoin: { label: "Bitcoin", placeholder: "bc1q… or 1… or 3…", icon: "i-simple-icons-bitcoin" },
   ethereum: { label: "Ethereum", placeholder: "0x…", icon: "i-simple-icons-ethereum" },
   solana: { label: "Solana", placeholder: "Base58 address", icon: "i-simple-icons-solana" },
   xrpl: { label: "XRP Ledger", placeholder: "r…", icon: "i-simple-icons-xrp" },
+  nimiq: { label: "Nimiq", placeholder: "NQ…", icon: "i-finance-nimiq" },
 }
 const items = (Object.keys(CHAINS) as Chain[]).map((value) => ({ value, label: CHAINS[value].label, icon: CHAINS[value].icon }))
 const state = reactive({ chain: "bitcoin" as Chain, address: "", name: "" })

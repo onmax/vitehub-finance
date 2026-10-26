@@ -6,7 +6,8 @@ import { kv } from "vite-hub/kv"
 import { useServerEnv } from "#vitehub/env/server"
 import type { Bank, ConnectionSummary, SyncRun } from "#shared/api"
 import { connection, financialAccount, syncRun, user as users } from "../databases/config"
-import { listBanks, startAuth, type Aspsp, type EnableBankingConfig } from "../providers/enable-banking"
+import type { Institution } from "@vitehub-finance/banking"
+import { listBanks, startAuth, type EnableBankingConfig } from "../providers/enable-banking"
 import { ProviderError } from "../providers/types"
 import type { Member } from "./identity"
 
@@ -77,23 +78,16 @@ export async function knownOrigin() {
 const BANKS_TTL = 24 * 60 * 60 * 1000
 
 /** A country's banks, cached for a day: the list barely changes and every call costs a signed request. */
-export async function banksIn(config: EnableBankingConfig, country: string): Promise<Aspsp[]> {
-  const key = `eb-banks:${country}`
-  const [, cached] = await kv.get<{ at: number; banks: Aspsp[] }>(key)
+export async function banksIn(config: EnableBankingConfig, country: string): Promise<Institution[]> {
+  const key = `banks:${country}`
+  const [, cached] = await kv.get<{ at: number; banks: Institution[] }>(key)
   if (cached && Date.now() - cached.at < BANKS_TTL) return cached.banks
   const banks = await listBanks(config, country)
   await kv.set(key, { at: Date.now(), banks })
   return banks
 }
 
-export function toBank(aspsp: Aspsp): Bank {
-  return {
-    name: aspsp.name,
-    country: aspsp.country,
-    logo: aspsp.logo ?? null,
-    maxConsentDays: aspsp.maximum_consent_validity ? Math.floor(aspsp.maximum_consent_validity / 86400) : null,
-  }
-}
+export const toBank = ({ name, country, logo, maxConsentDays }: Institution): Bank => ({ name, country, logo, maxConsentDays })
 
 export async function findBank(config: EnableBankingConfig, name: string, country: string) {
   const banks = await banksIn(config, country)
@@ -112,17 +106,16 @@ export const STATE_TTL = 30 * 60 * 1000
  * Sends someone to their bank for a consent on this connection. The random `state` in KV ties the bank's redirect back
  * to this connection and person for 30 minutes.
  */
-export async function startBankLink(event: H3Event, who: Member, row: ConnectionRow, bank: Aspsp) {
+export async function startBankLink(event: H3Event, who: Member, row: ConnectionRow, bank: Institution) {
   const config = requireBankConfig()
   const state = crypto.randomUUID().replace(/-/g, "")
   await kv.set(`eb-state:${state}`, { connectionId: row.id, userId: who.userId, at: Date.now() } satisfies LinkState)
   await rememberOrigin(event)
   return startAuth(config, {
-    name: bank.name,
-    country: bank.country,
+    institution: { name: bank.name, country: bank.country },
     state,
     redirectUrl: `${event.url.origin}/api/connect/callback`,
-    maxConsentSeconds: bank.maximum_consent_validity,
+    validDays: bank.maxConsentDays,
   })
 }
 

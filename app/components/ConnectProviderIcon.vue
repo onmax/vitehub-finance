@@ -13,6 +13,7 @@ const ICONS: Partial<Record<ProviderId, string>> = {
   ethereum: "i-simple-icons-ethereum",
   solana: "i-simple-icons-solana",
   xrpl: "i-simple-icons-xrp",
+  nimiq: "i-finance-nimiq",
   manual: "i-lucide-pencil-line",
 }
 const failed = ref(false)

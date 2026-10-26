@@ -39,12 +39,27 @@ Private by default (`FINANCE_ALLOWED_EMAILS`), forkable, deployable to Cloudflar
 - D1 limits a statement to 100 bound parameters: insert in chunks. There are no interactive transactions.
 - API response types live in `shared/api.ts`. Server handlers return them; pages type `useFetch` with them.
 
+## Packages
+
+A pnpm workspace: the app at the root, and two clients in `packages/` that know nothing about the app.
+
+- `@vitehub-finance/banking`: open banking. `BankingProvider` (institutions, authorize, completeAuthorization,
+  balance, transactions, revoke), `readAccounts`, `BankingError`. Providers: `./enable-banking`, `./fake`.
+- `@vitehub-finance/crypto`: balances. `CryptoProvider.balances()` returns `Holding[]`; factories per exchange and chain,
+  `connect(id, credentials)`, `createCrypto([...])`, `parseAddress`, `CryptoError`. `./fake` for tests.
+
+Packages import with `.ts` extensions and only erasable TypeScript, so Node runs their source directly. Their errors
+become the app's `ProviderError` in `server/providers/types.ts` (`asProviderError`); `server/providers/*` are thin
+adapters that keep what the app stores (sealed credentials) and add dedupe keys. A new exchange or chain goes in the
+crypto package; the app only needs its id in `ProviderId`, the schema enum, and the UI lists.
+
 ## Sync
 
 `server/utils/sync.ts` `syncConnection(connectionId, trigger)` runs one connection: the provider fetches accounts,
 balances, holdings, and transactions (`server/providers/*`); new transactions dedupe on `(accountId, dedupeKey)` and
-get categories from rules; balances snapshot daily; `detectRecurring` (server/utils/recurring.ts) runs on the touched
-accounts. The daily Schedule (`server/schedules/daily.ts`) dispatches every active connection through `#dispatch`.
+get categories from rules; balances snapshot daily; `detectTransfers` (server/utils/transfers.ts) pairs moves between
+the household's accounts and gives them the transfer category, so they leave spending; `detectRecurring`
+(server/utils/recurring.ts) runs on the touched accounts. The daily Schedule (`server/schedules/daily.ts`) dispatches every active connection through `#dispatch`.
 
 ## Demo
 
@@ -95,7 +110,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `POST /api/connect/bank` | `{ name, country }` | `{ url }` — open it; the bank returns to `/api/connect/callback` |
 | `GET /api/connect/callback` (bank redirect) | `code, state, error` | 302 to `/connect?linked=<id>` or `/connect?error=<message>` |
 | `POST /api/connect/exchange` | `{ provider: kraken/binance/coinbase, key, secret, name? }` | `ConnectionSummary` |
-| `POST /api/connect/wallet` | `{ chain: bitcoin/ethereum/solana/xrpl, address, name? }` | `ConnectionSummary` |
+| `POST /api/connect/wallet` | `{ chain: bitcoin/ethereum/solana/xrpl/nimiq, address, name? }` | `ConnectionSummary` |
 | `GET /api/connections` | | `ConnectionSummary[]` |
 | `POST /api/connections/:id/sync` | | `{ ok }` |
 | `POST /api/connections/:id/reconnect` | | `{ url }` (bank connections) |

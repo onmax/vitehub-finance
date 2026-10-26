@@ -112,7 +112,7 @@ async function importCsv() {
               id="wallet"
               icon="i-lucide-wallet"
               title="Wallet"
-              description="Watch a public address on Bitcoin, Ethereum, Solana, or the XRP Ledger."
+              description="Watch a public address on Bitcoin, Ethereum, Solana, the XRP Ledger, or Nimiq. Staked NIM counts too."
             >
               <ConnectWalletForm @connected="connected" />
             </ConnectSection>

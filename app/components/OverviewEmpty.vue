@@ -11,7 +11,7 @@ const sample = Array.from({ length: 60 }, (_, index) => ({
   value: 1000 + index * 12 + Math.sin(index / 5) * 60 + Math.cos(index / 2.3) * 25,
 }))
 const options = [
-  { label: "Add a crypto wallet", description: "Bitcoin, Ethereum, Solana, or XRP, by address", icon: "i-lucide-wallet", to: "/connect#wallet" },
+  { label: "Add a crypto wallet", description: "Bitcoin, Ethereum, Solana, XRP, or Nimiq, by address", icon: "i-lucide-wallet", to: "/connect#wallet" },
   { label: "Add a manual account", description: "Cash, a pension, a loan", icon: "i-lucide-plus", action: () => addAccount.open() },
   { label: "Import a CSV", description: "Any bank’s export", icon: "i-lucide-file-up", to: "/connect#import" },
 ]

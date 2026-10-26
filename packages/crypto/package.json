@@ -1,0 +1,13 @@
+{
+  "name": "@vitehub-finance/crypto",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One client for crypto balances: exchanges with read-only keys and public wallet addresses, in one data model.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./fake": "./src/fake.ts"
+  }
+}

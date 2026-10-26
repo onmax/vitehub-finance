@@ -14,6 +14,7 @@ export type ProviderId =
   | "ethereum"
   | "solana"
   | "xrpl"
+  | "nimiq"
   | "manual"
 export type ConnectionStatus = "pending" | "active" | "expired" | "error" | "revoked"
 export type Cadence = "weekly" | "monthly" | "quarterly" | "yearly"
