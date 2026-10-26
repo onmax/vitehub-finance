@@ -33,6 +33,7 @@ import {
 import type auth from "../auth"
 import { detectRecurring } from "../utils/recurring"
 import { backfillSnapshots, recordSnapshot } from "../utils/snapshots"
+import { detectTransfers } from "../utils/transfers"
 import { todayIso } from "../utils/dates"
 import { seedingEmails } from "./mode"
 import { DEMO_HOUSEHOLD, DEMO_PEOPLE, demoScenario, type DemoPerson } from "./scenario"
@@ -283,6 +284,7 @@ async function build(today: string) {
 
   // What a sync does after writing transactions: recurring series and the balance history behind the charts.
   const allAccounts = [...accountIds.values()]
+  await detectTransfers(householdId)
   await detectRecurring(householdId, allAccounts)
   for (const entry of scenario.accounts) {
     const accountId = accountIds.get(entry.key)!

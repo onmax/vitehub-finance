@@ -135,15 +135,31 @@ export function accountKind(cashAccountType: string | null | undefined): Account
   }
 }
 
-export function sessionAccountInfo(account: SessionAccount): EnableBankingAccountInfo {
+/**
+ * An account's name from the session. `name` is the account holder (a person's name, the same on every account), so it
+ * never names the account: the bank and currency do ("Revolut SEK"), with the product when the bank sends one and the
+ * IBAN's last digits when two accounts would share a name.
+ */
+export function sessionAccountInfo(account: SessionAccount, bank?: string | null, ambiguous = false): EnableBankingAccountInfo {
   const iban = account.account_id?.iban || null
+  const currency = account.currency || "EUR"
+  const product = account.product?.trim() && account.product.trim() !== account.name?.trim() ? account.product.trim() : null
+  const base = [bank, product, currency].filter(Boolean).join(" ") || account.details || "Bank account"
   return {
     uid: account.uid,
-    name: account.name || account.product || account.details || (iban ? `Account ${iban.slice(-4)}` : "Bank account"),
+    name: ambiguous && iban ? `${base} ···${iban.slice(-4)}` : base,
     iban,
-    currency: account.currency || "EUR",
+    currency,
     kind: accountKind(account.cash_account_type),
   }
+}
+
+/** Names for every account of a session; two that would read the same get their IBAN's last digits. */
+export function sessionAccounts(accounts: SessionAccount[], bank?: string | null) {
+  const plain = accounts.map((account) => sessionAccountInfo(account, bank))
+  const counts = new Map<string, number>()
+  for (const info of plain) counts.set(info.name, (counts.get(info.name) ?? 0) + 1)
+  return accounts.map((account, index) => (counts.get(plain[index]!.name)! > 1 ? sessionAccountInfo(account, bank, true) : plain[index]!))
 }
 
 /** Trades the bank's `code` for a session: its id, accounts, and how long the consent lasts. */
@@ -154,7 +170,7 @@ export async function createSession(config: EnableBankingConfig, code: string) {
     access?: { valid_until?: string }
     aspsp?: { name: string; country: string }
   }>(config, "POST", "/sessions", { code })
-  const accounts = (body.accounts ?? []).filter((account) => account.uid).map(sessionAccountInfo)
+  const accounts = sessionAccounts((body.accounts ?? []).filter((account) => account.uid), body.aspsp?.name)
   const credentials: EnableBankingCredentials = {
     sessionId: body.session_id,
     accounts: accounts.map((account) => account.uid),

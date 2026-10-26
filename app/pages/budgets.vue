@@ -21,11 +21,16 @@ const { data, status, error, refresh } = useScopedFetch<BudgetsResponse | null>(
 const shared = useShared()
 const notify = useNotify()
 const confirm = useConfirm()
-const { find } = useCategories()
+const { find, categories } = useCategories()
 const overlay = useOverlay()
 const modal = overlay.create(BudgetModal, { destroyOnClose: true })
 
 const currency = computed(() => data.value?.currency ?? "EUR")
+// Transfers of the month, so people can check what was left out of spending.
+const transfersLink = computed(() => {
+  const transfers = categories.value?.find((entry) => entry.kind === "transfer")
+  return { path: "/transactions", query: { ...monthQuery.value, ...(transfers ? { category: transfers.id } : {}) } }
+})
 const byName = (a: Budget, b: Budget) => (find(a.categoryId)?.name ?? "").localeCompare(find(b.categoryId)?.name ?? "")
 const household = computed(() => (data.value?.items ?? []).filter((item) => item.ownerId === null).sort(byName))
 const personal = computed(() => (data.value?.items ?? []).filter((item) => item.ownerId !== null).sort(byName))
@@ -122,8 +127,11 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
           description="Set a monthly limit for a category, like groceries or eating out, and see how much is left as the month goes."
           :actions="[{ label: 'Add a budget', icon: 'i-lucide-plus', onClick: () => open() }]"
         />
-        <p v-if="data.unbudgetedMinor > 0" class="text-center text-sm text-muted">
+        <p v-if="data.unbudgetedMinor > 0" class="text-center text-sm text-pretty text-muted">
           You spent <Money :minor="data.unbudgetedMinor" :currency="currency" class="font-medium text-highlighted" /> in {{ formatMonth(month) }}.
+          <template v-if="data.movedMinor > 0">
+            The <ULink :to="transfersLink" class="font-medium text-highlighted underline decoration-dotted underline-offset-4"><Money :minor="data.movedMinor" :currency="currency" /> you moved between your accounts</ULink> doesn’t count.
+          </template>
         </p>
       </template>
 
@@ -162,6 +170,9 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
             <p class="text-muted">
               Outside any budget:
               <Money :minor="data.unbudgetedMinor" :currency="currency" class="font-medium text-highlighted" />
+              <template v-if="data.movedMinor > 0">
+                · <ULink :to="transfersLink" class="hover:text-highlighted">moved between accounts, not counted: <Money :minor="data.movedMinor" :currency="currency" /></ULink>
+              </template>
             </p>
             <UButton
               label="See transactions"

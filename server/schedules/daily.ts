@@ -3,10 +3,11 @@ import { db } from "vite-hub/database/drizzle"
 import { defineSchedule } from "vite-hub/schedule"
 import { dispatchSync } from "#dispatch"
 import { send } from "#mailer"
-import { connection, user as users } from "../databases/config"
+import { connection, householdSettings, user as users } from "../databases/config"
 import { isDemo } from "../demo/mode"
 import { seedDemo } from "../demo/seed"
 import { errorMessage, knownOrigin } from "../utils/connections"
+import { detectTransfers } from "../utils/transfers"
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -70,6 +71,10 @@ export default defineSchedule({
     await step(() =>
       db.delete(connection).where(and(eq(connection.status, "pending"), lt(connection.createdAt, new Date(now - DAY)))),
     )
+
+    // Pairs moves between accounts again, so rows imported or recategorized since yesterday can still pair.
+    for (const { householdId } of await db.select({ householdId: householdSettings.householdId }).from(householdSettings))
+      await step(() => detectTransfers(householdId))
 
     // Connections in `error` retry too: most errors (a bank or an API down) pass. Expired ones wait for their owner.
     const active = await db.select({ id: connection.id }).from(connection).where(inArray(connection.status, ["active", "error"]))

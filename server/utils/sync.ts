@@ -9,6 +9,7 @@ import { seal, unseal } from "./crypto"
 import { valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
 import { backfillSnapshots, recordSnapshot } from "./snapshots"
+import { detectTransfers } from "./transfers"
 
 export type SyncTrigger = "schedule" | "manual" | "link"
 
@@ -198,6 +199,8 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
     }
     if (!touched.length && failures.length) throw new Error(failures.join("; "))
 
+    // Transfers first: a move between two accounts often arrives with the second account's sync.
+    if (touched.length) await detectTransfers(row.householdId).catch((error) => console.error("[finance] Transfer detection failed", error))
     if (touched.length)
       await detectRecurring(row.householdId, touched).catch((error) => console.error("[finance] Recurring detection failed", error))
     // The first sync brings a year of history: give its accounts a balance chart from it.

@@ -7,7 +7,7 @@ import type { Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
 import { monthEnd, monthOf, monthStart, todayIso } from "./dates"
 import type { Member } from "./identity"
-import { spendingByCategory } from "./transactions"
+import { movedOut, spendingByCategory } from "./transactions"
 
 type BudgetRow = typeof budget.$inferSelect
 
@@ -40,7 +40,8 @@ export async function listBudgets(who: Member, scope: Scope, month = monthOf(tod
   const budgeted = new Set(rows.map((row) => row.categoryId))
   let unbudgetedMinor = 0
   for (const [categoryId, amount] of spent.household) if (!categoryId || !budgeted.has(categoryId)) unbudgetedMinor += amount
-  return { currency, month, items: rows.map((row) => toBudget(row, spent)), unbudgetedMinor }
+  const movedMinor = await movedOut(who, { scope, from: monthStart(month), to: monthEnd(month) }, convert)
+  return { currency, month, items: rows.map((row) => toBudget(row, spent)), unbudgetedMinor, movedMinor }
 }
 
 async function requireCategory(who: Member, categoryId: string) {

@@ -6,6 +6,7 @@ import { requireAccount } from "../../../utils/access"
 import { requireMember } from "../../../utils/identity"
 import { detectRecurring } from "../../../utils/recurring"
 import { backfillSnapshots } from "../../../utils/snapshots"
+import { detectTransfers } from "../../../utils/transfers"
 import { householdRules, insertTransactions } from "../../../utils/sync"
 
 const Row = v.object({
@@ -40,6 +41,7 @@ export default defineHandler(async (event) => {
   })
   const added = await insertTransactions(account, mapped, await householdRules(account.householdId))
   if (added) {
+    await detectTransfers(account.householdId).catch((error) => console.error("[finance] Transfer detection failed", error))
     await detectRecurring(account.householdId, [account.id]).catch((error) => console.error("[finance] Recurring detection failed", error))
     await backfillSnapshots(account.id).catch((error) => console.error("[finance] Snapshot backfill failed", error))
   }

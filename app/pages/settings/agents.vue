@@ -48,5 +48,7 @@ const withKey = JSON.stringify(
     </div>
   </SettingsSection>
 
+  <SettingsConnectedAgents />
+
   <SettingsApiKeys />
 </template>

@@ -76,7 +76,11 @@ function onKeydown(event: KeyboardEvent) {
               <span class="truncate">{{ title(row.original) }}</span>
               <UIcon v-if="row.original.note" name="i-lucide-sticky-note" class="size-3.5 shrink-0 text-dimmed" aria-label="Has a note" />
             </p>
-            <p v-if="row.original.counterparty && row.original.description !== row.original.counterparty" class="truncate text-xs text-muted" :title="row.original.description">
+            <p v-if="row.original.transferWith" class="flex items-center gap-1 truncate text-xs text-muted">
+              <UIcon name="i-lucide-arrow-left-right" class="size-3 shrink-0" />
+              <span class="truncate">{{ row.original.amountMinor < 0 ? "To" : "From" }} {{ row.original.transferWith }}</span>
+            </p>
+            <p v-else-if="row.original.counterparty && row.original.description !== row.original.counterparty" class="truncate text-xs text-muted" :title="row.original.description">
               {{ row.original.description }}
             </p>
           </div>
@@ -133,7 +137,8 @@ function onKeydown(event: KeyboardEvent) {
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-medium text-highlighted">{{ title(row) }}</span>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted">
-                  <span class="truncate">{{ find(row.categoryId)?.name ?? "Uncategorized" }} · {{ row.accountName }}</span>
+                  <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
+                  <span v-else class="truncate">{{ find(row.categoryId)?.name ?? "Uncategorized" }} · {{ row.accountName }}</span>
                   <span v-if="row.status === 'pending'" class="shrink-0">· Pending</span>
                 </span>
               </span>

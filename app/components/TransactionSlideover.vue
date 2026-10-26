@@ -70,6 +70,14 @@ const category = computed(() => find(props.transaction?.categoryId))
         <UBadge v-if="transaction.status === 'pending'" color="neutral" variant="outline" label="Pending" />
       </div>
 
+      <p v-if="transaction.transferWith" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-pretty text-muted">
+        <UIcon name="i-lucide-arrow-left-right" class="mt-0.5 size-4 shrink-0" />
+        <span>
+          Moved {{ transaction.amountMinor < 0 ? "to" : "from" }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>, so it
+          isn’t spending or income. Pick another category if it isn’t a move between your accounts.
+        </span>
+      </p>
+
       <UFormField label="Category">
         <CategorySelect
           v-if="transaction.canEdit"
@@ -100,7 +108,7 @@ const category = computed(() => find(props.transaction?.categoryId))
         :disabled="!transaction.canEdit"
         :loading="excluding"
         label="Leave out of totals"
-        description="For duplicates or money moving between your own accounts. It stays in the list, struck through."
+        description="For duplicates the bank sent. It stays in the list, struck through. Moves between your accounts go in Transfers instead."
         @update:model-value="setExcluded"
       />
 

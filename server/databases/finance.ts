@@ -175,12 +175,15 @@ export const transaction = sqliteTable(
       .default("booked"),
     // Hidden from spending and forecasts (a refund pair, a duplicate the bank sent).
     excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
+    // Shared by the two rows of one move between the household's accounts (server/utils/transfers.ts).
+    transferId: text("transfer_id"),
     createdAt: createdAt(),
   },
   (table) => [
     uniqueIndex("transaction_account_dedupe_idx").on(table.accountId, table.dedupeKey),
     index("transaction_household_date_idx").on(table.householdId, table.date),
     index("transaction_account_date_idx").on(table.accountId, table.date),
+    index("transaction_transfer_idx").on(table.transferId),
   ],
 )
 

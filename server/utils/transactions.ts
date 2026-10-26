@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lt, lte, ne, or, sql, type SQL } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql, type SQL } from "drizzle-orm"
 import { HTTPError } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import type { Transaction, TransactionPage } from "#shared/api"
@@ -11,6 +11,7 @@ import { decodeCursor, encodeCursor } from "./cursor"
 import { isIsoDate } from "./dates"
 import type { Member } from "./identity"
 import { detectRecurring } from "./recurring"
+import { unpairTransfer } from "./transfers"
 
 export interface TransactionFilters {
   scope?: Scope
@@ -49,7 +50,25 @@ function selectVisible(who: Pick<Member, "userId" | "householdId">, scope: Scope
 
 type Joined = Awaited<ReturnType<typeof selectVisible>>[number]
 
-function toTransaction(row: Joined, who: Pick<Member, "userId">): Transaction {
+/** The accounts on the other side of these rows' transfers, by transferId: only accounts the caller may see. */
+async function transferPartners(who: Pick<Member, "userId" | "householdId">, rows: Joined[]) {
+  const ids = [...new Set(rows.map((row) => row.row.transferId).filter((id): id is string => !!id))]
+  const partners = new Map<string, Array<{ id: string; accountName: string }>>()
+  for (let index = 0; index < ids.length; index += 90) {
+    const found = await db
+      .select({ id: transaction.id, transferId: transaction.transferId, accountName: financialAccount.name })
+      .from(transaction)
+      .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+      .where(and(visibleAccounts(who, "household"), inArray(transaction.transferId, ids.slice(index, index + 90))))
+    for (const row of found) partners.set(row.transferId!, [...(partners.get(row.transferId!) ?? []), row])
+  }
+  return (row: Joined) => {
+    const other = row.row.transferId ? partners.get(row.row.transferId)?.find((entry) => entry.id !== row.row.id) : undefined
+    return other?.accountName ?? null
+  }
+}
+
+function toTransaction(row: Joined, who: Pick<Member, "userId">, transferWith: string | null = null): Transaction {
   const t = row.row
   return {
     id: t.id,
@@ -66,6 +85,7 @@ function toTransaction(row: Joined, who: Pick<Member, "userId">): Transaction {
     note: t.note,
     status: t.status,
     excluded: t.excluded,
+    transferWith,
     canEdit: canEdit(row, who.userId),
   }
 }
@@ -122,7 +142,8 @@ export async function searchTransactions(
     const { convert } = await baseCurrency(who)
     totals = await sumMatches(who, scope, and(...conditions), convert)
   }
-  return { items: page.map((row) => toTransaction(row, who)), nextCursor, totals }
+  const partner = await transferPartners(who, page)
+  return { items: page.map((row) => toTransaction(row, who, partner(row))), nextCursor, totals }
 }
 
 /** In and out (positive) over the matches, without excluded rows; `count` counts every match. */
@@ -150,7 +171,7 @@ async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, con
 
 export async function getTransaction(who: Member, id: string, scope: Scope = "household") {
   const [row] = await selectVisible(who, scope, eq(transaction.id, id)).limit(1)
-  return row ? toTransaction(row, who) : null
+  return row ? toTransaction(row, who, (await transferPartners(who, [row]))(row)) : null
 }
 
 export interface TransactionChange {
@@ -189,6 +210,8 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   if (change.note !== undefined) set.note = change.note?.trim() || null
   if (change.excluded !== undefined) set.excluded = change.excluded
   if (Object.keys(set).length) await db.update(transaction).set(set).where(eq(transaction.id, id))
+  // Someone said one side of a detected transfer is something else: the two rows stop being a pair.
+  if (change.categoryId !== undefined && row.transferId && !(await isTransferCategory(change.categoryId))) await unpairTransfer(row.transferId)
 
   if (change.applyToSimilar && change.categoryId) {
     const match = similarMatch(row)
@@ -203,6 +226,12 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   // Excluding a charge (a duplicate the bank sent) changes which payments repeat.
   if (change.excluded !== undefined && change.excluded !== row.excluded) await detectRecurring(who.householdId, [row.accountId])
   return (await getTransaction(who, id))!
+}
+
+async function isTransferCategory(categoryId: string | null) {
+  if (!categoryId) return false
+  const [row] = await db.select({ kind: category.kind }).from(category).where(eq(category.id, categoryId)).limit(1)
+  return row?.kind === "transfer"
 }
 
 /** Category kinds that are not spending or income: moving money between your own accounts. */
@@ -251,6 +280,29 @@ function flowConditions(who: Member, options: FlowOptions) {
     notTransfer,
     options.accounts,
   )
+}
+
+/** What left visible accounts as transfers (positive, household currency): moves the spending totals leave out. */
+export async function movedOut(who: Member, options: FlowOptions, convert: Converter) {
+  const rows = await db
+    .select({ currency: transaction.currency, outMinor: sql<number>`coalesce(sum(-${transaction.amountMinor}), 0)` })
+    .from(transaction)
+    .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+    .innerJoin(category, eq(category.id, transaction.categoryId))
+    .where(
+      and(
+        visibleAccounts(who, options.scope),
+        eq(transaction.householdId, who.householdId),
+        eq(transaction.excluded, false),
+        gte(transaction.date, options.from),
+        lte(transaction.date, options.to),
+        eq(category.kind, "transfer"),
+        sql`${transaction.amountMinor} < 0`,
+        options.accounts,
+      ),
+    )
+    .groupBy(transaction.currency)
+  return rows.reduce((sum, row) => sum + convert(Number(row.outMinor), row.currency), 0)
 }
 
 /** Outflows per category (positive, household currency) between two dates; `null` is uncategorized. */

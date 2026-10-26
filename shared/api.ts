@@ -97,6 +97,8 @@ export interface Transaction {
   note: string | null
   status: "booked" | "pending"
   excluded: boolean
+  /** The other account of a detected move between the household's accounts, when the caller can see it. */
+  transferWith: string | null
   canEdit: boolean
 }
 
@@ -199,6 +201,8 @@ export interface BudgetsResponse {
   items: Budget[]
   /** Spending this month in categories without a budget. */
   unbudgetedMinor: number
+  /** Moved between the household's own accounts this month: not spending, so not in any total above. */
+  movedMinor: number
 }
 
 export interface Goal {
@@ -259,4 +263,15 @@ export interface ProviderInfo {
 export interface LegalInfo {
   /** `FINANCE_CONTACT_EMAIL`, or null when the instance has none. */
   contactEmail: string | null
+}
+
+/** An MCP client someone allowed through OAuth (GET /api/agents). */
+export interface ConnectedAgent {
+  id: string
+  name: string
+  uri: string | null
+  /** Epoch milliseconds. */
+  connectedAt: number | null
+  /** When it last signed in again (epoch ms): agents renew their access every hour while they work. */
+  lastSeenAt: number | null
 }
