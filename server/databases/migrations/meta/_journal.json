@@ -15,6 +15,13 @@
       "when": 1793016768671,
       "tag": "0001_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793042991144,
+      "tag": "0002_hidden_ai_categories",
+      "breakpoints": true
     }
   ]
 }
