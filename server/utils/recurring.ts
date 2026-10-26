@@ -9,12 +9,15 @@ import { requireAccount, visibleAccounts, type Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
 import { addDays, todayIso } from "./dates"
 import type { Member } from "./identity"
-import { detectSeries, findInsights, monthlyAmount, nextDueDate, PER_YEAR, WINDOW_DAYS, type RecurringItem } from "./recurring-core"
+import { detectSeries, findInsights, monthlyAmount, nextDueDate, PER_YEAR, seriesKey, WINDOW_DAYS, type RecurringItem } from "./recurring-core"
 
 /**
  * Finds repeating payments in these accounts and upserts their `recurring` rows by `(accountId, key)`. People's
  * choices survive: `status` is never overwritten, and a confirmed series stays even when detection loses it.
- * Runs after every sync (server/utils/sync.ts) and when someone excludes a transaction.
+ * Runs after every sync (server/utils/sync.ts) and when someone excludes or hides a transaction.
+ *
+ * Everyone who sees an account sees its recurring payments, so hidden transactions never make a series, and a series
+ * with hidden charges that detection no longer finds goes, even a confirmed one.
  */
 export async function detectRecurring(householdId: string, accountIds: string[]): Promise<void> {
   const today = todayIso()
@@ -36,10 +39,12 @@ async function detectAccount(householdId: string, account: { id: string; currenc
       description: transaction.description,
       counterparty: transaction.counterparty,
       categoryId: transaction.categoryId,
+      hidden: transaction.hidden,
     })
     .from(transaction)
     .where(and(eq(transaction.accountId, account.id), eq(transaction.excluded, false), gte(transaction.date, addDays(today, -WINDOW_DAYS))))
-  const found = detectSeries(rows, today)
+  const found = detectSeries(rows.filter((row) => !row.hidden), today)
+  const hiddenKeys = new Set(rows.filter((row) => row.hidden).map(seriesKey))
   const existing = await db.select().from(recurring).where(eq(recurring.accountId, account.id))
   const byKey = new Map(existing.map((row) => [row.key, row]))
 
@@ -64,12 +69,12 @@ async function detectAccount(householdId: string, account: { id: string; currenc
   for (let index = 0; index < inserts.length; index += 6) await db.insert(recurring).values(inserts.slice(index, index + 6))
 
   const detected = new Set(found.map((series) => series.key))
-  const gone = existing.filter((row) => !detected.has(row.key) && row.status !== "confirmed").map((row) => row.id)
+  const gone = existing.filter((row) => !detected.has(row.key) && (row.status !== "confirmed" || hiddenKeys.has(row.key))).map((row) => row.id)
   for (let index = 0; index < gone.length; index += 90) await db.delete(recurring).where(inArray(recurring.id, gone.slice(index, index + 90)))
 
   // A confirmed series detection no longer sees keeps its last values, but its next date still moves past today.
   for (const row of existing)
-    if (!detected.has(row.key) && row.status === "confirmed" && row.nextDate < today) {
+    if (!detected.has(row.key) && row.status === "confirmed" && !gone.includes(row.id) && row.nextDate < today) {
       await db.update(recurring).set({ nextDate: nextDueDate(row.lastDate, row.cadence, today) }).where(eq(recurring.id, row.id))
     }
 }

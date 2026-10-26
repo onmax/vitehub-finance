@@ -2,7 +2,7 @@ import { and, eq, inArray, min } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import type { Forecast } from "#shared/api"
 import { financialAccount, transaction } from "../databases/config"
-import { visibleAccounts, type Scope } from "./access"
+import { visibleTransactions, type Scope } from "./access"
 import { baseCurrency, selectAccounts } from "./accounts"
 import { monthEnd, monthStart, todayIso } from "./dates"
 import { fullMonthsBefore, monthlyAverage, projectMonths } from "./forecast-core"
@@ -54,7 +54,7 @@ export async function forecast(who: Member, scope: Scope, months: number): Promi
     .select({ date: min(transaction.date) })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
-    .where(and(visibleAccounts(who, scope), liquid, eq(transaction.householdId, who.householdId)))
+    .where(and(visibleTransactions(who, scope), liquid))
   const since = oldest?.date ?? null
   const variableMonthlyMinor = monthlyAverage(variable, window, since)
   const averageMonthlyIncomeMinor = monthlyAverage(income, window, since)

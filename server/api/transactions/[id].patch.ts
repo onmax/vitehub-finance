@@ -9,6 +9,7 @@ const Body = v.object({
   categoryId: v.optional(v.nullable(v.string())),
   note: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(1000)))),
   excluded: v.optional(v.boolean()),
+  hidden: v.optional(v.boolean()),
   applyToSimilar: v.optional(v.boolean()),
 })
 

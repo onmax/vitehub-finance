@@ -14,7 +14,10 @@ const shared = useShared()
       <li v-for="item in overview.recent" :key="item.id" class="flex min-h-12 items-center gap-3 py-2">
         <Monogram :name="item.counterparty || item.description" />
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm text-highlighted" :title="item.description">{{ item.counterparty || item.description }}</span>
+          <span class="flex items-center gap-1.5 text-sm text-highlighted">
+            <span class="truncate" :title="item.description">{{ item.counterparty || item.description }}</span>
+            <UIcon v-if="item.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" aria-label="Only you see this" />
+          </span>
           <span class="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             <span class="money shrink-0">{{ formatDay(item.date) }}</span>
             <span aria-hidden="true">·</span>

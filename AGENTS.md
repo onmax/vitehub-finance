@@ -24,6 +24,11 @@ Private by default (`FINANCE_ALLOWED_EMAILS`), forkable, deployable to Cloudflar
   condition), `visibleAccountIds`, `requireAccount(who, id, "view" | "edit")`, `onlyVisible`. A private account is
   visible to its owner only, in every list, total, chart, MCP tool, and API response. `shared/access.ts` holds the same
   rules for the UI (`canView`, `canEdit`, `canManage`).
+- Transactions, their sums, and anything derived from them (recurring series, transfer labels, the forecast) read
+  through `visibleTransactions(who, scope)`, which adds to `visibleAccounts`: a `hidden` transaction is seen only by
+  its account's owner. Only that owner sets `hidden`, in the browser (not agents or API keys; `canHide`). Hidden rows
+  never make a recurring series, pair as transfers only with the owner's own accounts, and never become a household
+  rule. Balances are bank-reported and still include them.
 - The caller is `await requireMember(event)` (server/utils/identity.ts): `{ userId, householdId, role, via }`. Never take
   a household id or owner id from the request body or query.
 - `scope` (`?scope=me|household`, `scopeOf(event)`) narrows a view to the caller's own accounts.
@@ -96,7 +101,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `DELETE /api/accounts/:id` | | `{ ok }` (owner) |
 | `POST /api/accounts/:id/import` | `{ rows: [{ date, amount, description, counterparty? }] }` (amount in major units) | `{ added, skipped }` |
 | `GET /api/transactions` | `scope, q, account, category (id or "none"), from, to, direction (in/out), cursor, limit` | `TransactionPage` |
-| `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, applyToSimilar? }` | `Transaction` |
+| `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, hidden?, applyToSimilar? }` (`hidden`: the account's owner, in the browser) | `Transaction` |
 | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` | `{ name, kind, icon, color }` | `Category[]` / `Category` |
 | `GET/POST /api/rules`, `DELETE /api/rules/:id` | `{ match, categoryId }` | `{ id, match, categoryId }[]` |
 | `GET /api/budgets` | `scope, month (YYYY-MM)` | `BudgetsResponse` |

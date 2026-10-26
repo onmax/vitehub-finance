@@ -256,6 +256,7 @@ async function build(today: string) {
     categoryId: categoryId(entry.category),
     categoryLocked: entry.locked ? true : undefined,
     note: entry.note,
+    hidden: entry.hidden ? true : undefined,
   }))
   // Up to 16 values a row once defaults are counted: six rows a statement.
   await inChunks(rows, 6, (chunk) => db.insert(transaction).values(chunk))

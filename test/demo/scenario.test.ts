@@ -104,6 +104,13 @@ describe("demoScenario", () => {
     for (const row of shared) expect(`${row.description} ${row.counterparty ?? ""} ${row.note ?? ""}`).not.toMatch(/vault|ahorro personal/i)
   })
 
+  it("hides Pablo's present for Lucía on his shared account", () => {
+    const scenario = demoScenario(TODAY)
+    const hidden = scenario.transactions.filter((row) => row.hidden)
+    expect(hidden.map((row) => [row.account, row.category])).toEqual([["revolut", "Gifts"]])
+    expect(scenario.accounts.find((account) => account.key === "revolut")).toMatchObject({ owner: "pablo", visibility: "household" })
+  })
+
   it("has the story's accounts, goals, and an expiring bank consent", () => {
     const scenario = demoScenario(TODAY)
     expect(scenario.accounts.find((account) => account.key === "fund")!.balanceMinor).toBeGreaterThan(1_170_000)

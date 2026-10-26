@@ -18,8 +18,8 @@ type AccountRow = typeof financialAccount.$inferSelect
 const DAY = 24 * 60 * 60 * 1000
 const dayString = (time: number) => new Date(time).toISOString().slice(0, 10)
 
-// D1 binds at most 100 parameters per statement: a transaction row binds up to 14 (defaults included), a holding 7.
-const TRANSACTION_CHUNK = 7
+// D1 binds at most 100 parameters per statement: a transaction row binds up to 15 (defaults included), a holding 7.
+const TRANSACTION_CHUNK = 6
 const HOLDING_CHUNK = 12
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
