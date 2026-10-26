@@ -1,0 +1,77 @@
+// The default database. Where it lives (D1 or a SQLite file) is per host, in nuxt.config.ts `vitehub.database`.
+import { defineDatabase } from "vite-hub/database"
+import {
+  account,
+  apikey,
+  invitation,
+  member,
+  organization,
+  passkey,
+  session,
+  twoFactor,
+  user,
+  verification,
+} from "./auth"
+import {
+  balanceSnapshot,
+  budget,
+  category,
+  connection,
+  financialAccount,
+  goal,
+  holding,
+  householdSettings,
+  recurring,
+  rule,
+  syncRun,
+  transaction,
+} from "./finance"
+import {
+  jwks,
+  oauthAccessToken,
+  oauthClient,
+  oauthClientAssertion,
+  oauthClientResource,
+  oauthConsent,
+  oauthRefreshToken,
+  oauthResource,
+} from "./oauth"
+
+export * from "./auth"
+export * from "./finance"
+export * from "./oauth"
+
+export default defineDatabase({
+  schema: {
+    account,
+    apikey,
+    invitation,
+    member,
+    organization,
+    passkey,
+    session,
+    twoFactor,
+    user,
+    verification,
+    jwks,
+    oauthAccessToken,
+    oauthClient,
+    oauthClientAssertion,
+    oauthClientResource,
+    oauthConsent,
+    oauthRefreshToken,
+    oauthResource,
+    balanceSnapshot,
+    budget,
+    category,
+    connection,
+    financialAccount,
+    goal,
+    holding,
+    householdSettings,
+    recurring,
+    rule,
+    syncRun,
+    transaction,
+  },
+})

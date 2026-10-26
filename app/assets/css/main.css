@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@source "../../../shared";
+
+/*
+ * shadcn's look on Nuxt UI: zinc neutrals, a near-black primary (near-white in dark), Geist, small radii, hairline
+ * borders with the faintest shadow. Components use Nuxt UI's semantic tokens (bg-default, text-muted, border-default),
+ * never palette classes, so this file is the whole theme.
+ */
+@theme static {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  /* Chart series, shadcn's defaults in OKLCH. */
+  --color-chart-1: oklch(0.646 0.222 41.116);
+  --color-chart-2: oklch(0.6 0.118 184.704);
+  --color-chart-3: oklch(0.398 0.07 227.392);
+  --color-chart-4: oklch(0.828 0.189 84.429);
+  --color-chart-5: oklch(0.769 0.188 70.08);
+}
+
+:root {
+  --ui-radius: 0.5rem;
+  --ui-primary: var(--ui-color-neutral-900);
+  --ui-bg: var(--color-white);
+  --ui-bg-muted: var(--ui-color-neutral-50);
+  --ui-bg-elevated: var(--ui-color-neutral-100);
+  --ui-bg-accented: var(--ui-color-neutral-200);
+  --ui-border: var(--ui-color-neutral-200);
+  --ui-border-muted: var(--ui-color-neutral-100);
+  --ui-text-muted: var(--ui-color-neutral-500);
+  --ui-text-toned: var(--ui-color-neutral-600);
+  --ui-text: var(--ui-color-neutral-800);
+  --ui-text-highlighted: var(--ui-color-neutral-950);
+
+  /* Money moving in. Out stays the default text color, as banks do; color marks only what's unusual. */
+  --color-money-in: oklch(0.527 0.154 150.069);
+  --chart-grid: var(--ui-color-neutral-200);
+  --chart-line: var(--ui-color-neutral-900);
+}
+
+.dark {
+  --ui-primary: var(--ui-color-neutral-50);
+  --ui-bg: var(--ui-color-neutral-950);
+  --ui-bg-muted: oklch(0.18 0.005 285.823);
+  --ui-bg-elevated: var(--ui-color-neutral-900);
+  --ui-bg-accented: var(--ui-color-neutral-800);
+  --ui-border: oklch(1 0 0 / 0.1);
+  --ui-border-muted: oklch(1 0 0 / 0.06);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-text: var(--ui-color-neutral-200);
+  --ui-text-highlighted: var(--ui-color-neutral-50);
+
+  --color-money-in: oklch(0.765 0.177 163.223);
+  --chart-grid: oklch(1 0 0 / 0.08);
+  --chart-line: var(--ui-color-neutral-50);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11";
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--ui-primary) 18%, transparent);
+  }
+}
+
+@utility money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@utility money-in {
+  color: var(--color-money-in);
+}
+
+/* Pressed buttons give way a little (make-interfaces-feel-better: 0.96, transform only). */
+@layer components {
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    @media (prefers-reduced-motion: no-preference) {
+      scale: 0.96;
+      transition: scale 100ms ease-out;
+    }
+  }
+}
