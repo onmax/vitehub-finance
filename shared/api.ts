@@ -276,3 +276,34 @@ export interface ConnectedAgent {
   /** When it last signed in again (epoch ms): agents renew their access every hour while they work. */
   lastSeenAt: number | null
 }
+
+/** One side of the money flow: a source of money in, or a place money went. */
+export interface FlowNode {
+  /** Stable within a response: a category id, or `uncategorized`, `other`, `savings`, `kept`. */
+  id: string
+  name: string
+  /** The category behind it, when there is one, for links to its transactions. */
+  categoryId: string | null
+  /** A Tailwind palette name, like categories'. */
+  color: string
+  icon: string
+  amountMinor: number
+  /** `savings` covers spending beyond income; `kept` is income nobody spent. */
+  kind: "income" | "expense" | "savings" | "kept" | "other"
+}
+
+/** `GET /api/flow`: a month's money in, by source, flowing out by category. Transfers between accounts stay out. */
+export interface MoneyFlow {
+  currency: string
+  month: string
+  from: string
+  to: string
+  inMinor: number
+  outMinor: number
+  /** Where money came from, largest first; `savings` last when spending passed income. */
+  sources: FlowNode[]
+  /** Where it went, largest first; `kept` last when income passed spending. */
+  uses: FlowNode[]
+  /** Moved between the household's accounts, left out of both sides. */
+  movedMinor: number
+}

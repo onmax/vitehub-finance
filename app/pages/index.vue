@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The overview: net worth and its 90 days, this month against the last, where the money went, what's due soon,
-// connections that need someone, and the latest transactions. A new household sees how to start instead.
+// The overview: net worth and its 90 days, this month against the last, the month's money flow, where the money went,
+// what's due soon, connections that need someone, and the latest transactions. A new household sees how to start instead.
 useHead({ title: "Overview" })
 const { data: overview, status, error, refresh } = useOverview()
 const { data: me } = useMe()
@@ -35,6 +35,7 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
           <div class="grid gap-6 lg:grid-cols-3">
             <OverviewNetWorth :overview="overview" class="lg:col-span-2" />
             <OverviewMonth :overview="overview" />
+            <OverviewFlow class="lg:col-span-3" />
             <div class="flex flex-col gap-6">
               <OverviewSpending :overview="overview" />
               <OverviewUpcoming :overview="overview" />

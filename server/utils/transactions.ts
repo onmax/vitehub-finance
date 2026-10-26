@@ -323,6 +323,30 @@ export async function spendingByCategory(who: Member, options: FlowOptions, conv
   return totals
 }
 
+/** Money in and out (both positive, household currency) per category between two dates, without transfers. */
+export async function flowByCategory(who: Member, options: FlowOptions, convert: Converter) {
+  const totals = new Map<string | null, { inMinor: number; outMinor: number }>()
+  const rows = await db
+    .select({
+      categoryId: transaction.categoryId,
+      currency: transaction.currency,
+      inMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} > 0 then ${transaction.amountMinor} else 0 end), 0)`,
+      outMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} < 0 then -${transaction.amountMinor} else 0 end), 0)`,
+    })
+    .from(transaction)
+    .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+    .leftJoin(category, eq(category.id, transaction.categoryId))
+    .where(flowConditions(who, options))
+    .groupBy(transaction.categoryId, transaction.currency)
+  for (const row of rows) {
+    const current = totals.get(row.categoryId) ?? { inMinor: 0, outMinor: 0 }
+    current.inMinor += convert(Number(row.inMinor), row.currency)
+    current.outMinor += convert(Number(row.outMinor), row.currency)
+    totals.set(row.categoryId, current)
+  }
+  return totals
+}
+
 /** Raw rows of visible accounts for in-memory analysis (forecast's variable spending). */
 export async function flowRows(who: Member, options: FlowOptions) {
   return db
