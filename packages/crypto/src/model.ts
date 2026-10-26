@@ -1,4 +1,4 @@
-// The one data model every provider answers in: what a place holds, coin by coin.
+// The one data model every provider answers in: what a place holds, coin by coin, and for wallets what moved.
 
 export type ExchangeId = "kraken" | "binance" | "coinbase"
 export type ChainId = "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq"
@@ -24,6 +24,36 @@ export interface CryptoProvider {
   readonly address: string | null
   /** What it holds now, one entry per coin, zero balances left out. */
   balances(): Promise<Holding[]>
+  /** What moved in and out of the address, newest first. Only wallets on chains with a public history have it. */
+  transactions?(options?: TransactionsOptions): Promise<CryptoTransaction[]>
+}
+
+export interface TransactionsOptions {
+  /** `YYYY-MM-DD`: leave out what happened before this day. */
+  since?: string | null
+}
+
+/**
+ * `send` and `receive` move coins to or from another address, `reward` is new coins from block production or staking,
+ * `stake` moves the address's own coins into staking or back (its holding counts both, so its total doesn't change),
+ * and `trade` swaps the coin for another asset on the chain (the XRP Ledger's DEX and AMMs).
+ */
+export type CryptoTransactionKind = "send" | "receive" | "reward" | "stake" | "trade"
+
+export interface CryptoTransaction {
+  /** The transaction hash. */
+  id: string
+  /** `YYYY-MM-DD`, UTC. */
+  date: string
+  /** The native coin's ticker: XRP, NIM, BTC. */
+  symbol: string
+  /** Whole coins, signed: negative left the address. The fee is apart. */
+  quantity: number
+  /** Whole coins of the same coin this address paid the network; 0 when another address paid. */
+  fee: number
+  /** The other address, when there is one. */
+  counterparty: string | null
+  kind: CryptoTransactionKind
 }
 
 /** A read-only API key. Coinbase's `key` is the key name (organizations/…/apiKeys/…) and `secret` its private key. */

@@ -19,6 +19,6 @@ export const CHAINS: Record<ChainId, ChainInfo> = {
   bitcoin: { name: "Bitcoin", symbol: "BTC", coin: "Bitcoin", decimals: 8, placeholder: "bc1…, 1…, or 3…", source: "mempool.space" },
   ethereum: { name: "Ethereum", symbol: "ETH", coin: "Ether", decimals: 18, placeholder: "0x…", source: "ethereum-rpc.publicnode.com" },
   solana: { name: "Solana", symbol: "SOL", coin: "Solana", decimals: 9, placeholder: "Base58 address", source: "api.mainnet-beta.solana.com" },
-  xrpl: { name: "XRP Ledger", symbol: "XRP", coin: "XRP", decimals: 6, placeholder: "r…", source: "xrplcluster.com" },
+  xrpl: { name: "XRP Ledger", symbol: "XRP", coin: "XRP", decimals: 6, placeholder: "r…", source: "s1.ripple.com, s2.ripple.com, or xrplcluster.com" },
   nimiq: { name: "Nimiq", symbol: "NIM", coin: "Nimiq", decimals: 5, placeholder: "NQ…", source: "rpc.nimiqwatch.com" },
 }
