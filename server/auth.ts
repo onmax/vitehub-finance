@@ -3,11 +3,11 @@ import { oauthProvider } from "@better-auth/oauth-provider"
 import { passkey } from "@better-auth/passkey"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { jwt, lastLoginMethod, magicLink, organization, twoFactor } from "better-auth/plugins"
-import { and, eq, gt } from "drizzle-orm"
+import { and, eq, gt, isNull } from "drizzle-orm"
 import { defineAuth } from "vite-hub/auth"
 import { db, schema } from "vite-hub/database/drizzle"
 import { send } from "#mailer"
-import { invitation, member } from "./databases/config"
+import { invitation, member, session } from "./databases/config"
 import { isAllowedEmail } from "./utils/allowed"
 import { createHousehold } from "./utils/household"
 
@@ -42,7 +42,13 @@ export default defineAuth(({ env, requestOrigin }) => ({
         },
         // Invited people join the inviter's household from the invitation page; everyone else gets their own.
         after: async (person) => {
-          if (!(await pendingInvitation(person.email))) await createHousehold(person)
+          if (await pendingInvitation(person.email)) return
+          const householdId = await createHousehold(person)
+          // Sign-up may open the session before this hook runs; point it at the new household.
+          await db
+            .update(session)
+            .set({ activeOrganizationId: householdId })
+            .where(and(eq(session.userId, person.id), isNull(session.activeOrganizationId)))
         },
       },
     },

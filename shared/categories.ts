@@ -16,7 +16,7 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
     kind: "expense",
     icon: "i-lucide-shopping-cart",
     color: "emerald",
-    match: ["mercadona", "carrefour", "lidl", "aldi", "dia ", "eroski", "consum", "alcampo", "supermarket"],
+    match: ["mercadona", "carrefour", "lidl", "aldi", "supermercados dia", "eroski", "consum", "alcampo", "supermarket"],
   },
   {
     name: "Eating out",
@@ -59,7 +59,7 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   { name: "Fees", kind: "expense", icon: "i-lucide-receipt", color: "zinc", match: ["comision", "commission", "fee"] },
   { name: "Salary", kind: "income", icon: "i-lucide-briefcase", color: "green", match: ["nomina", "salary", "payroll"] },
   { name: "Other income", kind: "income", icon: "i-lucide-banknote", color: "teal", match: ["interest", "intereses", "dividend", "refund", "reembolso"] },
-  { name: "Transfers", kind: "transfer", icon: "i-lucide-arrow-left-right", color: "neutral", match: ["transfer", "transferencia", "traspaso", "bizum"] },
+  { name: "Transfers", kind: "transfer", icon: "i-lucide-arrow-left-right", color: "neutral", match: ["traspaso", "internal transfer", "transfer between", "transfer to own"] },
 ]
 
 /** Tailwind palette names a category may use, so the UI can map them to classes it knows at build time. */

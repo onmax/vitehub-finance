@@ -11,7 +11,13 @@ export default defineNuxtPlugin(() => ({
       plugins: [
         organizationClient(),
         passkeyClient(),
-        twoFactorClient({ onTwoFactorRedirect: () => navigateTo("/login?step=2fa") }),
+        // /oauth and /invite/<id> ask for the code inline, so the agent's consent or the invitation isn't lost.
+        twoFactorClient({
+          onTwoFactorRedirect: () => {
+            if (/^\/(oauth\/?$|invite\/)/.test(window.location.pathname)) return
+            void navigateTo("/login?step=2fa")
+          },
+        }),
         magicLinkClient(),
         apiKeyClient(),
         lastLoginMethodClient(),

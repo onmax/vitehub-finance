@@ -1,4 +1,5 @@
 import { kv } from "vite-hub/kv"
+import { USER_AGENT } from "../providers/types"
 
 /**
  * Exchange rates from the ECB through Frankfurter (frankfurter.dev, free, no key), cached in KV for 12 hours.
@@ -17,6 +18,7 @@ export async function rates(base: string): Promise<Record<string, number>> {
   if (cached && Date.now() - cached.at < TTL) return cached.rates
   try {
     const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=${encodeURIComponent(base)}`, {
+      headers: { accept: "application/json", "user-agent": USER_AGENT },
       signal: AbortSignal.timeout(5000),
     })
     if (!response.ok) throw new Error(`Frankfurter answered ${response.status}`)

@@ -26,7 +26,7 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     },
     kv: true,
     schedule: true,
-    queue: true,
+    queue: { provider: "cloudflare" },
   },
   node: {
     preset: "node",
@@ -66,7 +66,7 @@ export default defineNuxtConfig({
 
   ssr: false,
   devtools: { enabled: false },
-  compatibilityDate: "2026-10-20",
+  compatibilityDate: "2026-10-01",
 
   css: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "~/assets/css/main.css"],
 
@@ -77,6 +77,12 @@ export default defineNuxtConfig({
   routeRules: {
     "/api/**": { headers: { "cache-control": "private, no-store" } },
   },
+
+  // OAuth discovery for MCP clients (server/handlers/oauth-metadata.ts), bare and path-suffixed (`.../mcp`).
+  serverHandlers: ["oauth-protected-resource", "oauth-authorization-server", "openid-configuration"].flatMap((name) => [
+    { route: `/.well-known/${name}`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
+    { route: `/.well-known/${name}/**`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
+  ]),
 
   app: {
     head: {
@@ -145,6 +151,9 @@ export default defineNuxtConfig({
           "triangle-alert",
           "upload",
           "x",
+          // Navigation (app/utils/navigation.ts).
+          "layout-dashboard",
+          "settings",
           // Account kinds (shared/accounts.ts).
           "landmark",
           "piggy-bank",
@@ -194,6 +203,17 @@ export default defineNuxtConfig({
         name: process.env.CLOUDFLARE_WORKER_NAME || "joxi",
         observability: { enabled: true, logs: { enabled: true, invocation_logs: true } },
         placement: { mode: "smart" },
+        // The sync Queue (server/queues/sync.ts). ViteHub's Nuxt module generates its runtime, but its wrangler entries
+        // don't reach .output/server/wrangler.json, so they're written here with ViteHub's names: the binding is QUEUE_
+        // plus the hex of "sync", the queue queue--<hex>. A Cloudflare account holds one queue per name.
+        ...(host === "cloudflare"
+          ? {
+              queues: {
+                producers: [{ binding: "QUEUE_73796E63", queue: "queue--73796e63" }],
+                consumers: [{ queue: "queue--73796e63", max_batch_size: 5, max_retries: 3 }],
+              },
+            }
+          : {}),
         ...(process.env.JOXI_DOMAIN
           ? { routes: [{ pattern: process.env.JOXI_DOMAIN, custom_domain: true }], workers_dev: false }
           : {}),

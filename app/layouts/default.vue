@@ -1,0 +1,86 @@
+<script setup lang="ts">
+import type { NavigationMenuItem } from "@nuxt/ui"
+
+// The signed-in shell: shadcn's sidebar (household header, main pages, Household and Settings, the account menu) on
+// Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
+// a letter jumps to a page.
+const route = useRoute()
+const open = ref(false)
+const isActive = (to: string) => (to === "/" ? route.path === "/" : route.path === to || route.path.startsWith(`${to}/`))
+// Connections that need someone (expired consent, failed sync) badge Connect. The same request the overview makes.
+const { data: overview } = useOverview()
+const attention = computed(() => overview.value?.attention.length ?? 0)
+
+const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => ({
+  label: page.label,
+  icon: page.icon,
+  to: page.to,
+  active: isActive(page.to),
+  badge: page.to === "/connect" && attention.value ? { label: String(attention.value), color: "warning", variant: "subtle" } : undefined,
+  onSelect: () => (open.value = false),
+})
+const main = computed(() => MAIN_PAGES.map(toItem))
+const secondary = computed(() => SECONDARY_PAGES.map(toItem))
+
+// `g o`, `g t`… like GitHub and Linear.
+defineShortcuts(Object.fromEntries([...MAIN_PAGES, ...SECONDARY_PAGES].map((page) => [`g-${page.key}`, () => navigateTo(page.to)])))
+</script>
+
+<template>
+  <UDashboardGroup unit="rem" storage="local" storage-key="joxi-sidebar">
+    <UDashboardSidebar
+      id="nav"
+      v-model:open="open"
+      collapsible
+      resizable
+      :default-size="15"
+      :min-size="13"
+      :max-size="20"
+      :ui="{
+        root: 'bg-muted',
+        header: 'h-14 px-2',
+        body: 'gap-4 px-2 py-2',
+        footer: 'border-t border-default p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]',
+      }"
+    >
+      <template #header="{ collapsed }">
+        <HouseholdMenu :collapsed="collapsed" />
+      </template>
+
+      <template #default="{ collapsed }">
+        <UDashboardSearchButton
+          :collapsed="collapsed"
+          label="Search"
+          class="text-muted"
+          :class="collapsed ? '' : 'w-full'"
+          :kbds="['meta', 'k']"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="main"
+          orientation="vertical"
+          tooltip
+          aria-label="Main"
+          :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="secondary"
+          orientation="vertical"
+          tooltip
+          class="mt-auto"
+          aria-label="Household and settings"
+          :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
+        />
+      </template>
+
+      <template #footer="{ collapsed }">
+        <UserMenu :collapsed="collapsed" />
+      </template>
+    </UDashboardSidebar>
+
+    <slot />
+
+    <AppSearch />
+  </UDashboardGroup>
+</template>
