@@ -60,7 +60,9 @@ npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json
 npx wrangler deploy --config .output/server/wrangler.json
 ```
 
-The Worker gets D1, KV, a daily Cron Trigger, and a Queue that syncs one connection per message.
+The Worker gets D1, KV, a daily Cron Trigger, a Queue that syncs one connection per message, a rate limit for browser
+error reports, and Workers Logs. Every request, sync, and browser error is one structured log event; AGENTS.md ("Logs and
+errors") says how to read them.
 
 ### Any Node host (VPS, Docker, a home server)
 
@@ -71,7 +73,8 @@ docker run -p 3000:3000 -v finance-data:/app/.data \
 ```
 
 Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server/index.mjs` with
-`server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process.
+`server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process. Logs are
+JSON lines on stdout.
 
 ## Keep it private
 

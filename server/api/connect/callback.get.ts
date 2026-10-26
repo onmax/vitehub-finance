@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm"
+import { useLogger } from "evlog/nitro/v3"
 import { defineHandler, redirect } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
@@ -27,8 +28,12 @@ export default defineHandler(async (event) => {
   const params = event.url.searchParams
   const state = params.get("state") ?? ""
   let row: ConnectionRow | undefined
+  // The redirect always answers 302, so the wide event carries the outcome. Never the code or the state.
+  const log = useLogger(event)
+  log.set({ action: "bank-callback" })
 
   const failed = async (message: string) => {
+    log.warn(message, { callback: { outcome: "failed", connectionId: row?.id } })
     // A new link that failed is an error; an existing connection keeps its status and shows why.
     if (row)
       await db
@@ -82,6 +87,7 @@ export default defineHandler(async (event) => {
       })
       .where(eq(connection.id, row.id))
     row = { ...row, status: "active" }
+    log.set({ callback: { connectionId: row.id, accounts: session.accounts.length } })
     if (previous?.sessionId && previous.sessionId !== session.credentials.sessionId)
       await deleteSession(config, previous.sessionId)
     await rememberOrigin(event)
@@ -89,6 +95,7 @@ export default defineHandler(async (event) => {
     try {
       await dispatchSync(row.id, "link")
     } catch (error) {
+      log.warn("First sync failed", { callback: { outcome: "linked", syncError: errorMessage(error) } })
       return toConnect({ error: `Linked, but the first sync failed: ${errorMessage(error)}`.slice(0, 200) })
     }
     // Inline syncs record expected failures instead of throwing; read how it went.
@@ -97,11 +104,13 @@ export default defineHandler(async (event) => {
       .from(connection)
       .where(eq(connection.id, row.id))
       .limit(1)
+    log.set({ callback: { outcome: "linked", syncStatus: after?.status } })
     if (after && after.status !== "active")
       return toConnect({ error: `Linked, but the first sync failed: ${after.lastError ?? after.status}`.slice(0, 200) })
     return toConnect({ linked: row.id })
   } catch (error) {
-    console.error("[finance] Bank callback failed", error)
+    // An error, not the warning `failed` adds: something other than the bank or the person went wrong.
+    log.error(error instanceof Error ? error : new Error(errorMessage(error)), { callback: { outcome: "error" } })
     return failed(errorMessage(error))
   }
 })

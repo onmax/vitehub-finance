@@ -1,6 +1,7 @@
 import type { Auth } from "better-auth"
 import { verifyJwsAccessToken } from "better-auth/oauth2"
 import { and, asc, eq } from "drizzle-orm"
+import { useLogger } from "evlog/nitro/v3"
 import { type H3Event, HTTPError } from "h3"
 import { getAuthForRequest } from "vite-hub/auth/server"
 import { db } from "vite-hub/database/drizzle"
@@ -25,9 +26,20 @@ export const authFor = (event: H3Event) => getAuthForRequest(event.req, undefine
 
 export const bearerFrom = (headers: Headers) => headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null
 
-/** Resolved once per request. Null when nobody is signed in or they belong to no household. */
+/**
+ * Resolved once per request. Null when nobody is signed in or they belong to no household. The request's wide event
+ * gets who it was (ids, role, and how they came in), never a name, email, or credential.
+ */
 export function identify(event: H3Event): Promise<Member | null> {
-  return ((event.context as { financeMember?: Promise<Member | null> }).financeMember ??= resolve(event))
+  return ((event.context as { financeMember?: Promise<Member | null> }).financeMember ??= resolve(event).then((who) => {
+    if (who)
+      useLogger(event).set({
+        userId: who.userId,
+        householdId: who.householdId,
+        user: { role: who.role, via: who.via, ...(who.clientName ? { client: who.clientName } : {}) },
+      })
+    return who
+  }))
 }
 
 export async function requireMember(event: H3Event): Promise<Member> {

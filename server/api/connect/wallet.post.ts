@@ -1,3 +1,4 @@
+import { useLogger } from "evlog/nitro/v3"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
@@ -6,7 +7,7 @@ import type { ConnectionSummary } from "#shared/api"
 import { connection } from "../../databases/config"
 import { CHAINS, parseAddress } from "@vitehub-finance/crypto"
 import { WALLET_PROVIDERS } from "../../providers/index"
-import { assertNotLinked, connectionSummary, fail, readValid, rememberOrigin } from "../../utils/connections"
+import { assertNotLinked, connectionSummary, errorMessage, fail, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
 import { refuseInDemo } from "../../demo/mode"
@@ -37,7 +38,10 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
     credentials: await seal({ address }),
     externalId: address,
   })
+  // The chain, never the address: it's public, but it ties the household to its coins.
+  const log = useLogger(event)
+  log.set({ action: "connect-wallet", connect: { provider: body.chain, connectionId: id } })
   await rememberOrigin(event)
-  await dispatchSync(id, "link").catch((error) => console.error("[finance] First wallet sync failed", error))
+  await dispatchSync(id, "link").catch((error) => log.warn("First wallet sync failed", { connect: { syncError: errorMessage(error) } }))
   return connectionSummary(who, id)
 })

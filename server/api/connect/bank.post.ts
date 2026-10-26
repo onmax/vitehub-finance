@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm"
+import { useLogger } from "evlog/nitro/v3"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
@@ -18,6 +19,8 @@ export default defineHandler(async (event) => {
   const who = await requireMember(event)
   const config = requireBankConfig()
   const body = await readValid(event, Body)
+  const log = useLogger(event)
+  log.set({ action: "connect-bank", connect: { provider: "enable_banking", country: body.country } })
   const bank = await findBank(config, body.name, body.country).catch((error) => {
     throw providerHttpError(error)
   })
@@ -35,6 +38,7 @@ export default defineHandler(async (event) => {
       status: "pending",
     })
     .returning()
+  log.set({ connect: { connectionId: row!.id, bank: bank.name } })
   try {
     return { url: await startBankLink(event, who, row!, bank) }
   } catch (error) {

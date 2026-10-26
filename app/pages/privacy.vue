@@ -26,6 +26,11 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
       <li>The accounts you connect or add: balances, transactions, holdings, and what you add to them (categories, notes, rules, budgets, goals, recurring payments).</li>
       <li>How to reach each connection: a bank session, an exchange’s API key, or a wallet address.</li>
       <li>API keys you create and the agents (MCP clients) you approve.</li>
+      <li>
+        Logs, for finding and fixing errors: each request’s page or API path, timing, and outcome, with your user and
+        household ids but never your name, email, or transaction details; and errors your browser hits, with the page’s path
+        (no query) and the error message. They’re kept for a few days.
+      </li>
     </ul>
 
     <h2>Where it lives</h2>
