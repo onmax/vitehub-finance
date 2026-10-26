@@ -10,7 +10,7 @@ import { looksLikeTransfer, pairTransfers } from "./transfers-core"
 const WINDOW_DAYS = 400
 
 /** The household's transfer category, created when someone deleted it. */
-async function transferCategory(householdId: string) {
+export async function transferCategory(householdId: string) {
   const rows = await db
     .select({ id: category.id, name: category.name })
     .from(category)

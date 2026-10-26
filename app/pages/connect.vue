@@ -2,7 +2,8 @@
 import type { ConnectionSummary } from "#shared/api"
 import { AccountCreateModal, CsvImportModal } from "#components"
 
-// Bring money in: banks over PSD2, exchanges with read-only keys, public wallets, manual accounts, and CSV imports.
+// Bring money in: banks over PSD2, exchanges with read-only keys, public wallets, a broker's read-only token, manual
+// accounts, and CSV imports.
 // Existing connections sit on top with their state, consent dates, and actions. The bank's redirect lands here with
 // `?linked=<id>` or `?error=<message>`.
 useHead({ title: "Connect" })
@@ -120,25 +121,35 @@ async function importCsv() {
 
           <div class="grid items-start gap-3 lg:grid-cols-2">
             <ConnectSection
-              id="manual"
-              icon="i-lucide-pencil-line"
-              title="Manual account"
-              description="Cash, a pension, a loan, or a property. You update the balance."
+              id="broker"
+              icon="i-lucide-chart-candlestick"
+              title="Broker"
+              description="Stocks, ETFs, and cash at Interactive Brokers, valued at IBKR’s own prices, through a read-only Flex token."
             >
-              <template #actions>
-                <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add" class="shrink-0" @click="addManual" />
-              </template>
+              <ConnectBrokerForm @connected="connected" />
             </ConnectSection>
-            <ConnectSection
-              id="import"
-              icon="i-lucide-upload"
-              title="Import a CSV"
-              description="Transactions exported from any bank, mapped column by column."
-            >
-              <template #actions>
-                <UButton color="neutral" variant="outline" icon="i-lucide-file-up" label="Import" class="shrink-0" @click="importCsv" />
-              </template>
-            </ConnectSection>
+            <div class="flex flex-col gap-3">
+              <ConnectSection
+                id="manual"
+                icon="i-lucide-pencil-line"
+                title="Manual account"
+                description="Cash, a pension, a loan, or a property. You update the balance."
+              >
+                <template #actions>
+                  <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add" class="shrink-0" @click="addManual" />
+                </template>
+              </ConnectSection>
+              <ConnectSection
+                id="import"
+                icon="i-lucide-upload"
+                title="Import a CSV"
+                description="Transactions exported from any bank, mapped column by column."
+              >
+                <template #actions>
+                  <UButton color="neutral" variant="outline" icon="i-lucide-file-up" label="Import" class="shrink-0" @click="importCsv" />
+                </template>
+              </ConnectSection>
+            </div>
           </div>
         </section>
       </div>

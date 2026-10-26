@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ProviderId } from "#shared/api"
 
-// A connection's mark: the bank's logo when we have one, the exchange's or chain's brand icon, or initials.
+// A connection's mark: the bank's logo when we have one, the exchange's, chain's, or broker's icon, or initials.
 const props = withDefaults(defineProps<{ provider: ProviderId | null; name?: string; logo?: string | null; size?: "md" | "lg" }>(), {
   size: "md",
 })
@@ -14,6 +14,8 @@ const ICONS: Partial<Record<ProviderId, string>> = {
   solana: "i-simple-icons-solana",
   xrpl: "i-simple-icons-xrp",
   nimiq: "i-finance-nimiq",
+  // Simple Icons has no Interactive Brokers mark.
+  ibkr: "i-lucide-chart-candlestick",
   manual: "i-lucide-pencil-line",
 }
 const failed = ref(false)

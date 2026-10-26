@@ -1,7 +1,9 @@
-// What every provider (a bank, an exchange, a wallet) hands the sync engine. The fetching lives in the workspace
-// packages (@vitehub-finance/banking, @vitehub-finance/crypto); these adapters map their models and errors to the
-// engine's. Providers only fetch and map; the engine (server/utils/sync.ts) owns the database.
+// What every provider (a bank, an exchange, a wallet, a broker) hands the sync engine. The fetching lives in the
+// workspace packages (@vitehub-finance/banking, @vitehub-finance/crypto, @vitehub-finance/brokers); these adapters map
+// their models and errors to the engine's. Providers only fetch and map; the engine (server/utils/sync.ts) owns the
+// database.
 import { BankingError } from "@vitehub-finance/banking"
+import { BrokerError } from "@vitehub-finance/brokers"
 import { CryptoError } from "@vitehub-finance/crypto"
 import type { AccountKind } from "../../shared/api"
 
@@ -17,12 +19,29 @@ export interface ProviderTransaction {
   currency: string
   description: string
   counterparty?: string | null
+  /** A move between the household's own money: it gets the transfer category unless a rule says otherwise. */
+  transfer?: boolean
+}
+
+/**
+ * A movement of coins on an account whose balance is its holdings (a wallet). The engine values it in the account's
+ * currency at the coin's price on `date` (server/utils/prices.ts).
+ */
+export interface ProviderCoinTransaction extends Omit<ProviderTransaction, "amountMinor" | "currency"> {
+  symbol: string
+  /** Whole coins, signed, fee included: what the holding changed by. */
+  quantity: number
 }
 
 export interface ProviderHolding {
   symbol: string
   name?: string | null
   quantity: number
+  /**
+   * The provider's own price and value in `currency`, major units (a broker's mark price). Without it the engine prices
+   * the symbol as a coin.
+   */
+  quote?: { currency: string; price: number; value: number }
 }
 
 export interface ProviderAccount {
@@ -35,6 +54,8 @@ export interface ProviderAccount {
   institution?: string | null
   holdings?: ProviderHolding[]
   transactions?: ProviderTransaction[]
+  /** Only with `holdings`: coin movements the engine values into transactions. */
+  coinTransactions?: ProviderCoinTransaction[]
   /** Set when this one account failed; the others still sync. */
   error?: string
 }
@@ -74,6 +95,7 @@ export class ProviderError extends Error {
 /** The packages' errors in the engine's terms: anything the person must fix (a key, an address) is `auth`. */
 export function asProviderError(error: unknown): unknown {
   if (error instanceof BankingError) return new ProviderError(error.code === "invalid_credentials" ? "auth" : error.code, error.message)
+  if (error instanceof BrokerError) return new ProviderError(error.code === "invalid_credentials" ? "auth" : error.code, error.message)
   if (error instanceof CryptoError)
     return new ProviderError(error.code === "invalid_credentials" || error.code === "invalid_address" ? "auth" : error.code, error.message)
   return error

@@ -29,7 +29,7 @@ export const ACCOUNT_KIND_ITEMS = (Object.keys(ACCOUNT_KINDS) as AccountKind[]).
   icon: ACCOUNT_KINDS[value].icon,
 }))
 
-export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exchange" | "wallet" | "manual" }> = {
+export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exchange" | "wallet" | "broker" | "manual" }> = {
   enable_banking: { label: "Bank", kind: "bank" },
   kraken: { label: "Kraken", kind: "exchange" },
   binance: { label: "Binance", kind: "exchange" },
@@ -39,6 +39,7 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
   solana: { label: "Solana", kind: "wallet" },
   xrpl: { label: "XRP Ledger", kind: "wallet" },
   nimiq: { label: "Nimiq", kind: "wallet" },
+  ibkr: { label: "Interactive Brokers", kind: "broker" },
   manual: { label: "Manual", kind: "manual" },
 }
 

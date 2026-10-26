@@ -6,10 +6,10 @@ import { providerFor } from "../providers/index"
 import { ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
-import { valueHoldings } from "./prices"
+import { valueCoinTransactions, valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
 import { backfillSnapshots, recordSnapshot } from "./snapshots"
-import { detectTransfers } from "./transfers"
+import { detectTransfers, transferCategory } from "./transfers"
 
 export type SyncTrigger = "schedule" | "manual" | "link"
 
@@ -28,12 +28,14 @@ export async function householdRules(householdId: string): Promise<Rule[]> {
 
 /**
  * Inserts the rows this account doesn't have yet (by dedupe key) with categories from the rules, and returns how many were
- * new. Existing rows, and so hand-picked categories, are never touched.
+ * new. A row the provider calls a transfer gets `transferCategoryId` when no rule matches. Existing rows, and so
+ * hand-picked categories, are never touched.
  */
 export async function insertTransactions(
   account: Pick<AccountRow, "id" | "householdId">,
   rows: ProviderTransaction[],
   rules: Rule[],
+  transferCategoryId?: string,
 ) {
   const valid = rows.filter((row) => isDate(row.date) && Number.isSafeInteger(row.amountMinor))
   const computed = await dedupeKeys(valid)
@@ -54,7 +56,7 @@ export async function insertTransactions(
       currency: row.currency,
       description: row.description.slice(0, 500),
       counterparty: row.counterparty || undefined,
-      categoryId: categorize(rules, row) ?? undefined,
+      categoryId: categorize(rules, row) ?? (row.transfer ? transferCategoryId : undefined),
     }))
     const inserted = await db
       .insert(transaction)
@@ -138,9 +140,14 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
   }
   if (hasHoldings) await replaceHoldings(account.id, holdings)
   await recordSnapshot(account.id, balance ?? account.balanceMinor)
+  // A wallet's coin movements, valued in the account's currency. They never set its balance: the holdings do.
+  const coins = hasHoldings && remote.coinTransactions?.length ? await valueCoinTransactions(remote.coinTransactions, currency) : []
+  const rows = [...(remote.transactions ?? []), ...coins]
+  const transfers = rows.some((entry) => entry.transfer) ? await transferCategory(row.householdId) : undefined
   return {
     accountId: account.id,
-    added: remote.transactions?.length ? await insertTransactions(account, remote.transactions, context.rules) : 0,
+    hasHoldings,
+    added: rows.length ? await insertTransactions(account, rows, context.rules, transfers) : 0,
   }
 }
 
@@ -181,6 +188,8 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
 
     let added = 0
     const touched: string[] = []
+    // Accounts whose balance is the transactions' sum; a holdings account's past value depends on past prices instead.
+    const backfill: string[] = []
     const failures: string[] = []
     // Each account on its own: one failing never loses what the others brought.
     for (const remote of result.accounts) {
@@ -192,6 +201,7 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
         const outcome = await applyAccount(context, remote)
         added += outcome.added
         touched.push(outcome.accountId)
+        if (!outcome.hasHoldings) backfill.push(outcome.accountId)
       } catch (error) {
         console.error(`[finance] Sync of ${row.id} failed for account ${remote.externalId}`, error)
         failures.push(`${remote.name}: ${errorMessage(error)}`)
@@ -205,7 +215,7 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
       await detectRecurring(row.householdId, touched).catch((error) => console.error("[finance] Recurring detection failed", error))
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial)
-      for (const accountId of touched)
+      for (const accountId of backfill)
         await backfillSnapshots(accountId).catch((error) => console.error("[finance] Snapshot backfill failed", error))
 
     const partial = failures.length ? `${failures.length} of ${result.accounts.length} accounts failed: ${failures.join("; ")}` : null

@@ -1,6 +1,6 @@
 # ViteHub Finance
 
-Your household's money in one place. ViteHub Finance pulls transactions from your banks, exchanges, and wallets every day, lets
+Your household's money in one place. ViteHub Finance pulls transactions from your banks, exchanges, wallets, and broker every day, lets
 you share accounts with a partner while keeping others private, finds subscriptions you both pay for, and forecasts
 where your balance is heading. Your agents can read it over MCP.
 
@@ -10,10 +10,12 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers o
 
 - **Bank sync** for EU banks through [Enable Banking](https://enablebanking.com) (PSD2), daily, with re-consent reminders.
 - **Crypto**: Kraken, Binance, and Coinbase with read-only keys; Bitcoin, Ethereum, Solana, XRP Ledger, and Nimiq
-  addresses (staked NIM included).
+  addresses (staked NIM included). Bitcoin, XRP Ledger, and Nimiq wallets bring their transactions too, valued at each
+  day's price and counted as transfers (rewards count as income).
+- **Interactive Brokers** through a read-only Flex token: positions and cash per currency, valued at IBKR's own prices.
 - **Transfers** between your own accounts (a top-up from another bank, a currency exchange, a broker deposit) are
   found and left out of spending and income.
-- **CSV import** for everything else (brokers, old statements), with column mapping and a preview.
+- **CSV import** for everything else (other brokers, old statements), with column mapping and a preview.
 - **Households**: invite a partner. Each account is private to its owner or shared with the household; a private
   account never shows up for anyone else, in any list, total, chart, or MCP tool.
 - **Recurring payments** detected from transactions, with ways to save: price increases, subscriptions two members both
@@ -105,8 +107,9 @@ FINANCE_DEMO=1 CLOUDFLARE_WORKER_NAME=vitehub-finance-demo CLOUDFLARE_D1_DATABAS
 
 ## Develop
 
-The bank and crypto clients are workspace packages you can use on their own:
-[`@vitehub-finance/banking`](./packages/banking) and [`@vitehub-finance/crypto`](./packages/crypto).
+The bank, crypto, and broker clients are workspace packages you can use on their own:
+[`@vitehub-finance/banking`](./packages/banking), [`@vitehub-finance/crypto`](./packages/crypto), and
+[`@vitehub-finance/brokers`](./packages/brokers).
 
 - `pnpm test` — unit tests (sync mapping, dedupe, signatures, recurring detection, forecast, the demo scenario).
 - `node scripts/privacy-check.mjs` — two members against a running server; fails if a private account leaks anywhere.

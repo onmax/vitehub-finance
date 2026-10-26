@@ -33,7 +33,8 @@ export const householdSettings = sqliteTable("household_settings", {
 })
 
 /**
- * Where accounts come from: a bank session (Enable Banking), an exchange key, a wallet address, or `manual` for
+ * Where accounts come from: a bank session (Enable Banking), an exchange key, a wallet address, a broker's read-only
+ * token (Interactive Brokers' Flex Web Service), or `manual` for
  * accounts someone types in or imports from CSV. `credentials` is AES-GCM ciphertext (server/utils/crypto.ts).
  */
 export const connection = sqliteTable(
@@ -43,7 +44,7 @@ export const connection = sqliteTable(
     householdId: householdId(),
     ownerId: ownerId(),
     provider: text("provider", {
-      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "solana", "xrpl", "nimiq", "manual"],
+      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "solana", "xrpl", "nimiq", "ibkr", "manual"],
     }).notNull(),
     name: text("name").notNull(),
     institution: text("institution"),
