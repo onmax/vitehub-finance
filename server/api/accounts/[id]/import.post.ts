@@ -1,4 +1,5 @@
 import { useLogger } from "evlog/nitro/v3"
+import { eq } from "drizzle-orm"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import { decimalToMinor, isDate } from "../../../providers/dedupe"
@@ -8,6 +9,8 @@ import { requireMember } from "../../../utils/identity"
 import { detectRecurring } from "../../../utils/recurring"
 import { backfillSnapshots } from "../../../utils/snapshots"
 import { detectTransfers } from "../../../utils/transfers"
+import { categorizeWithAi, SYNC_LIMIT } from "../../../utils/ai-categorize"
+import { financialAccount } from "../../../databases/config"
 import { householdRules, insertTransactions } from "../../../utils/sync"
 
 const Row = v.object({
@@ -48,6 +51,7 @@ export default defineHandler(async (event) => {
     run().catch((error) => log.warn(`${name} failed`, { import: { failedStep: name, stepError: errorMessage(error) } }))
   if (added) {
     await step("Transfer detection", () => detectTransfers(account.householdId))
+    await step("AI categories", () => categorizeWithAi(account.householdId, eq(financialAccount.id, account.id), { limit: SYNC_LIMIT, log }))
     await step("Recurring detection", () => detectRecurring(account.householdId, [account.id]))
     await step("Snapshot backfill", () => backfillSnapshots(account.id))
   }

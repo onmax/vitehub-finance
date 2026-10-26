@@ -5,7 +5,7 @@ import type { LegalInfo } from "#shared/api"
 definePageMeta({ layout: "auth", wide: true })
 useHead({ title: "Privacy" })
 const demo = useDemo()
-const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", default: () => ({ contactEmail: null }) })
+const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", default: () => ({ contactEmail: null, ai: false }) })
 </script>
 
 <template>
@@ -52,6 +52,18 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
       symbol only.
     </p>
 
+    <template v-if="legal?.ai">
+      <h2>AI categories</h2>
+      <p>
+        When no rule categorizes a transaction, this instance asks
+        <a href="https://typesafe.ai" target="_blank" rel="noopener">TypeSafe</a>’s Jev model to suggest one. It sends the
+        transaction’s description and payee, whether money went in or out, the amount rounded to two digits, the currency,
+        the account type, and the household’s category names and rule keywords. Names of household members, IBANs, and
+        long numbers (cards, accounts, references) are masked first. It never sends dates, balances, account names, or who
+        you are. Suggestions are marked as such, and the household’s owner can turn this off in Settings.
+      </p>
+    </template>
+
     <h2>How it’s protected</h2>
     <p>
       Bank sessions and exchange keys are encrypted at rest with AES-GCM, using a key only the server holds. Passwords are
@@ -62,7 +74,7 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
     <p>
       Accounts shared with your household are visible to its members. A private account is visible only to its owner, in
       every list, total, chart, API response, and agent tool. Agents and API keys you connect see what you see. Your data is
-      never sold or shared with anyone else. If this instance sends email (invitations, sign-in links, consent reminders),
+      never sold or shared with anyone else, apart from the services this page names. If this instance sends email (invitations, sign-in links, consent reminders),
       those messages go through its email provider.
     </p>
 

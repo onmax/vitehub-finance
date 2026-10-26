@@ -69,7 +69,7 @@ export async function detectTransfers(householdId: string) {
   for (const pair of pairs) {
     await db
       .update(transaction)
-      .set({ transferId: crypto.randomUUID(), categoryId: transfers })
+      .set({ transferId: crypto.randomUUID(), categoryId: transfers, categorySource: "rule" })
       .where(inArray(transaction.id, [pair.out.id, pair.in.id]))
   }
   const paired = new Set(pairs.flatMap((pair) => [pair.out.id, pair.in.id]))
@@ -77,7 +77,7 @@ export async function detectTransfers(householdId: string) {
   for (let index = 0; index < marked.length; index += 90)
     await db
       .update(transaction)
-      .set({ categoryId: transfers })
+      .set({ categoryId: transfers, categorySource: "rule" })
       .where(inArray(transaction.id, marked.slice(index, index + 90).map((row) => row.id)))
   return { paired: pairs.length, marked: marked.length }
 }

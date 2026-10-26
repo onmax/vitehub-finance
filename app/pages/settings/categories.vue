@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Category } from "#shared/api"
+import type { AiCategorizeResult, Category } from "#shared/api"
 import { CategoryModal } from "#components"
 
 // The household's categories, grouped by kind, and the rules that file transactions into them.
@@ -28,6 +28,44 @@ async function edit(category?: Category) {
   if (saved) notify.success(category ? "Category saved" : "Category added")
 }
 
+// AI categories for what the rules missed, in rounds of a few hundred (the server caps each call), until none are left.
+const { data: me } = useMe()
+const aiReady = computed(() => Boolean(me.value?.ai && me.value.household.aiCategorize))
+const categorizing = ref(false)
+const MAX_ROUNDS = 10
+
+async function categorizeWithAi() {
+  categorizing.value = true
+  let asked = 0
+  let categorized = 0
+  let remaining = 0
+  try {
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const result = await $fetch<AiCategorizeResult>("/api/transactions/categorize", { method: "POST" })
+      asked += result.asked
+      categorized += result.categorized
+      remaining = result.remaining
+      if (!result.remaining || !result.asked) break
+    }
+    if (!asked) notify.success("Nothing to categorize", "Every transaction you can edit has a category, or AI already looked at it.")
+    else
+      notify.success(
+        `Categorized ${categorized} of ${asked}`,
+        [
+          categorized < asked ? "AI wasn’t sure about the rest; they stay uncategorized." : "",
+          remaining ? `${remaining} left: run it again to continue.` : "",
+        ]
+          .filter(Boolean)
+          .join(" ") || undefined,
+      )
+    if (categorized) void refreshStems("transactions", "overview", "budgets", "flow")
+  } catch (cause) {
+    notify.error(cause, "Couldn’t categorize with AI")
+  } finally {
+    categorizing.value = false
+  }
+}
+
 async function remove(category: Category) {
   const { confirmed } = await confirm({
     title: `Delete “${category.name}”?`,
@@ -48,6 +86,15 @@ async function remove(category: Category) {
 <template>
   <SettingsSection title="Categories" description="Every transaction gets one. Budgets and spending charts group by them." flush>
     <template #actions>
+      <UButton
+        v-if="aiReady"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-sparkles"
+        label="Categorize uncategorized with AI"
+        :loading="categorizing"
+        @click="categorizeWithAi"
+      />
       <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add category" @click="edit()" />
     </template>
     <div v-if="status === 'pending' && !categories.length" class="flex flex-col gap-3 p-4 sm:px-5">

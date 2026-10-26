@@ -88,6 +88,10 @@ const category = computed(() => find(props.transaction?.categoryId))
         <p v-else class="flex items-center gap-2 text-sm">
           <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ category?.name ?? "Uncategorized" }}
         </p>
+        <p v-if="transaction.categorySource === 'ai'" class="mt-2 flex items-center gap-1.5 text-xs text-muted">
+          <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" />
+          Suggested by AI from the description. {{ transaction.canEdit ? "Pick another if it’s wrong." : "" }}
+        </p>
       </UFormField>
 
       <UFormField label="Note" :error="noteError || undefined" :hint="savingNote === 'saving' ? 'Saving…' : savingNote === 'saved' ? 'Saved' : undefined">

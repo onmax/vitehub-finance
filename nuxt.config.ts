@@ -179,6 +179,7 @@ export default defineNuxtConfig({
           "plus",
           "rotate-ccw",
           "search",
+          "sparkles",
           "square",
           "sun",
           "triangle-alert",
@@ -306,6 +307,10 @@ export default defineNuxtConfig({
         // Optional. A CoinGecko demo key raises the price API's rate limit.
         coingecko: {
           apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
+        },
+        // Optional. A TypeSafe key (typesafe.ai) lets Jev categorize what the rules didn't (server/utils/ai-categorize.ts).
+        typesafe: {
+          apiKey: env({ secret: true, source: env.source("TYPESAFE_API_KEY"), default: "" }),
         },
       },
     },

@@ -86,7 +86,7 @@ export async function applyRule(
   const editable = db.select({ id: financialAccount.id }).from(financialAccount).where(accounts)
   const updated = await db
     .update(transaction)
-    .set({ categoryId })
+    .set({ categoryId, categorySource: "rule" })
     .where(
       and(
         eq(transaction.householdId, who.householdId),
@@ -108,7 +108,7 @@ export async function applyRulesTo(householdId: string, accountIds: string[]) {
     for (let index = 0; index < accountIds.length; index += 80)
       await db
         .update(transaction)
-        .set({ categoryId: entry.categoryId })
+        .set({ categoryId: entry.categoryId, categorySource: "rule" })
         .where(
           and(
             eq(transaction.householdId, householdId),

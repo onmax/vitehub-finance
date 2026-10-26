@@ -1,10 +1,11 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { categorize, dedupeKeys, isDate, type Rule } from "../providers/dedupe"
 import { providerFor } from "../providers/index"
 import { ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
+import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
 import { valueHoldings } from "./prices"
@@ -19,8 +20,8 @@ type AccountRow = typeof financialAccount.$inferSelect
 const DAY = 24 * 60 * 60 * 1000
 const dayString = (time: number) => new Date(time).toISOString().slice(0, 10)
 
-// D1 binds at most 100 parameters per statement: a transaction row binds up to 14 (defaults included), a holding 7.
-const TRANSACTION_CHUNK = 7
+// D1 binds at most 100 parameters per statement: a transaction row binds up to 15 (defaults included), a holding 7.
+const TRANSACTION_CHUNK = 6
 const HOLDING_CHUNK = 12
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
@@ -43,20 +44,24 @@ export async function insertTransactions(
   const unique = [...new Map(keyed.map((row) => [row.dedupeKey, row] as const)).values()]
   let added = 0
   for (let index = 0; index < unique.length; index += TRANSACTION_CHUNK) {
-    const values = unique.slice(index, index + TRANSACTION_CHUNK).map((row) => ({
-      id: crypto.randomUUID(),
-      householdId: account.householdId,
-      accountId: account.id,
-      // Undefined, not null: drizzle writes a literal NULL instead of binding a parameter.
-      externalId: row.externalId || undefined,
-      dedupeKey: row.dedupeKey,
-      date: row.date,
-      amountMinor: row.amountMinor,
-      currency: row.currency,
-      description: row.description.slice(0, 500),
-      counterparty: row.counterparty || undefined,
-      categoryId: categorize(rules, row) ?? undefined,
-    }))
+    const values = unique.slice(index, index + TRANSACTION_CHUNK).map((row) => {
+      const categoryId = categorize(rules, row)
+      return {
+        id: crypto.randomUUID(),
+        householdId: account.householdId,
+        accountId: account.id,
+        // Undefined, not null: drizzle writes a literal NULL instead of binding a parameter.
+        externalId: row.externalId || undefined,
+        dedupeKey: row.dedupeKey,
+        date: row.date,
+        amountMinor: row.amountMinor,
+        currency: row.currency,
+        description: row.description.slice(0, 500),
+        counterparty: row.counterparty || undefined,
+        categoryId: categoryId ?? undefined,
+        categorySource: categoryId ? ("rule" as const) : undefined,
+      }
+    })
     const inserted = await db
       .insert(transaction)
       .values(values)
@@ -224,6 +229,9 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     const step = (name: string, run: () => Promise<unknown>) =>
       run().catch((error) => log.warn(`${name} failed`, { sync: { failedStep: name, stepError: errorMessage(error) } }))
     if (touched.length) await step("Transfer detection", () => detectTransfers(row.householdId))
+    // AI after rules and transfers, for what they left uncategorized; recurring detection then sees its categories.
+    if (touched.length)
+      await step("AI categories", () => categorizeWithAi(row.householdId, inArray(financialAccount.id, touched), { limit: SYNC_LIMIT, log }))
     if (touched.length) await step("Recurring detection", () => detectRecurring(row.householdId, touched))
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial) for (const accountId of touched) await step("Snapshot backfill", () => backfillSnapshots(accountId))

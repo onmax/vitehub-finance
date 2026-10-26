@@ -1,13 +1,20 @@
 <script setup lang="ts">
-// The household's name, the currency totals are shown in, and whether new accounts start shared. Only the owner
-// changes them.
+// The household's name, the currency totals are shown in, whether new accounts start shared, and AI categories (when
+// the server has them). Only the owner changes them.
 const { data: me, refresh } = useMe()
 const notify = useNotify()
 const isOwner = computed(() => me.value?.role === "owner")
-const state = reactive({ name: "", currency: "EUR", shareNewAccounts: true })
+const state = reactive({ name: "", currency: "EUR", shareNewAccounts: true, aiCategorize: true })
 watch(
   () => me.value?.household,
-  (household) => household && Object.assign(state, { name: household.name, currency: household.currency, shareNewAccounts: household.shareNewAccounts }),
+  (household) =>
+    household &&
+    Object.assign(state, {
+      name: household.name,
+      currency: household.currency,
+      shareNewAccounts: household.shareNewAccounts,
+      aiCategorize: household.aiCategorize,
+    }),
   { immediate: true },
 )
 const dirty = computed(
@@ -15,7 +22,8 @@ const dirty = computed(
     !!me.value &&
     (state.name.trim() !== me.value.household.name ||
       state.currency !== me.value.household.currency ||
-      state.shareNewAccounts !== me.value.household.shareNewAccounts),
+      state.shareNewAccounts !== me.value.household.shareNewAccounts ||
+      state.aiCategorize !== me.value.household.aiCategorize),
 )
 const saving = ref(false)
 // The demo household keeps its name and currency for every visitor (the server refuses the change too).
@@ -30,7 +38,12 @@ async function save() {
   try {
     await $fetch("/api/household", {
       method: "PATCH",
-      body: { name: state.name.trim(), currency: state.currency, shareNewAccounts: state.shareNewAccounts },
+      body: {
+        name: state.name.trim(),
+        currency: state.currency,
+        shareNewAccounts: state.shareNewAccounts,
+        ...(me.value?.ai ? { aiCategorize: state.aiCategorize } : {}),
+      },
     })
     const currencyChanged = state.currency !== me.value?.household.currency
     await refresh()
@@ -60,6 +73,12 @@ async function save() {
           v-model="state.shareNewAccounts"
           label="Share new accounts by default"
           description="Accounts anyone connects start visible to the whole household. Each owner can still make theirs private."
+        />
+        <USwitch
+          v-if="me?.ai"
+          v-model="state.aiCategorize"
+          label="Suggest categories with AI"
+          description="When no rule matches a transaction, TypeSafe’s Jev model suggests a category from its description, payee, and rounded amount. It never sees names, IBANs, or account numbers. Suggestions are marked, and you can change them."
         />
       </div>
       <template v-if="isOwner" #footer>

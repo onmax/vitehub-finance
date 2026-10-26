@@ -61,6 +61,13 @@ get categories from rules; balances snapshot daily; `detectTransfers` (server/ut
 the household's accounts and gives them the transfer category, so they leave spending; `detectRecurring`
 (server/utils/recurring.ts) runs on the touched accounts. The daily Schedule (`server/schedules/daily.ts`) dispatches every active connection through `#dispatch`.
 
+AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
+(the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
+(`aiCheckedAt` null) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (request,
+answers, thresholds, the HTTP call), tested in test/ai with a stubbed fetch. It runs only with `TYPESAFE_API_KEY`, never in
+the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
+`manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has counts, tokens, and cost.
+
 ## Demo
 
 `FINANCE_DEMO=1` (scripts/deployment.ts) sets `runtimeConfig.public.demo`; on Cloudflare it also drops the Queue
@@ -79,7 +86,7 @@ object Workers Logs indexes on Cloudflare): `method`, `path`, `status`,
 `action` where a handler sets one, and `error` (`message`, `stack`) when it failed. Handlers add fields with
 `useLogger(event).set({...})` from `evlog/nitro/v3`; work without a request makes its own with `createLogger` from
 `evlog` and calls `emit()`. Other events: `action: "sync"` (one per sync run: `sync.connectionId`, `provider`, `trigger`,
-`accounts`, `added`, `status`, `code`), `action: "schedule"` (the daily run), `action: "client-error"`
+`accounts`, `added`, `status`, `code`, plus `ai.*`), `action: "schedule"` (the daily run), `action: "client-error"`
 (browser errors: `client.kind` vue / unhandled / toast / load, `client.path`, `client.title`, `client.request`,
 `client.status`, the browser in `userAgent`). Level `error` means something broke: a 4xx prints as `warn`
 (server/observability.ts), as do provider failures people fix themselves (an expired consent). Secrets, emails, IBANs,
@@ -130,10 +137,10 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | Route | Body / query | Returns |
 | --- | --- | --- |
 | `GET /api/me` | | `MeResponse` |
-| `GET /api/legal` (public) | | `LegalInfo` — the contact email for /privacy |
+| `GET /api/legal` (public) | | `LegalInfo` — the contact email and whether AI categories are on, for /privacy |
 | `POST /api/_evlog/ingest` (public, same origin, rate limited) | evlog client event with `clientError` | 204 — logs a browser error |
 | `POST /api/demo/session` (public, demo builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
-| `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts? }` | `MeResponse["household"]` |
+| `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts?, aiCategorize? }` | `MeResponse["household"]` |
 | `DELETE /api/household/members/:userId` (owner) | | `{ ok }` — their accounts move to a new household of their own |
 | `POST /api/household/leave` | | `{ ok }` — same, for yourself (not the last owner) |
 | `GET /api/overview` | `scope` | `Overview` |
@@ -144,6 +151,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `DELETE /api/accounts/:id` | | `{ ok }` (owner) |
 | `POST /api/accounts/:id/import` | `{ rows: [{ date, amount, description, counterparty? }] }` (amount in major units) | `{ added, skipped }` |
 | `GET /api/transactions` | `scope, q, account, category (id or "none"), from, to, direction (in/out), cursor, limit` | `TransactionPage` |
+| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, uncategorized rows; 404 without a TypeSafe key, 409 when the household turned it off |
 | `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, applyToSimilar? }` | `Transaction` |
 | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` | `{ name, kind, icon, color }` | `Category[]` / `Category` |
 | `GET/POST /api/rules`, `DELETE /api/rules/:id` | `{ match, categoryId }` | `{ id, match, categoryId }[]` |
