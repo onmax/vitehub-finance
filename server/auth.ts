@@ -8,6 +8,7 @@ import { defineAuth } from "vite-hub/auth"
 import { db, schema } from "vite-hub/database/drizzle"
 import { send } from "#mailer"
 import { invitation, member, session } from "./databases/config"
+import { DEMO_DISABLED_PATHS, isDemo, seedingEmails } from "./demo/mode"
 import { isAllowedEmail } from "./utils/allowed"
 import { createHousehold } from "./utils/household"
 
@@ -19,6 +20,9 @@ import { createHousehold } from "./utils/household"
  *
  * A household is a Better Auth organization. Signing up makes your own, unless an invitation is waiting for your
  * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in.
+ *
+ * The public demo (`FINANCE_DEMO=1`) creates no users but its own two (server/demo/seed.ts) and turns off the endpoints
+ * that change who signs in or who's in the household (server/demo/mode.ts).
  *
  * MCP clients connect through OAuth 2.1 (`oauthProvider`, tokens signed by `jwt`, scoped to `<origin>/mcp`). Scripts
  * that can't do OAuth use a personal API key (`apiKey`) as a bearer token instead.
@@ -32,11 +36,12 @@ export default defineAuth(({ env, requestOrigin }) => ({
   route: false,
   emailAndPassword: { enabled: true, minPasswordLength: 10 },
   // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in ViteHub Finance needs.
-  disabledPaths: ["/token"],
+  disabledPaths: ["/token", ...(isDemo() ? DEMO_DISABLED_PATHS : [])],
   databaseHooks: {
     user: {
       create: {
         before: async (person) => {
+          if (isDemo()) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
           if (isAllowedEmail(person.email, env.finance.allowedEmails.unseal())) return
           return (await pendingInvitation(person.email)) ? undefined : false
         },

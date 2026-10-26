@@ -45,15 +45,17 @@ const items = computed(() => props.connections)
           <span class="block truncate text-sm font-medium text-highlighted">{{ connection.institution ?? connection.name }}</span>
           <span class="block text-sm text-muted">{{ reason(connection) }}</span>
         </span>
-        <UButton
-          v-if="connection.canManage"
-          color="neutral"
-          variant="outline"
-          :icon="connection.provider === 'enable_banking' ? 'i-lucide-link' : 'i-lucide-refresh-cw'"
-          :label="connection.provider === 'enable_banking' ? 'Reconnect' : 'Try again'"
-          :loading="pending === connection.id"
-          @click="reconnect(connection)"
-        />
+        <DemoLock v-if="connection.canManage" v-slot="{ locked }">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :icon="connection.provider === 'enable_banking' ? 'i-lucide-link' : 'i-lucide-refresh-cw'"
+            :label="connection.provider === 'enable_banking' ? 'Reconnect' : 'Try again'"
+            :loading="pending === connection.id"
+            :disabled="locked"
+            @click="reconnect(connection)"
+          />
+        </DemoLock>
         <span v-else class="text-xs text-muted">{{ connection.ownerName }} can reconnect it</span>
       </li>
     </ul>

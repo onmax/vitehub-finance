@@ -9,11 +9,14 @@ const target = deployment()
 const dev = process.argv.includes("dev")
 const host: Host = dev ? "node" : target.host
 const email = target.email
+// The public demo (FINANCE_DEMO=1): no Queue, because it never syncs real providers; the daily Schedule reseeds instead.
+const demo = target.demo
+const queue = host === "cloudflare" && !demo
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
 /**
- * ViteHub per host. Cloudflare gets a Queue (one sync per message, retried on failure); Node syncs inline from the
- * same daily Schedule. Everything else (Database, KV, Auth, Email) is the same code on both.
+ * ViteHub per host. Cloudflare gets a Queue (one sync per message, retried on failure), except demo builds; Node syncs
+ * inline from the same daily Schedule. Everything else (Database, KV, Auth, Email) is the same code on both.
  */
 const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
   cloudflare: {
@@ -26,7 +29,7 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     },
     kv: true,
     schedule: true,
-    queue: { provider: "cloudflare" },
+    ...(queue ? { queue: { provider: "cloudflare" as const } } : {}),
   },
   node: {
     preset: "node",
@@ -58,8 +61,8 @@ export default defineNuxtConfig({
   },
 
   alias: {
-    // How a sync request reaches the sync: a Queue message on Cloudflare, a direct call elsewhere.
-    "#dispatch": here(`./server/dispatch/${host === "cloudflare" ? "queue" : "inline"}.ts`),
+    // How a sync request reaches the sync: a Queue message on Cloudflare, a direct call elsewhere (and in demo builds).
+    "#dispatch": here(`./server/dispatch/${queue ? "queue" : "inline"}.ts`),
     // Sends through ViteHub Email when the build has a provider, otherwise returns the link for the UI to show.
     "#mailer": here(`./server/mailer/${email ? "email" : "none"}.ts`),
   },
@@ -71,7 +74,7 @@ export default defineNuxtConfig({
   css: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "~/assets/css/main.css"],
 
   runtimeConfig: {
-    public: { email: Boolean(email), host },
+    public: { email: Boolean(email), host, demo },
   },
 
   routeRules: {
@@ -190,6 +193,7 @@ export default defineNuxtConfig({
           "umbrella",
           "palmtree",
           "key-round",
+          "bike",
         ].map((name) => `lucide:${name}`),
       ],
     },
@@ -206,7 +210,7 @@ export default defineNuxtConfig({
         // The sync Queue (server/queues/sync.ts). ViteHub's Nuxt module generates its runtime, but its wrangler entries
         // don't reach .output/server/wrangler.json, so they're written here with ViteHub's names: the binding is QUEUE_
         // plus the hex of "sync", the queue queue--<hex>. A Cloudflare account holds one queue per name.
-        ...(host === "cloudflare"
+        ...(queue
           ? {
               queues: {
                 producers: [{ binding: "QUEUE_73796E63", queue: "queue--73796e63" }],
@@ -255,6 +259,8 @@ export default defineNuxtConfig({
           encryptionKey: env({ secret: true, source: env.source("FINANCE_ENCRYPTION_KEY") }),
           // The sender for invitations and reminders, when the build has Email.
           emailFrom: env({ source: env.source("FINANCE_EMAIL_FROM"), default: "ViteHub Finance <finance@example.com>" }),
+          // Optional. Where people write about their data; /privacy shows it (server/api/legal.get.ts) and omits the line when empty.
+          contactEmail: env({ source: env.source("FINANCE_CONTACT_EMAIL"), default: "" }),
         },
         // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
         enableBanking: {

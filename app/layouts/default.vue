@@ -11,6 +11,9 @@ const isActive = (to: string) => (to === "/" ? route.path === "/" : route.path =
 const { data: overview } = useOverview()
 const attention = computed(() => overview.value?.attention.length ?? 0)
 
+// The public demo's banner sits above the whole shell, which starts below it.
+const demo = useDemo()
+
 const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => ({
   label: page.label,
   icon: page.icon,
@@ -27,7 +30,8 @@ defineShortcuts(Object.fromEntries([...MAIN_PAGES, ...SECONDARY_PAGES].map((page
 </script>
 
 <template>
-  <UDashboardGroup unit="rem" storage="local" storage-key="finance-sidebar">
+  <DemoBanner v-if="demo" class="fixed inset-x-0 top-0 z-40" />
+  <UDashboardGroup unit="rem" storage="local" storage-key="finance-sidebar" :class="demo ? 'top-[calc(2.25rem+env(safe-area-inset-top))]' : undefined">
     <UDashboardSidebar
       id="nav"
       v-model:open="open"

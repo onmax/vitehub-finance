@@ -4,6 +4,8 @@ const { $auth } = useNuxtApp()
 const notify = useNotify()
 const state = reactive({ current: "", next: "", signOutOthers: true })
 const pending = ref(false)
+// The demo's people share one sign-in among every visitor, so its password never changes (the server refuses too).
+const demo = useDemo()
 const error = ref("")
 const form = useTemplateRef("form")
 
@@ -15,6 +17,7 @@ function validate(values: typeof state) {
 }
 
 async function submit() {
+  if (demo) return
   pending.value = true
   error.value = ""
   try {
@@ -37,8 +40,8 @@ async function submit() {
 </script>
 
 <template>
-  <UForm ref="form" :state="state" :validate="validate" :validate-on="['blur']" @submit="submit">
-    <SettingsSection title="Password" description="Use at least 10 characters. A passkey is quicker and can’t be phished.">
+  <UForm ref="form" :state="state" :validate="validate" :validate-on="['blur']" :disabled="demo" @submit="submit">
+    <SettingsSection title="Password" :description="demo ? DEMO_LOCKED : 'Use at least 10 characters. A passkey is quicker and can’t be phished.'">
       <div class="grid gap-4 sm:grid-cols-2">
         <UFormField label="Current password" name="current">
           <UInput v-model="state.current" type="password" autocomplete="current-password" class="w-full" />
@@ -50,7 +53,9 @@ async function submit() {
         <p v-if="error" class="text-sm text-error sm:col-span-2" role="alert">{{ error }}</p>
       </div>
       <template #footer>
-        <UButton type="submit" color="neutral" variant="outline" label="Change password" :loading="pending" />
+        <DemoLock v-slot="{ locked }">
+          <UButton type="submit" color="neutral" variant="outline" label="Change password" :loading="pending" :disabled="locked" />
+        </DemoLock>
       </template>
     </SettingsSection>
   </UForm>

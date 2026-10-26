@@ -46,6 +46,16 @@ balances, holdings, and transactions (`server/providers/*`); new transactions de
 get categories from rules; balances snapshot daily; `detectRecurring` (server/utils/recurring.ts) runs on the touched
 accounts. The daily Schedule (`server/schedules/daily.ts`) dispatches every active connection through `#dispatch`.
 
+## Demo
+
+`FINANCE_DEMO=1` (scripts/deployment.ts) sets `runtimeConfig.public.demo`; on Cloudflare it also drops the Queue
+(`#dispatch` is inline). server/demo: `scenario.ts` is the pure, date-seeded household (tested in test/demo),
+`seed.ts` wipes and rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()`, `refuseInDemo()` (403 "Not available
+in the demo."), and the Better Auth paths the demo disables. Routes that manage banks, connections, people, the household,
+or delete accounts call `refuseInDemo()` first; data edits never do. In the UI, `useDemo()` and `<DemoLock>` disable the
+same controls. The daily Schedule reseeds instead of syncing. Demo users are only created by the seed
+(`seedingEmails` in `user.create.before`).
+
 ## Commands
 
 Run heavy commands through `heavy` (shared machine): `heavy pnpm typecheck`, `HEAVY_WAIT=0 heavy pnpm build`.
@@ -58,6 +68,8 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | Route | Body / query | Returns |
 | --- | --- | --- |
 | `GET /api/me` | | `MeResponse` |
+| `GET /api/legal` (public) | | `LegalInfo` — the contact email for /privacy |
+| `POST /api/demo/session` (public, demo builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
 | `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts? }` | `MeResponse["household"]` |
 | `DELETE /api/household/members/:userId` (owner) | | `{ ok }` — their accounts move to a new household of their own |
 | `POST /api/household/leave` | | `{ ok }` — same, for yourself (not the last owner) |

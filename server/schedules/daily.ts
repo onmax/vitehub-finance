@@ -4,6 +4,8 @@ import { defineSchedule } from "vite-hub/schedule"
 import { dispatchSync } from "#dispatch"
 import { send } from "#mailer"
 import { connection, user as users } from "../databases/config"
+import { isDemo } from "../demo/mode"
+import { seedDemo } from "../demo/seed"
 import { errorMessage, knownOrigin } from "../utils/connections"
 
 const DAY = 24 * 60 * 60 * 1000
@@ -11,12 +13,18 @@ const DAY = 24 * 60 * 60 * 1000
 /**
  * Every morning: expire consents that ran out, remind owners a week before one does, drop bank links nobody finished,
  * then sync every active (or failed) connection one at a time. One failure never stops the rest.
+ *
+ * The demo has nothing to sync: it rebuilds its household as of today instead, wiping whatever visitors changed.
  */
 export default defineSchedule({
   cron: "0 5 * * *",
   // Lets an operator run it now from the ViteHub Console or `vitehub schedule run daily`.
   manual: true,
   async handler({ scheduledAt }) {
+    if (isDemo()) {
+      await seedDemo(scheduledAt.toISOString().slice(0, 10))
+      return { seeded: true }
+    }
     const now = scheduledAt.getTime()
     const errors: unknown[] = []
     const step = async (run: () => Promise<unknown>) => run().catch((error) => errors.push(error))

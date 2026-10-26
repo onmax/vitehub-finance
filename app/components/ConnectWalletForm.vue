@@ -16,7 +16,11 @@ const pending = ref(false)
 const error = ref("")
 const validate = (values: typeof state) => (values.address.trim() ? [] : [{ name: "address", message: "Paste the wallet’s public address." }])
 
+// The demo links nothing real (the server refuses too).
+const demo = useDemo()
+
 async function submit() {
+  if (demo) return
   pending.value = true
   error.value = ""
   try {
@@ -46,6 +50,8 @@ async function submit() {
       <UInput v-model="state.name" placeholder="Cold storage" class="w-full" />
     </UFormField>
     <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
-    <UButton type="submit" color="neutral" variant="outline" label="Add wallet" :loading="pending" class="self-start" />
+    <DemoLock v-slot="{ locked }" class="self-start">
+      <UButton :disabled="locked" type="submit" color="neutral" variant="outline" label="Add wallet" :loading="pending" class="self-start" />
+    </DemoLock>
   </UForm>
 </template>

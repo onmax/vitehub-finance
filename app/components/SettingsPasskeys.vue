@@ -12,6 +12,8 @@ const { $auth } = useNuxtApp()
 const notify = useNotify()
 const confirm = useConfirm()
 const supported = typeof window !== "undefined" && "PublicKeyCredential" in window
+// A passkey on a demo person would let one visitor lock out the rest; the server refuses registration there too.
+const demo = useDemo()
 
 const { data: passkeys, status, error, refresh } = useAsyncData<Passkey[]>(
   "settings:passkeys",
@@ -26,6 +28,7 @@ const { data: passkeys, status, error, refresh } = useAsyncData<Passkey[]>(
 const adding = ref(false)
 const addError = ref("")
 async function add() {
+  if (demo) return
   adding.value = true
   addError.value = ""
   try {
@@ -63,15 +66,9 @@ function deviceName() {
 <template>
   <SettingsSection title="Passkeys" description="Sign in with your fingerprint, face, or device PIN instead of a password." flush>
     <template #actions>
-      <UButton
-        v-if="supported"
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-plus"
-        label="Add passkey"
-        :loading="adding"
-        @click="add"
-      />
+      <DemoLock v-if="supported" v-slot="{ locked }">
+        <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add passkey" :loading="adding" :disabled="locked" @click="add" />
+      </DemoLock>
     </template>
     <div class="flex flex-col">
       <p v-if="addError" class="mx-4 mt-4 text-sm text-error sm:mx-5" role="alert">{{ addError }}</p>
@@ -93,9 +90,18 @@ function deviceName() {
               Added {{ formatDate(new Date(passkey.createdAt)) }}<template v-if="passkey.backedUp"> · Synced</template>
             </p>
           </div>
-          <UTooltip text="Delete passkey">
-            <UButton color="neutral" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Delete ${passkey.name || 'passkey'}`" @click="remove(passkey)" />
-          </UTooltip>
+          <DemoLock v-slot="{ locked }">
+            <UTooltip text="Delete passkey" :disabled="locked">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-trash-2"
+                :aria-label="`Delete ${passkey.name || 'passkey'}`"
+                :disabled="locked"
+                @click="remove(passkey)"
+              />
+            </UTooltip>
+          </DemoLock>
         </li>
       </ul>
     </div>

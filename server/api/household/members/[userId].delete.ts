@@ -5,9 +5,11 @@ import { member } from "../../../databases/config"
 import { requireOwner } from "../../../utils/identity"
 import { param } from "../../../utils/input"
 import { moveOut } from "../../../utils/membership"
+import { refuseInDemo } from "../../../demo/mode"
 
 /** The owner removes someone; their accounts and connections go with them into a household of their own. */
 export default defineHandler(async (event) => {
+  refuseInDemo()
   const who = await requireOwner(event)
   const userId = param(event, "userId")
   if (userId === who.userId) throw new HTTPError({ status: 400, statusText: "To leave, use Leave household." })

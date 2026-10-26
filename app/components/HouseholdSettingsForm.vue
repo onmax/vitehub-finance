@@ -18,6 +18,8 @@ const dirty = computed(
       state.shareNewAccounts !== me.value.household.shareNewAccounts),
 )
 const saving = ref(false)
+// The demo household keeps its name and currency for every visitor (the server refuses the change too).
+const demo = useDemo()
 const error = ref("")
 
 const validate = (values: typeof state) => (values.name.trim() ? [] : [{ name: "name", message: "Give the household a name." }])
@@ -43,8 +45,8 @@ async function save() {
 </script>
 
 <template>
-  <UForm :state="state" :validate="validate" :disabled="!isOwner" @submit="save">
-    <SettingsSection title="Household" :description="isOwner ? undefined : 'Only the household’s owner changes these.'">
+  <UForm :state="state" :validate="validate" :disabled="!isOwner || demo" @submit="save">
+    <SettingsSection title="Household" :description="demo ? DEMO_LOCKED : isOwner ? undefined : 'Only the household’s owner changes these.'">
       <div class="flex flex-col gap-5">
         <div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
           <UFormField label="Name" name="name">
@@ -62,7 +64,9 @@ async function save() {
       </div>
       <template v-if="isOwner" #footer>
         <p v-if="error" class="mr-auto text-sm text-error" role="alert">{{ error }}</p>
-        <UButton type="submit" color="neutral" variant="outline" label="Save" :loading="saving" :disabled="!dirty" />
+        <DemoLock v-slot="{ locked }">
+          <UButton type="submit" color="neutral" variant="outline" label="Save" :loading="saving" :disabled="locked || !dirty" />
+        </DemoLock>
       </template>
     </SettingsSection>
   </UForm>

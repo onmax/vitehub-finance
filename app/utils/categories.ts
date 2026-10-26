@@ -68,6 +68,7 @@ export const GOAL_ICONS = [
   "i-lucide-umbrella",
   "i-lucide-palmtree",
   "i-lucide-key-round",
+  "i-lucide-bike",
   "i-lucide-house",
   "i-lucide-car",
   "i-lucide-plane",

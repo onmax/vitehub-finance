@@ -9,6 +9,7 @@ import { CHAINS, validAddress } from "../../providers/wallets"
 import { assertNotLinked, connectionSummary, fail, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
+import { refuseInDemo } from "../../demo/mode"
 
 const Body = v.object({
   chain: v.picklist(WALLET_PROVIDERS),
@@ -18,6 +19,7 @@ const Body = v.object({
 
 /** Watches a public wallet address: its native coin balance, priced like any holding. */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
+  refuseInDemo()
   const who = await requireMember(event)
   const body = await readValid(event, Body)
   const address = validAddress(body.chain, body.address)

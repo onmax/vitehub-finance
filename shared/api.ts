@@ -254,3 +254,9 @@ export interface ProviderInfo {
   /** Whether this ViteHub Finance has the credentials the provider needs (Enable Banking's app id and key). */
   available: boolean
 }
+
+/** `GET /api/legal` (public): what the privacy page shows about this instance. */
+export interface LegalInfo {
+  /** `FINANCE_CONTACT_EMAIL`, or null when the instance has none. */
+  contactEmail: string | null
+}

@@ -7,12 +7,15 @@ const { data: me, refresh } = useMe()
 const confirm = useConfirm()
 const notify = useNotify()
 const pending = ref<string | null>(null)
+// The demo household's people stay put for every visitor (the server refuses both too).
+const demo = useDemo()
 
 const isOwner = computed(() => me.value?.role === "owner")
 const owners = computed(() => me.value?.members.filter((person) => person.role === "owner").length ?? 0)
 const canLeave = computed(() => (me.value?.members.length ?? 1) > 1 && !(isOwner.value && owners.value <= 1))
 
 async function remove(person: Person) {
+  if (demo) return
   const { confirmed } = await confirm({
     title: `Remove ${person.name}?`,
     description: `${person.name} loses access to the household’s shared accounts. Their own accounts, connections, and history go with them into a household of their own.`,
@@ -34,6 +37,7 @@ async function remove(person: Person) {
 }
 
 async function leave() {
+  if (demo) return
   const { confirmed } = await confirm({
     title: `Leave ${me.value?.household.name ?? "the household"}?`,
     description:
@@ -74,17 +78,20 @@ async function leave() {
           :label="person.role === 'owner' ? 'Owner' : 'Member'"
           class="shrink-0"
         />
-        <UTooltip v-if="isOwner && person.userId !== me.user.id" :text="`Remove ${person.name}`">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-user-minus"
-            :aria-label="`Remove ${person.name}`"
-            :loading="pending === person.userId"
-            class="size-10 justify-center"
-            @click="remove(person)"
-          />
-        </UTooltip>
+        <DemoLock v-if="isOwner && person.userId !== me.user.id" v-slot="{ locked }">
+          <UTooltip :text="`Remove ${person.name}`" :disabled="locked">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-user-minus"
+              :aria-label="`Remove ${person.name}`"
+              :loading="pending === person.userId"
+              :disabled="locked"
+              class="size-10 justify-center"
+              @click="remove(person)"
+            />
+          </UTooltip>
+        </DemoLock>
       </li>
     </ul>
     <div v-else class="flex flex-col divide-y divide-default">
@@ -95,15 +102,17 @@ async function leave() {
     </div>
     <template v-if="me && me.members.length > 1" #footer>
       <p v-if="!canLeave" class="mr-auto text-sm text-muted">You’re the only owner, so you can’t leave.</p>
-      <UButton
-        v-else
-        color="error"
-        variant="outline"
-        icon="i-lucide-log-out"
-        label="Leave household"
-        :loading="pending === 'leave'"
-        @click="leave"
-      />
+      <DemoLock v-else v-slot="{ locked }">
+        <UButton
+          color="error"
+          variant="outline"
+          icon="i-lucide-log-out"
+          label="Leave household"
+          :loading="pending === 'leave'"
+          :disabled="locked"
+          @click="leave"
+        />
+      </DemoLock>
     </template>
   </SettingsSection>
 </template>

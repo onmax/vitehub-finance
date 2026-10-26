@@ -5,12 +5,14 @@ import { dispatchSync } from "#dispatch"
 import { syncRun } from "../../../databases/config"
 import { errorMessage, fail, requireOwnConnection } from "../../../utils/connections"
 import { requireMember } from "../../../utils/identity"
+import { refuseInDemo } from "../../../demo/mode"
 
 // Banks allow about four unattended fetches a day under PSD2; the daily schedule uses one.
 const BANK_INTERVAL = 6 * 60 * 60 * 1000
 
 /** Syncs now. On Node it waits for the sync and reports its failure; on Cloudflare it queues one. */
 export default defineHandler(async (event) => {
+  refuseInDemo()
   const who = await requireMember(event)
   const row = await requireOwnConnection(who, event.context.params?.id)
   if (row.status === "pending") throw fail(409, "Finish connecting this bank first.")

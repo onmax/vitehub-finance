@@ -234,7 +234,9 @@ const permissionOptions = [
           <p class="text-sm font-medium text-highlighted">Delete account</p>
           <p class="text-sm text-muted">Removes it and its transactions for everyone.</p>
         </div>
-        <UButton color="error" variant="outline" icon="i-lucide-trash-2" label="Delete" :loading="deleting" @click="remove" />
+        <DemoLock v-slot="{ locked }">
+          <UButton color="error" variant="outline" icon="i-lucide-trash-2" label="Delete" :loading="deleting" :disabled="locked" @click="remove" />
+        </DemoLock>
       </div>
       <p v-if="errors.delete" class="text-sm text-error" role="alert">{{ errors.delete }}</p>
     </div>

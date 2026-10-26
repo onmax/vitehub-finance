@@ -14,6 +14,9 @@ const { $auth } = useNuxtApp()
 const notify = useNotify()
 const confirm = useConfirm()
 const { session: current } = useAuthSession()
+// Every demo visitor signs in as the same people, so listing sessions would show strangers' devices; the demo turns it off
+// (and Better Auth's session endpoints with it).
+const demo = useDemo()
 
 const { data: sessions, status, error, refresh } = useAsyncData<Session[]>(
   "settings:sessions",
@@ -22,7 +25,7 @@ const { data: sessions, status, error, refresh } = useAsyncData<Session[]>(
     if (failure) throw new Error(failure.message || "Couldn’t load your sessions.")
     return (data ?? []) as Session[]
   },
-  { default: () => [], lazy: true },
+  { default: () => [], lazy: true, immediate: !demo },
 )
 const isCurrent = (session: Session) => session.token === current.value?.token
 const sorted = computed(() =>
@@ -60,7 +63,7 @@ async function revokeOthers() {
 
 <template>
   <SettingsSection title="Sessions" description="Devices signed in to your account." flush>
-    <template #actions>
+    <template v-if="!demo" #actions>
       <UButton
         v-if="others > 0"
         color="neutral"
@@ -70,7 +73,10 @@ async function revokeOthers() {
         @click="revokeOthers"
       />
     </template>
-    <div v-if="status === 'pending' && !sessions.length" class="flex flex-col gap-3 p-4 sm:px-5">
+    <p v-if="demo" class="flex items-center gap-2 p-4 text-sm text-muted sm:px-5">
+      <UIcon name="i-lucide-lock" class="size-4 shrink-0" />{{ DEMO_LOCKED }} Every visitor shares the demo’s sign-in.
+    </p>
+    <div v-else-if="status === 'pending' && !sessions.length" class="flex flex-col gap-3 p-4 sm:px-5">
       <USkeleton class="h-5 w-56" />
       <USkeleton class="h-5 w-44" />
     </div>

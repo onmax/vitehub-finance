@@ -6,6 +6,8 @@ import type { Bank, ProviderInfo } from "#shared/api"
 // Enable Banking's credentials it explains the setup instead.
 const props = defineProps<{ error?: string | null }>()
 const emit = defineEmits<{ dismissError: [] }>()
+// The demo links no real banks (the server refuses); it says so instead of listing banks.
+const demo = useDemo()
 
 const COUNTRIES = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "GB"]
 const names = new Intl.DisplayNames(typeof navigator === "undefined" ? undefined : navigator.language, { type: "region" })
@@ -72,7 +74,19 @@ const shownError = computed(() => connectError.value || props.error || "")
       @update:open="(open) => !open && ((connectError = ''), emit('dismissError'))"
     />
 
-    <div v-if="providersStatus === 'pending' || providersStatus === 'idle'" class="flex flex-col gap-2">
+    <div v-if="demo" class="flex items-start gap-3 rounded-lg border border-dashed border-default p-4">
+      <UIcon name="i-lucide-lock" class="mt-0.5 size-4 shrink-0 text-muted" />
+      <div>
+        <p class="text-sm font-medium text-highlighted">{{ DEMO_LOCKED }}</p>
+        <p class="mt-1 text-sm text-muted">
+          The demo household’s banks are fictional. On your own ViteHub Finance you pick your bank here and sign in on its page through
+          <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>.
+          Try a CSV import or a manual account instead.
+        </p>
+      </div>
+    </div>
+
+    <div v-else-if="providersStatus === 'pending' || providersStatus === 'idle'" class="flex flex-col gap-2">
       <USkeleton class="h-9 w-full" />
       <USkeleton v-for="row in 3" :key="row" class="h-12 w-full" />
     </div>

@@ -74,9 +74,35 @@ Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server
 
 `FINANCE_ALLOWED_EMAILS=you@example.com,partner@example.com` limits sign-up to those emails (invited people always can).
 
+`/privacy` and `/terms` describe what an instance stores and its terms of use; register their URLs with Enable Banking.
+Set `FINANCE_CONTACT_EMAIL` to show a contact address on the privacy page.
+
+## Demo
+
+`FINANCE_DEMO=1` builds the public demo (finance.vitehub.dev): the login page gets an "Explore the demo" button that
+drops visitors into a fictional household, Lucía and Pablo in Madrid, with 13 months of bank statements, a credit card,
+savings, an index fund, a bitcoin wallet, budgets, goals, and recurring payments (including a Netflix price increase and
+a Spotify both of them pay). A banner switches between the two people, so visitors see each one's private account stay
+private.
+
+```bash
+FINANCE_DEMO=1 pnpm dev                                   # locally
+FINANCE_DEMO=1 CLOUDFLARE_WORKER_NAME=vitehub-finance-demo CLOUDFLARE_D1_DATABASE_ID=<its own D1> pnpm build   # no Queue, same cron
+```
+
+- **Locked**, on the server and in the UI: sign-up, every sign-in or account change (password, email, passkeys,
+  two-factor, magic links, sessions, deleting the user), inviting or removing people, leaving or renaming the household,
+  connecting, syncing, reconnecting, or removing banks, exchanges, and wallets, and deleting accounts. They answer
+  "Not available in the demo."
+- **Open**: categorizing, notes, rules, budgets, goals, recurring confirm/dismiss, manual accounts, CSV import, API keys,
+  and MCP.
+- **Nightly reset**: the daily Schedule (05:00 UTC) wipes the demo people, their households, and whatever visitors made,
+  and seeds the household again as of that day (server/demo). The first visit seeds it too when it's missing. The demo
+  data is generated from the date, so it always ends today.
+
 ## Develop
 
-- `pnpm test` — unit tests (sync mapping, dedupe, signatures, recurring detection, forecast).
+- `pnpm test` — unit tests (sync mapping, dedupe, signatures, recurring detection, forecast, the demo scenario).
 - `node scripts/privacy-check.mjs` — two members against a running server; fails if a private account leaks anywhere.
 - `pnpm typecheck`
 - [AGENTS.md](./AGENTS.md) has the architecture, the privacy rules, and the full API.

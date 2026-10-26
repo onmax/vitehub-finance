@@ -36,7 +36,11 @@ const validate = (values: typeof state) => [
   ...(values.secret.trim() ? [] : [{ name: "secret", message: `Paste the ${guide.value.secret.toLowerCase()}.` }]),
 ]
 
+// The demo links nothing real (the server refuses too).
+const demo = useDemo()
+
 async function submit() {
+  if (demo) return
   pending.value = true
   error.value = ""
   try {
@@ -112,6 +116,8 @@ async function submit() {
       ViteHub Finance encrypts the key at rest and only reads balances. A key with trading or withdrawal rights isn’t needed; don’t give one.
     </p>
     <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
-    <UButton type="submit" color="neutral" variant="outline" :label="`Connect ${guide.label}`" :loading="pending" class="self-start" />
+    <DemoLock v-slot="{ locked }" class="self-start">
+      <UButton :disabled="locked" type="submit" color="neutral" variant="outline" :label="`Connect ${guide.label}`" :loading="pending" class="self-start" />
+    </DemoLock>
   </UForm>
 </template>

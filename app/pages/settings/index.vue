@@ -12,6 +12,8 @@ watchEffect(() => {
   if (!state.name && me.value) state.name = me.value.user.name
 })
 const pending = ref(false)
+// The demo's people keep their names for every visitor (Better Auth's /update-user is off there).
+const demo = useDemo()
 const error = ref("")
 const dirty = computed(() => Boolean(me.value) && state.name.trim() !== me.value?.user.name)
 
@@ -20,6 +22,7 @@ function validate(values: typeof state) {
 }
 
 async function save() {
+  if (demo) return
   pending.value = true
   error.value = ""
   try {
@@ -58,7 +61,7 @@ const theme = computed({
         </div>
         <UFormField label="Name" name="name" class="max-w-sm">
           <USkeleton v-if="!me" class="h-9 w-full" />
-          <UInput v-else v-model="state.name" autocomplete="name" class="w-full" />
+          <UInput v-else v-model="state.name" autocomplete="name" class="w-full" :disabled="demo" />
         </UFormField>
         <UFormField label="Email" name="email" help="You sign in with it. To use another email, create a new account and have the household invite it." class="max-w-sm">
           <UInput :model-value="me?.user.email ?? ''" disabled class="w-full" />
@@ -66,7 +69,9 @@ const theme = computed({
         <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
       </div>
       <template #footer>
-        <UButton type="submit" label="Save" :loading="pending" :disabled="!dirty" />
+        <DemoLock v-slot="{ locked }">
+          <UButton type="submit" label="Save" :loading="pending" :disabled="locked || !dirty" />
+        </DemoLock>
       </template>
     </SettingsSection>
   </UForm>

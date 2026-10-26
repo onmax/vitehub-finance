@@ -11,6 +11,8 @@ const notify = useNotify()
 const confirm = useConfirm()
 const historyOpen = ref(false)
 const pending = ref<"sync" | "reconnect" | "remove" | null>(null)
+// The demo's connections are fakes: syncing, reconnecting, or removing them is refused (DemoLock, and the server).
+const demo = useDemo()
 
 const provider = computed(() => PROVIDERS[props.connection.provider])
 const isBank = computed(() => props.connection.provider === "enable_banking")
@@ -81,10 +83,21 @@ async function remove() {
 
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
-    ...(isBank.value ? [{ label: "Reconnect", icon: "i-lucide-link", onSelect: reconnect }] : []),
+    ...(isBank.value
+      ? [{ label: "Reconnect", icon: "i-lucide-link", onSelect: reconnect, disabled: demo, description: demo ? DEMO_LOCKED : undefined }]
+      : []),
     { label: "Sync history", icon: "i-lucide-history", onSelect: () => (historyOpen.value = true) },
   ],
-  [{ label: "Remove…", icon: "i-lucide-trash-2", color: "error" as const, onSelect: remove }],
+  [
+    {
+      label: "Remove…",
+      icon: "i-lucide-trash-2",
+      color: "error" as const,
+      onSelect: remove,
+      disabled: demo,
+      description: demo ? DEMO_LOCKED : undefined,
+    },
+  ],
 ])
 </script>
 
@@ -118,25 +131,28 @@ const menu = computed<DropdownMenuItem[][]>(() => [
       <p v-if="connection.lastError && connection.status !== 'active'" class="mt-1 text-xs text-error text-pretty">{{ connection.lastError }}</p>
     </div>
     <div v-if="connection.canManage" class="ml-12 flex shrink-0 items-center gap-1 sm:ml-auto">
-      <UButton
-        v-if="needsReconnect"
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-link"
-        label="Reconnect"
-        :loading="pending === 'reconnect'"
-        @click="reconnect"
-      />
-      <UButton
-        v-else
-        color="neutral"
-        variant="outline"
-        icon="i-lucide-refresh-cw"
-        label="Sync now"
-        :loading="pending === 'sync'"
-        :disabled="pending !== null || connection.status === 'pending'"
-        @click="sync"
-      />
+      <DemoLock v-slot="{ locked }">
+        <UButton
+          v-if="needsReconnect"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-link"
+          label="Reconnect"
+          :loading="pending === 'reconnect'"
+          :disabled="locked"
+          @click="reconnect"
+        />
+        <UButton
+          v-else
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-refresh-cw"
+          label="Sync now"
+          :loading="pending === 'sync'"
+          :disabled="locked || pending !== null || connection.status === 'pending'"
+          @click="sync"
+        />
+      </DemoLock>
       <UDropdownMenu :items="menu" :content="{ align: 'end' }">
         <UTooltip text="More">
           <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis" :aria-label="`More for ${connection.name}`" class="size-10 justify-center" :loading="pending === 'remove'" />

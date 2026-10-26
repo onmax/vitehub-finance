@@ -10,6 +10,9 @@ const isHost = (value: string): value is Host => HOSTS.some((host) => host === v
  * - `cloudflare`: a Worker with D1, KV, Cron Triggers, and a Queue that syncs one connection per message.
  * - `node`: one Node process (a VPS, Docker, a home server) with SQLite on disk, KV files, and an in-process cron.
  *   Syncs run inline, one connection after another.
+ *
+ * `FINANCE_DEMO=1` builds the public demo: a fictional household anyone can enter, reset every night, with account and
+ * bank management locked (server/demo). A demo never syncs real providers, so on Cloudflare it has no Queue.
  */
 export function deployment(env: Record<string, string | undefined> = process.env) {
   const preset = env.NITRO_PRESET || env.SERVER_PRESET
@@ -23,5 +26,7 @@ export function deployment(env: Record<string, string | undefined> = process.env
   if (email && email !== "resend" && email !== "cloudflare")
     throw new Error(`FINANCE_EMAIL must be resend, cloudflare, or empty; got "${email}".`)
 
-  return { host, email: email as "" | "resend" | "cloudflare" }
+  const demo = ["1", "true"].includes((env.FINANCE_DEMO ?? "").trim().toLowerCase())
+
+  return { host, email: email as "" | "resend" | "cloudflare", demo }
 }

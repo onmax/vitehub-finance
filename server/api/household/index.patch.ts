@@ -6,6 +6,7 @@ import type { MeResponse } from "#shared/api"
 import { householdSettings, organization } from "../../databases/config"
 import { requireOwner } from "../../utils/identity"
 import { Currency, Name, readInput } from "../../utils/input"
+import { refuseInDemo } from "../../demo/mode"
 
 const Body = v.object({
   name: v.optional(Name),
@@ -15,6 +16,7 @@ const Body = v.object({
 
 /** The owner renames the household, changes the currency totals are shown in, or the default for new accounts. */
 export default defineHandler(async (event): Promise<MeResponse["household"]> => {
+  refuseInDemo()
   const who = await requireOwner(event)
   const body = await readInput(event, Body)
   if (body.name) await db.update(organization).set({ name: body.name }).where(eq(organization.id, who.householdId))

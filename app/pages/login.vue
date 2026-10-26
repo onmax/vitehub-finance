@@ -8,13 +8,14 @@ const route = useRoute()
 const { $auth } = useNuxtApp()
 const session = useAuthSession()
 const emailWorks = useRuntimeConfig().public.email
+const demo = useDemo()
 const step = computed(() => (route.query.step === "2fa" ? "2fa" : "sign-in"))
 const redirect = computed(() => safeRedirect(route.query.redirect))
 
 const state = reactive({ email: "", password: "", code: "", trust: true })
 const backup = ref(false)
 const reveal = ref(false)
-const pending = ref<"password" | "passkey" | "magic" | "code" | null>(null)
+const pending = ref<"demo" | "password" | "passkey" | "magic" | "code" | null>(null)
 const error = ref("")
 const magicSent = ref(false)
 const lastUsed = ref<string | null>(null)
@@ -31,6 +32,21 @@ onMounted(async () => {
 async function finish() {
   await session.refresh()
   await navigateTo(redirect.value)
+}
+
+/** The demo's way in: the server seeds the household if needed and signs in as Lucía. */
+async function exploreDemo() {
+  pending.value = "demo"
+  error.value = ""
+  try {
+    await $fetch("/api/demo/session", { method: "POST", body: { as: "lucia" } })
+    await session.refresh()
+    await navigateTo("/")
+  } catch (cause) {
+    error.value = errorText(cause, "Couldn’t open the demo. Try again.")
+  } finally {
+    pending.value = null
+  }
 }
 
 async function signIn() {
@@ -150,6 +166,22 @@ watch(step, () => {
       <h1 class="text-lg font-semibold text-highlighted">Sign in to ViteHub Finance</h1>
       <p class="mt-1 text-sm text-muted">Your household’s money, in one place.</p>
 
+      <template v-if="demo">
+        <UButton
+          class="mt-6"
+          block
+          size="lg"
+          icon="i-lucide-arrow-right"
+          trailing
+          label="Explore the demo"
+          :loading="pending === 'demo'"
+          :disabled="pending !== null && pending !== 'demo'"
+          @click="exploreDemo"
+        />
+        <p class="mt-2 text-center text-xs text-muted">A fictional household in Madrid. Its data resets every night.</p>
+        <USeparator label="or sign in" class="mt-5" :ui="{ label: 'text-xs text-muted' }" />
+      </template>
+
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="signIn">
         <UFormField label="Email" name="email" :hint="lastUsed === 'email' ? 'Last used' : undefined">
           <UInput
@@ -159,7 +191,7 @@ watch(step, () => {
             placeholder="you@example.com"
             class="w-full"
             required
-            autofocus
+            :autofocus="!demo"
           />
         </UFormField>
         <UFormField label="Password" name="password">
@@ -222,8 +254,9 @@ watch(step, () => {
       <p v-if="error" class="mt-4 text-sm text-error" role="alert">{{ error }}</p>
     </template>
   </div>
-  <p v-if="step !== '2fa'" class="mt-6 text-center text-sm text-muted">
+  <p v-if="step !== '2fa' && !demo" class="mt-6 text-center text-sm text-muted">
     New here?
     <ULink :to="{ path: '/signup', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">Create an account</ULink>
   </p>
+  <LegalLinks :class="demo && step !== '2fa' ? 'mt-6' : 'mt-4'" />
 </template>

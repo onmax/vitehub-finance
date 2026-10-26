@@ -11,6 +11,8 @@ const reveal = ref(false)
 const pending = ref(false)
 const error = ref("")
 const refused = ref(false)
+// The demo never creates accounts (the server refuses too); visitors enter its household from /login.
+const demo = useDemo()
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
@@ -50,6 +52,16 @@ async function submit() {
   <div class="rounded-xl border border-default bg-default p-6 shadow-xs">
     <h1 class="text-lg font-semibold text-highlighted">Create your account</h1>
     <p class="mt-1 text-sm text-muted">You get a household of your own. Invite your partner once you’re in.</p>
+    <UAlert
+      v-if="demo"
+      class="mt-4"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-lock"
+      title="Sign-up is off in the demo"
+      description="Explore the demo household from the sign-in page instead."
+      :actions="[{ label: 'Go to sign in', to: '/login', color: 'neutral', variant: 'outline' }]"
+    />
 
     <UForm :state="state" :validate="validate" class="mt-6 flex flex-col gap-4" @submit="submit">
       <UFormField label="Name" name="name">
@@ -91,11 +103,12 @@ async function submit() {
         description="Only allowed emails can sign up here. If someone invited you, open the link in their invitation and sign up with that email."
       />
       <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
-      <UButton type="submit" block label="Create account" :loading="pending" />
+      <UButton type="submit" block label="Create account" :loading="pending" :disabled="demo" />
     </UForm>
   </div>
   <p class="mt-6 text-center text-sm text-muted">
     Already have an account?
     <ULink :to="{ path: '/login', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">Sign in</ULink>
   </p>
+  <LegalLinks class="mt-4" />
 </template>

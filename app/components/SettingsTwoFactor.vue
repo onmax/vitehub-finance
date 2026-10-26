@@ -15,6 +15,8 @@ const totpURI = ref("")
 const backupCodes = ref<string[]>([])
 const pending = ref(false)
 const error = ref("")
+// A second factor on a demo person would lock every other visitor out; the server refuses it there too.
+const demo = useDemo()
 
 const secret = computed(() => {
   if (!totpURI.value || !URL.canParse(totpURI.value)) return ""
@@ -24,6 +26,7 @@ const secret = computed(() => {
 const groupedSecret = computed(() => secret.value.replace(/(.{4})/g, "$1 ").trim())
 
 function start(next: typeof mode.value) {
+  if (demo) return
   mode.value = next
   step.value = "password"
   password.value = ""
@@ -106,13 +109,15 @@ const title = computed(() =>
       <p class="text-sm text-muted">
         {{ enabled ? "Signing in with a password needs a code too. Passkeys don’t." : "Use 1Password, Google Authenticator, or any app that shows six-digit codes." }}
       </p>
-      <div class="flex shrink-0 gap-2">
-        <template v-if="enabled">
-          <UButton color="neutral" variant="outline" label="New backup codes" @click="start('regenerate')" />
-          <UButton color="neutral" variant="outline" label="Turn off" @click="start('disable')" />
-        </template>
-        <UButton v-else label="Turn on" @click="start('enable')" />
-      </div>
+      <DemoLock v-slot="{ locked }">
+        <div class="flex shrink-0 gap-2">
+          <template v-if="enabled">
+            <UButton color="neutral" variant="outline" label="New backup codes" :disabled="locked" @click="start('regenerate')" />
+            <UButton color="neutral" variant="outline" label="Turn off" :disabled="locked" @click="start('disable')" />
+          </template>
+          <UButton v-else label="Turn on" :disabled="locked" @click="start('enable')" />
+        </div>
+      </DemoLock>
     </div>
   </SettingsSection>
 

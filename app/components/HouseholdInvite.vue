@@ -36,11 +36,14 @@ watch(
   (value) => value && (formOpen.value = true),
 )
 const sending = ref(false)
+// Nobody joins the demo household (the server refuses invitations there).
+const demo = useDemo()
 const error = ref("")
 const lastLink = ref<string | null>(null)
 const linkFor = (invitation: Invitation) => `${origin}/invite/${invitation.id}?email=${encodeURIComponent(invitation.email)}`
 
 async function invite() {
+  if (demo) return
   error.value = ""
   lastLink.value = null
   const address = email.value.trim().toLowerCase()
@@ -93,9 +96,18 @@ async function copyLink(invitation: Invitation | string, id: string) {
   >
     <form class="flex flex-col gap-2 sm:flex-row sm:items-start" novalidate @submit.prevent="invite">
       <UFormField label="Email" name="email" class="flex-1" :error="error || undefined" :ui="{ label: 'sr-only' }">
-        <UInput v-model="email" type="email" autocomplete="off" placeholder="partner@example.com" class="w-full" :autofocus="formOpen" />
+        <UInput v-model="email" type="email" autocomplete="off" placeholder="partner@example.com" class="w-full" :autofocus="formOpen && !demo" :disabled="demo" />
       </UFormField>
-      <UButton type="submit" icon="i-lucide-user-plus" :label="me?.email ? 'Send invitation' : 'Create invite link'" :loading="sending" class="justify-center" />
+      <DemoLock v-slot="{ locked }">
+        <UButton
+          type="submit"
+          icon="i-lucide-user-plus"
+          :label="me?.email ? 'Send invitation' : 'Create invite link'"
+          :loading="sending"
+          :disabled="locked"
+          class="justify-center"
+        />
+      </DemoLock>
     </form>
 
     <div v-if="lastLink" class="mt-4 rounded-lg border border-default bg-muted p-3">
