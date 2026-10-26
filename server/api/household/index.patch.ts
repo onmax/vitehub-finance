@@ -12,9 +12,13 @@ const Body = v.object({
   name: v.optional(Name),
   currency: v.optional(Currency),
   shareNewAccounts: v.optional(v.boolean()),
+  aiCategorize: v.optional(v.boolean()),
 })
 
-/** The owner renames the household, changes the currency totals are shown in, or the default for new accounts. */
+/**
+ * The owner renames the household, changes the currency totals are shown in, the default for new accounts, or turns AI
+ * categories off.
+ */
 export default defineHandler(async (event): Promise<MeResponse["household"]> => {
   refuseInDemo()
   const who = await requireOwner(event)
@@ -23,6 +27,7 @@ export default defineHandler(async (event): Promise<MeResponse["household"]> => 
   const settings = {
     ...(body.currency ? { currency: body.currency } : {}),
     ...(body.shareNewAccounts !== undefined ? { shareNewAccounts: body.shareNewAccounts } : {}),
+    ...(body.aiCategorize !== undefined ? { aiCategorize: body.aiCategorize } : {}),
   }
   if (Object.keys(settings).length)
     await db
@@ -30,7 +35,12 @@ export default defineHandler(async (event): Promise<MeResponse["household"]> => 
       .values({ householdId: who.householdId, ...settings })
       .onConflictDoUpdate({ target: householdSettings.householdId, set: settings })
   const [row] = await db
-    .select({ name: organization.name, currency: householdSettings.currency, shareNewAccounts: householdSettings.shareNewAccounts })
+    .select({
+      name: organization.name,
+      currency: householdSettings.currency,
+      shareNewAccounts: householdSettings.shareNewAccounts,
+      aiCategorize: householdSettings.aiCategorize,
+    })
     .from(organization)
     .leftJoin(householdSettings, eq(householdSettings.householdId, organization.id))
     .where(eq(organization.id, who.householdId))
@@ -40,5 +50,6 @@ export default defineHandler(async (event): Promise<MeResponse["household"]> => 
     name: row?.name ?? "Household",
     currency: row?.currency ?? "EUR",
     shareNewAccounts: row?.shareNewAccounts ?? true,
+    aiCategorize: row?.aiCategorize ?? true,
   }
 })

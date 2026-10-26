@@ -30,11 +30,28 @@ export interface Person {
 
 export interface MeResponse {
   user: { id: string; name: string; email: string; image: string | null }
-  household: { id: string; name: string; currency: string; shareNewAccounts: boolean }
+  household: {
+    id: string
+    name: string
+    currency: string
+    shareNewAccounts: boolean
+    /** AI categories for what the rules miss, when the server has them (`ai`). */
+    aiCategorize: boolean
+  }
   role: "owner" | "member"
   members: Person[]
   /** True when the build can send email (magic links, invitations, reminders). */
   email: boolean
+  /** True when the server has a TypeSafe key for AI categories (never in the demo). */
+  ai: boolean
+}
+
+/** `POST /api/transactions/categorize`: one round of AI categories over the caller's uncategorized transactions. */
+export interface AiCategorizeResult {
+  asked: number
+  categorized: number
+  /** Uncategorized transactions AI hasn't looked at yet. */
+  remaining: number
 }
 
 export interface AccountSummary {
@@ -96,6 +113,8 @@ export interface Transaction {
   description: string
   counterparty: string | null
   categoryId: string | null
+  /** `ai`: suggested by AI, not yet confirmed by anyone; the UI marks it. */
+  categorySource: "rule" | "ai" | "manual" | null
   note: string | null
   status: "booked" | "pending"
   excluded: boolean
@@ -269,6 +288,8 @@ export interface ProviderInfo {
 export interface LegalInfo {
   /** `FINANCE_CONTACT_EMAIL`, or null when the instance has none. */
   contactEmail: string | null
+  /** Whether this instance sends transactions to TypeSafe for AI categories (`TYPESAFE_API_KEY`). */
+  ai: boolean
 }
 
 /** An MCP client someone allowed through OAuth (GET /api/agents). */

@@ -33,6 +33,7 @@
     "better-auth": "1.7.10",
     "d3-sankey": "^0.12.3",
     "drizzle-orm": "0.45.3",
+    "evlog": "2.33.1",
     "h3": "2.0.1",
     "h3-mcp": "0.2.0",
     "nitro-mcp-toolkit": "0.4.0",

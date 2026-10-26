@@ -1,9 +1,11 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
+import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { categorize, dedupeKeys, isDate, type Rule } from "../providers/dedupe"
 import { providerFor } from "../providers/index"
 import { ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
+import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
 import { valueCoinTransactions, valueHoldings } from "./prices"
@@ -18,8 +20,8 @@ type AccountRow = typeof financialAccount.$inferSelect
 const DAY = 24 * 60 * 60 * 1000
 const dayString = (time: number) => new Date(time).toISOString().slice(0, 10)
 
-// D1 binds at most 100 parameters per statement: a transaction row binds up to 15 (defaults included), a holding 7.
-const TRANSACTION_CHUNK = 6
+// D1 binds at most 100 parameters per statement: a transaction row binds up to 20 (one per column), a holding 7.
+const TRANSACTION_CHUNK = 4
 const HOLDING_CHUNK = 12
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
@@ -44,20 +46,25 @@ export async function insertTransactions(
   const unique = [...new Map(keyed.map((row) => [row.dedupeKey, row] as const)).values()]
   let added = 0
   for (let index = 0; index < unique.length; index += TRANSACTION_CHUNK) {
-    const values = unique.slice(index, index + TRANSACTION_CHUNK).map((row) => ({
-      id: crypto.randomUUID(),
-      householdId: account.householdId,
-      accountId: account.id,
-      // Undefined, not null: drizzle writes a literal NULL instead of binding a parameter.
-      externalId: row.externalId || undefined,
-      dedupeKey: row.dedupeKey,
-      date: row.date,
-      amountMinor: row.amountMinor,
-      currency: row.currency,
-      description: row.description.slice(0, 500),
-      counterparty: row.counterparty || undefined,
-      categoryId: categorize(rules, row) ?? (row.transfer ? transferCategoryId : undefined),
-    }))
+    const values = unique.slice(index, index + TRANSACTION_CHUNK).map((row) => {
+      const ruled = categorize(rules, row)
+      const categoryId = ruled ?? (row.transfer ? transferCategoryId : undefined)
+      return {
+        id: crypto.randomUUID(),
+        householdId: account.householdId,
+        accountId: account.id,
+        // Undefined, not null: drizzle writes a literal NULL instead of binding a parameter.
+        externalId: row.externalId || undefined,
+        dedupeKey: row.dedupeKey,
+        date: row.date,
+        amountMinor: row.amountMinor,
+        currency: row.currency,
+        description: row.description.slice(0, 500),
+        counterparty: row.counterparty || undefined,
+        categoryId: categoryId ?? undefined,
+        categorySource: categoryId ? ("rule" as const) : undefined,
+      }
+    })
     const inserted = await db
       .insert(transaction)
       .values(values)
@@ -157,11 +164,30 @@ const retryable = (error: unknown) => !(error instanceof ProviderError) || error
  * Runs one connection: fetch from the provider, write accounts, holdings, balances, and new transactions, then record
  * the run. Failures land in `sync_run` and the connection's `lastError`; only transient ones (a bank or network down)
  * are rethrown, so a Queue retries them while an expired consent waits for its owner.
+ *
+ * Each run is one wide event (`action: "sync"`), whether a request, the Queue, or the daily Schedule started it: the
+ * connection, provider, trigger, accounts, rows added, duration, and the failure's code and reason.
  */
 export async function syncConnection(connectionId: string, trigger: SyncTrigger) {
+  const log = createLogger({ action: "sync", sync: { connectionId, trigger } })
+  try {
+    return await runSync(connectionId, trigger, log)
+  } catch (error) {
+    log.set({ sync: { retry: true } })
+    throw error
+  } finally {
+    log.emit()
+  }
+}
+
+async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestLogger) {
   const [row] = await db.select().from(connection).where(eq(connection.id, connectionId)).limit(1)
   // Deleted meanwhile, still waiting for its bank, or removed: nothing to do.
-  if (!row || row.provider === "manual" || row.status === "pending" || row.status === "revoked") return { added: 0, error: null }
+  if (!row || row.provider === "manual" || row.status === "pending" || row.status === "revoked") {
+    log.set({ sync: { skipped: row ? row.status : "missing" } })
+    return { added: 0, error: null }
+  }
+  log.set({ householdId: row.householdId, sync: { provider: row.provider, initial: trigger === "link" || !row.lastSyncedAt } })
 
   const runId = crypto.randomUUID()
   await db.insert(syncRun).values({ id: runId, connectionId, trigger, status: "running" })
@@ -175,6 +201,7 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
     const since = initial ? dayString(started - 365 * DAY) : dayString(row.lastSyncedAt!.getTime() - 10 * DAY)
     const provider = providerFor(row.provider, { enableBanking: bankConfig() })
     const result = await provider(credentials, { since, initial })
+    log.set({ sync: { runId, since, fetchMs: Date.now() - started, accounts: result.accounts.length } })
 
     const [settings] = await db.select().from(householdSettings).where(eq(householdSettings.householdId, row.householdId)).limit(1)
     const existingRows = await db.select().from(financialAccount).where(eq(financialAccount.connectionId, row.id))
@@ -203,22 +230,25 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
         touched.push(outcome.accountId)
         if (!outcome.hasHoldings) backfill.push(outcome.accountId)
       } catch (error) {
-        console.error(`[finance] Sync of ${row.id} failed for account ${remote.externalId}`, error)
         failures.push(`${remote.name}: ${errorMessage(error)}`)
       }
     }
+    log.set({ sync: { added, touched: touched.length, failedAccounts: failures.length } })
     if (!touched.length && failures.length) throw new Error(failures.join("; "))
 
     // Transfers first: a move between two accounts often arrives with the second account's sync.
-    if (touched.length) await detectTransfers(row.householdId).catch((error) => console.error("[finance] Transfer detection failed", error))
+    const step = (name: string, run: () => Promise<unknown>) =>
+      run().catch((error) => log.warn(`${name} failed`, { sync: { failedStep: name, stepError: errorMessage(error) } }))
+    if (touched.length) await step("Transfer detection", () => detectTransfers(row.householdId))
+    // AI after rules and transfers, for what they left uncategorized; recurring detection then sees its categories.
     if (touched.length)
-      await detectRecurring(row.householdId, touched).catch((error) => console.error("[finance] Recurring detection failed", error))
+      await step("AI categories", () => categorizeWithAi(row.householdId, inArray(financialAccount.id, touched), { limit: SYNC_LIMIT, log }))
+    if (touched.length) await step("Recurring detection", () => detectRecurring(row.householdId, touched))
     // The first sync brings a year of history: give its accounts a balance chart from it.
-    if (initial)
-      for (const accountId of backfill)
-        await backfillSnapshots(accountId).catch((error) => console.error("[finance] Snapshot backfill failed", error))
+    if (initial) for (const accountId of backfill) await step("Snapshot backfill", () => backfillSnapshots(accountId))
 
     const partial = failures.length ? `${failures.length} of ${result.accounts.length} accounts failed: ${failures.join("; ")}` : null
+    if (partial) log.warn("Some accounts failed", { sync: { partial: partial.slice(0, 500) } })
     await db
       .update(connection)
       .set({
@@ -233,11 +263,16 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
       .update(syncRun)
       .set({ status: "succeeded", added, error: partial, finishedAt: new Date() })
       .where(eq(syncRun.id, runId))
+    log.set({ sync: { status: "succeeded" } })
     return { added, error: partial }
   } catch (error) {
     const message = errorMessage(error).slice(0, 500)
     const expired = error instanceof ProviderError && error.code === "expired"
-    if (!(error instanceof ProviderError)) console.error(`[finance] Sync of ${row.id} failed`, error)
+    const code = error instanceof ProviderError ? error.code : "internal"
+    // A provider's answer (an expired consent, a revoked key, a bank that's down) is a warning: the run records it for
+    // the owner. Anything else is a bug to look at.
+    if (error instanceof ProviderError) log.warn(message, { sync: { status: "failed", code } })
+    else log.error(error instanceof Error ? error : new Error(message), { sync: { status: "failed", code } })
     await db.update(syncRun).set({ status: "failed", error: message, finishedAt: new Date() }).where(eq(syncRun.id, runId))
     await db
       .update(connection)

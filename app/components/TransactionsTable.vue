@@ -90,19 +90,24 @@ function onKeydown(event: KeyboardEvent) {
         </div>
       </template>
       <template #category-cell="{ row }">
-        <CategorySelect
-          v-if="row.original.canEdit"
-          :model-value="row.original.categoryId"
-          variant="ghost"
-          size="sm"
-          class="w-full"
-          :aria-label="`Category for ${title(row.original)}`"
-          @update:model-value="(value) => emit('category', row.original, value ?? null)"
-        />
-        <span v-else class="flex items-center gap-2 text-sm" title="This account is shared view-only">
-          <CategoryIcon :icon="find(row.original.categoryId)?.icon" :color="find(row.original.categoryId)?.color" size="sm" />
-          <span class="truncate">{{ find(row.original.categoryId)?.name ?? "Uncategorized" }}</span>
-        </span>
+        <div class="flex items-center gap-1">
+          <CategorySelect
+            v-if="row.original.canEdit"
+            :model-value="row.original.categoryId"
+            variant="ghost"
+            size="sm"
+            class="min-w-0 flex-1"
+            :aria-label="`Category for ${title(row.original)}`"
+            @update:model-value="(value) => emit('category', row.original, value ?? null)"
+          />
+          <span v-else class="flex min-w-0 flex-1 items-center gap-2 text-sm" title="This account is shared view-only">
+            <CategoryIcon :icon="find(row.original.categoryId)?.icon" :color="find(row.original.categoryId)?.color" size="sm" />
+            <span class="truncate">{{ find(row.original.categoryId)?.name ?? "Uncategorized" }}</span>
+          </span>
+          <UTooltip v-if="row.original.categorySource === 'ai'" text="Suggested by AI. Change it if it’s wrong.">
+            <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0 text-dimmed" aria-label="Suggested by AI" />
+          </UTooltip>
+        </div>
       </template>
       <template #account-cell="{ row }">
         <span class="flex min-w-0 items-center gap-2">
@@ -142,7 +147,11 @@ function onKeydown(event: KeyboardEvent) {
                 </span>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted">
                   <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
-                  <span v-else class="truncate">{{ find(row.categoryId)?.name ?? "Uncategorized" }} · {{ row.accountName }}</span>
+                  <span v-else class="truncate">
+                    {{ find(row.categoryId)?.name ?? "Uncategorized" }}
+                    <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" aria-label="suggested by AI" />
+                    · {{ row.accountName }}
+                  </span>
                   <span v-if="row.status === 'pending'" class="shrink-0">· Pending</span>
                 </span>
               </span>

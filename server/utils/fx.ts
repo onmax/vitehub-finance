@@ -1,3 +1,4 @@
+import { log } from "evlog"
 import { kv } from "vite-hub/kv"
 import { USER_AGENT } from "../providers/types"
 
@@ -29,7 +30,7 @@ export async function rates(base: string): Promise<Record<string, number>> {
   } catch (error) {
     // A stale rate beats no total; with nothing cached, other currencies count at 1:1 until the API answers.
     if (cached) return cached.rates
-    console.warn("[finance] Exchange rates unavailable", error)
+    log.warn({ action: "fx-rates", base, error: String(error) })
     return { [base]: 1 }
   }
 }

@@ -85,6 +85,7 @@ function toTransaction(row: Joined, who: Pick<Member, "userId" | "via">, transfe
     description: t.description,
     counterparty: t.counterparty,
     categoryId: t.categoryId,
+    categorySource: t.categorySource,
     note: t.note,
     status: t.status,
     excluded: t.excluded,
@@ -217,7 +218,8 @@ export async function updateTransaction(who: Member, id: string, change: Transac
     if (!found) throw new HTTPError({ status: 400, statusText: "No such category." })
   }
   const set: Partial<typeof transaction.$inferInsert> = {}
-  if (change.categoryId !== undefined) Object.assign(set, { categoryId: change.categoryId, categoryLocked: true })
+  if (change.categoryId !== undefined)
+    Object.assign(set, { categoryId: change.categoryId, categoryLocked: true, categorySource: change.categoryId ? "manual" : null })
   if (change.note !== undefined) set.note = change.note?.trim() || null
   if (change.excluded !== undefined) set.excluded = change.excluded
   if (change.hidden !== undefined) set.hidden = change.hidden

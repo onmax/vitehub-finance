@@ -1,3 +1,4 @@
+import { useLogger } from "evlog/nitro/v3"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
@@ -10,6 +11,7 @@ import { EXCHANGE_PROVIDERS } from "../../providers/index"
 import {
   assertNotLinked,
   connectionSummary,
+  errorMessage,
   providerHttpError,
   readValid,
   rememberOrigin,
@@ -33,6 +35,9 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   refuseInDemo()
   const who = await requireMember(event)
   const body = await readValid(event, Body)
+  // The exchange only: the key and secret never reach a log.
+  const log = useLogger(event)
+  log.set({ action: "connect-exchange", connect: { provider: body.provider } })
   const credentials = { key: body.key, secret: body.secret }
   // A label to recognize the key by, never enough to use it.
   const externalId = `${body.key.slice(0, 8)}…`
@@ -52,8 +57,9 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
     credentials: await seal(credentials),
     externalId,
   })
+  log.set({ connect: { connectionId: id } })
   await rememberOrigin(event)
   // The sync records its own failures; the connection exists either way.
-  await dispatchSync(id, "link").catch((error) => console.error("[finance] First exchange sync failed", error))
+  await dispatchSync(id, "link").catch((error) => log.warn("First exchange sync failed", { connect: { syncError: errorMessage(error) } }))
   return connectionSummary(who, id)
 })

@@ -16,6 +16,8 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers o
 - **Transfers** between your own accounts (a top-up from another bank, a currency exchange, a broker deposit) are
   found and left out of spending and income.
 - **CSV import** for everything else (other brokers, old statements), with column mapping and a preview.
+- **Categories** from rules (a starter set, plus one for each "apply to similar"), and optionally from AI for what the
+  rules miss: TypeSafe's Jev model, with `TYPESAFE_API_KEY`. See [AI categories](#ai-categories).
 - **Households**: invite a partner. Each account is private to its owner or shared with the household; a private
   account never shows up for anyone else, in any list, total, chart, or MCP tool.
 - **Recurring payments** detected from transactions, with ways to save: price increases, subscriptions two members both
@@ -62,7 +64,9 @@ npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json
 npx wrangler deploy --config .output/server/wrangler.json
 ```
 
-The Worker gets D1, KV, a daily Cron Trigger, and a Queue that syncs one connection per message.
+The Worker gets D1, KV, a daily Cron Trigger, a Queue that syncs one connection per message, a rate limit for browser
+error reports, and Workers Logs. Every request, sync, and browser error is one structured log event; AGENTS.md ("Logs and
+errors") says how to read them.
 
 ### Any Node host (VPS, Docker, a home server)
 
@@ -73,7 +77,20 @@ docker run -p 3000:3000 -v finance-data:/app/.data \
 ```
 
 Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server/index.mjs` with
-`server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process.
+`server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process. Logs are
+JSON lines on stdout.
+
+## AI categories
+
+Rules categorize what they recognize ("mercadona" is Groceries). For the rest ("Five Guys Jv Ltd", "Hetzner Online
+Gmbh"), set `TYPESAFE_API_KEY` (a key from [typesafe.ai](https://typesafe.ai)) and ViteHub Finance asks TypeSafe's Jev
+model, after the rules and transfer detection, on every sync and CSV import. `/settings/categories` has a button for
+what's already there. It uses a category only when Jev is sure (confidence 0.7 or more), marks it with a sparkle, and
+never asks about the same transaction twice. About $0.02 per 1,000 transactions.
+
+Jev sees each transaction's description, payee, direction, rounded amount, currency, and account type, with household
+members' names, IBANs, and long numbers masked, plus the category names and rule keywords. Never dates, balances, ids,
+or who you are. The household's owner can turn it off in Settings; the demo never uses it.
 
 ## Keep it private
 

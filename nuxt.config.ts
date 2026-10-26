@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url"
+import evlog from "evlog/nitro/v3"
 import type { NuxtConfig } from "nuxt/schema"
 import { env } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
@@ -13,6 +14,25 @@ const email = target.email
 const demo = target.demo
 const queue = host === "cloudflare" && !demo
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url))
+const worker = process.env.CLOUDFLARE_WORKER_NAME || "vitehub-finance"
+
+/**
+ * One structured "wide event" per request (evlog): who called, what they did, how long it took, and why it failed.
+ * Syncs, the daily Schedule, and browser errors (/api/_evlog/ingest) are events of their own. Workers Logs indexes
+ * objects passed to the console field by field, so Cloudflare gets objects; Node gets JSON lines on stdout. See
+ * "Logs and errors" in AGENTS.md.
+ */
+const EVLOG = {
+  env: { service: worker },
+  stringify: host !== "cloudflare",
+  exclude: ["/_nuxt/**", "/_fonts/**", "/favicon.svg", "/__nuxt_error", "/api/_nuxt_icon/**"],
+  redact: {
+    // Built-in masks (emails, IBANs, card numbers, bearer tokens, JWTs, and keys ending in password, secret, or token)
+    // plus ViteHub Finance's own: submitted exchange keys, sealed credentials, PEM keys, fin_ API keys.
+    paths: ["**.key", "**.secret", "**.privateKey", "**.credentials", "**.apiKey"],
+    patterns: [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, /\bfin_[A-Za-z0-9_-]{8,}/g],
+  },
+}
 
 /**
  * ViteHub per host. Cloudflare gets a Queue (one sync per message, retried on failure), except demo builds; Node syncs
@@ -28,6 +48,8 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
       databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID || "00000000-0000-4000-8000-000000000000",
     },
     kv: true,
+    // Caps client error reports (server/handlers/client-errors.ts) with a Workers Rate Limiting binding.
+    rateLimit: true,
     schedule: true,
     ...(queue ? { queue: { provider: "cloudflare" as const } } : {}),
   },
@@ -39,6 +61,8 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
       },
     },
     kv: { driver: "fs-lite", base: ".data/kv" },
+    // Counted in memory, per server process.
+    rateLimit: true,
     schedule: { runtime: { driver: "process" } },
   },
 }
@@ -82,10 +106,14 @@ export default defineNuxtConfig({
   },
 
   // OAuth discovery for MCP clients (server/handlers/oauth-metadata.ts), bare and path-suffixed (`.../mcp`).
-  serverHandlers: ["oauth-protected-resource", "oauth-authorization-server", "openid-configuration"].flatMap((name) => [
-    { route: `/.well-known/${name}`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
-    { route: `/.well-known/${name}/**`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
-  ]),
+  serverHandlers: [
+    ...["oauth-protected-resource", "oauth-authorization-server", "openid-configuration"].flatMap((name) => [
+      { route: `/.well-known/${name}`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
+      { route: `/.well-known/${name}/**`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
+    ]),
+    // Browser errors, sent by evlog's client transport (app/plugins/errors.client.ts) to its default endpoint.
+    { route: "/api/_evlog/ingest", method: "POST" as const, handler: here("./server/handlers/client-errors.ts"), lazy: true },
+  ],
 
   app: {
     head: {
@@ -151,6 +179,7 @@ export default defineNuxtConfig({
           "plus",
           "rotate-ccw",
           "search",
+          "sparkles",
           "square",
           "sun",
           "triangle-alert",
@@ -202,12 +231,18 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    // Local SQLite applies the migration journal before the server answers its first request.
-    plugins: host === "node" ? [here("./server/database-migrate.ts")] : [],
+    plugins: [
+      here("./server/observability.ts"),
+      // Local SQLite applies the migration journal before the server answers its first request.
+      ...(host === "node" ? [here("./server/database-migrate.ts")] : []),
+    ],
+    modules: [evlog(EVLOG)],
     cloudflare: {
       wrangler: {
-        name: process.env.CLOUDFLARE_WORKER_NAME || "vitehub-finance",
-        observability: { enabled: true, logs: { enabled: true, invocation_logs: true } },
+        name: worker,
+        // Workers Logs keeps every console line (evlog's events) and every invocation (requests, the Schedule, Queue
+        // batches) for querying in the dashboard or `wrangler tail`.
+        observability: { enabled: true, head_sampling_rate: 1, logs: { enabled: true, invocation_logs: true } },
         placement: { mode: "smart" },
         // The sync Queue (server/queues/sync.ts). ViteHub's Nuxt module generates its runtime, but its wrangler entries
         // don't reach .output/server/wrangler.json, so they're written here with ViteHub's names: the binding is QUEUE_
@@ -272,6 +307,10 @@ export default defineNuxtConfig({
         // Optional. A CoinGecko demo key raises the price API's rate limit.
         coingecko: {
           apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
+        },
+        // Optional. A TypeSafe key (typesafe.ai) lets Jev categorize what the rules didn't (server/utils/ai-categorize.ts).
+        typesafe: {
+          apiKey: env({ secret: true, source: env.source("TYPESAFE_API_KEY"), default: "" }),
         },
       },
     },

@@ -58,12 +58,14 @@ export function refreshStems(...stems: string[]) {
   return refreshNuxtData(keys)
 }
 
-/** Toasts an action's failure, worded by the server when it can. */
+/** Toasts an action's failure, worded by the server when it can, and reports it to the server's logs. */
 export function useNotify() {
   const toast = useToast()
   return {
-    error: (error: unknown, title = "That didn't work") =>
-      toast.add({ title, description: errorText(error), color: "error", icon: "i-lucide-circle-alert" }),
+    error: (error: unknown, title = "That didn't work") => {
+      reportClientError("toast", error, { title })
+      return toast.add({ title, description: errorText(error), color: "error", icon: "i-lucide-circle-alert" })
+    },
     success: (title: string, description?: string) => toast.add({ title, description, icon: "i-lucide-circle-check" }),
   }
 }

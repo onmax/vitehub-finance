@@ -1,3 +1,4 @@
+import { useLogger } from "evlog/nitro/v3"
 import { createMcpHandler, createMcpOAuth, type McpHandler, type McpOAuth } from "nitro-mcp-toolkit"
 import { identify } from "../utils/identity"
 import { MCP_INSTRUCTIONS, MCP_SERVER_INFO } from "./info"
@@ -27,7 +28,12 @@ export function mcpFor(origin: string) {
     resource: `${origin}/mcp`,
     authorizationServers: [`${origin}/api/auth`],
     scopesSupported: ["openid", "profile", "email", "offline_access"],
-    verify: async (_token, event) => Boolean(await identify(event)),
+    verify: async (_token, event) => {
+      // Modern clients name the JSON-RPC method in a header, which tells /mcp requests apart in the logs.
+      const method = event.req.headers.get("mcp-method")
+      if (method) useLogger(event).set({ mcp: { method, name: event.req.headers.get("mcp-name") ?? undefined } })
+      return Boolean(await identify(event))
+    },
   })
   const mcp = createMcpHandler({
     ...MCP_SERVER_INFO,
@@ -39,6 +45,22 @@ export function mcpFor(origin: string) {
     origin: false,
     auth: oauth.auth,
     tools: [getOverview, listAccounts, searchTransactions, spendingByCategory, getForecast, listRecurring, categorizeTransaction],
+    // Every tool call lands on the request's wide event: which tool, how long, and the reason it failed. Never its
+    // arguments or result, which hold the household's transactions.
+    onToolCall: ({ name, result, durationMs, event }) => {
+      const log = useLogger(event)
+      const failed = "isError" in result && Boolean(result.isError)
+      log.set({ mcp: { tool: name, durationMs: Math.round(durationMs), isError: failed } })
+      if (failed)
+        log.warn(`MCP tool ${name} failed`, {
+          mcp: {
+            error: result.content
+              ?.map((block) => ("text" in block ? block.text : ""))
+              .join(" ")
+              .slice(0, 500),
+          },
+        })
+    },
   })
   server = { mcp, oauth }
   // The origin comes from the request's Host, which a Node host passes through as sent: keep only the latest few.

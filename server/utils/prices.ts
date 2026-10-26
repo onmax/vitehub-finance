@@ -1,3 +1,4 @@
+import { log } from "evlog"
 import { kv } from "vite-hub/kv"
 import { useServerEnv } from "#vitehub/env/server"
 import { currencyDigits } from "#shared/money"
@@ -47,7 +48,7 @@ async function coingecko(symbols: string[], currency: string): Promise<Record<st
         result[symbol] = typeof price === "number" && Number.isFinite(price) ? price : null
       }
     } catch (error) {
-      console.warn("[finance] Crypto prices unavailable", error)
+      log.warn({ action: "crypto-prices", provider: "coingecko", error: String(error) })
       return null
     }
   }

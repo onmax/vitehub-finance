@@ -28,6 +28,8 @@ export const householdSettings = sqliteTable("household_settings", {
   currency: text("currency").notNull().default("EUR"),
   // New accounts start shared with the household (true) or private to whoever connects them (false).
   shareNewAccounts: integer("share_new_accounts", { mode: "boolean" }).notNull().default(true),
+  // Uncategorized transactions get a category from AI (server/utils/ai-categorize.ts) when the server has a TypeSafe key.
+  aiCategorize: integer("ai_categorize", { mode: "boolean" }).notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
@@ -170,6 +172,10 @@ export const transaction = sqliteTable(
     categoryId: text("category_id").references(() => category.id, { onDelete: "set null" }),
     // Set when someone picks the category by hand, so rules never overwrite it.
     categoryLocked: integer("category_locked", { mode: "boolean" }).notNull().default(false),
+    // Where the category came from: a rule (or transfer detection), AI (shown as a suggestion), or a person.
+    categorySource: text("category_source", { enum: ["rule", "ai", "manual"] }),
+    // When AI last looked at it. It's asked once: an uncategorized row with this set was one it wasn't sure about.
+    aiCheckedAt: integer("ai_checked_at", { mode: "timestamp_ms" }),
     note: text("note"),
     status: text("status", { enum: ["booked", "pending"] })
       .notNull()
