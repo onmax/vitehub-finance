@@ -1,0 +1,13 @@
+{
+  "name": "@vitehub-finance/brokers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Brokerage statements with read-only tokens: positions and cash per currency, valued at the broker's own prices.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./fake": "./src/fake.ts"
+  }
+}

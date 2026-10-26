@@ -45,6 +45,9 @@ importers:
       '@vitehub-finance/banking':
         specifier: workspace:*
         version: link:packages/banking
+      '@vitehub-finance/brokers':
+        specifier: workspace:*
+        version: link:packages/brokers
       '@vitehub-finance/crypto':
         specifier: workspace:*
         version: link:packages/crypto
@@ -129,6 +132,8 @@ importers:
         version: 4.148.0(@cloudflare/workers-types@5.20260825.1)(@types/node@25.9.9)
 
   packages/banking: {}
+
+  packages/brokers: {}
 
   packages/crypto: {}
 
