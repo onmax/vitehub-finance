@@ -1,15 +1,14 @@
-import { and, eq, inArray, min } from "drizzle-orm"
+import { and, eq, gte, inArray, min } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import type { Forecast } from "#shared/api"
-import { financialAccount, transaction } from "../databases/config"
+import { category, financialAccount, transaction } from "../databases/config"
 import { visibleTransactions, type Scope } from "./access"
-import { baseCurrency, selectAccounts } from "./accounts"
-import { monthEnd, monthStart, todayIso } from "./dates"
-import { fullMonthsBefore, monthlyAverage, projectMonths } from "./forecast-core"
+import { balanceHistory, baseCurrency, selectAccounts } from "./accounts"
+import { addDays, todayIso } from "./dates"
+import { buildForecast, combineHistory, type CoreAccount } from "./forecast-core"
 import type { Member } from "./identity"
-import { seriesKey } from "./recurring-core"
+import { seriesKey, WINDOW_DAYS } from "./recurring-core"
 import { listRecurringRows } from "./recurring"
-import { flowRows } from "./transactions"
 
 /** The accounts money is spent from: what the forecast starts with and projects. */
 const LIQUID_KINDS = ["checking", "savings", "cash", "credit"] as const
@@ -20,52 +19,98 @@ const liquid = and(
 )!
 
 /**
- * Today's cash, then month by month: recurring payments when they fall due, plus the usual variable spending (the
- * average of the last 3 full months' outflows that don't belong to a recurring series). Transfers between accounts
- * and excluded rows don't count. Income and savings averages come from the same 3 months' actual money in and out.
+ * The caller's cash (checking, savings, cash, and credit accounts in net worth) projected day by day: the recurring
+ * series they see (not dismissed) when they fall due, plus the usual spending and moves from the last 3 full months,
+ * with a likely range around it (server/utils/forecast-core.ts). Everything reads through `visibleAccounts` and
+ * `visibleTransactions`: another member's private accounts and hidden transactions never shape it.
  */
 export async function forecast(who: Member, scope: Scope, months: number): Promise<Forecast> {
   const { currency, convert } = await baseCurrency(who)
   const today = todayIso()
-  const accounts = await selectAccounts(who, scope, liquid)
-  const accountIds = new Set(accounts.map((row) => row.account.id))
-  const startMinor = accounts.reduce((sum, row) => sum + convert(row.account.balanceMinor, row.account.currency), 0)
+  const rows = await selectAccounts(who, scope, liquid)
+  const accounts: CoreAccount[] = rows.map((row) => ({
+    id: row.account.id,
+    name: row.account.name,
+    ownerName: row.ownerName,
+    kind: row.account.kind as CoreAccount["kind"],
+    balanceMinor: convert(row.account.balanceMinor, row.account.currency),
+  }))
+  const accountIds = new Set(accounts.map((account) => account.id))
 
-  const recurringRows = (await listRecurringRows(who, scope, convert)).filter((row) => row.status !== "dismissed")
-  const series = recurringRows
-    .filter((row) => accountIds.has(row.accountId))
-    .map((row) => ({ amountMinor: convert(row.amountMinor, row.currency), cadence: row.cadence, nextDate: row.nextDate }))
-  const recurringKeys = new Set(recurringRows.map((row) => `${row.accountId}|${row.key}`))
+  const kinds = new Map(
+    (await db.select({ id: category.id, kind: category.kind }).from(category).where(eq(category.householdId, who.householdId))).map((row) => [
+      row.id,
+      row.kind,
+    ]),
+  )
+  const series = (await listRecurringRows(who, scope, convert))
+    .filter((row) => row.status !== "dismissed" && accountIds.has(row.accountId))
+    .map((row) => ({
+      id: row.id,
+      accountId: row.accountId,
+      accountName: row.accountName,
+      ownerName: row.ownerName,
+      name: row.name,
+      key: row.key,
+      kind: row.categoryId && kinds.get(row.categoryId) === "transfer" ? ("transfer" as const) : row.amountMinor >= 0 ? ("income" as const) : ("bill" as const),
+      amountMinor: convert(row.amountMinor, row.currency),
+      cadence: row.cadence,
+      nextDate: row.nextDate,
+      categoryId: row.categoryId,
+      status: row.status as "detected" | "confirmed",
+    }))
 
-  const window = fullMonthsBefore(today, 3)
-  const rows = await flowRows(who, { scope, from: monthStart(window[0]!), to: monthEnd(window.at(-1)!), accounts: liquid })
-  let variable = 0
-  let income = 0
-  let spent = 0
-  for (const row of rows) {
-    const amount = convert(row.amountMinor, row.currency)
-    if (amount > 0) income += amount
-    else {
-      spent -= amount
-      if (!recurringKeys.has(`${row.accountId}|${seriesKey(row)}`)) variable -= amount
-    }
-  }
+  const transactions = accountIds.size
+    ? await db
+        .select({
+          accountId: transaction.accountId,
+          date: transaction.date,
+          amountMinor: transaction.amountMinor,
+          currency: transaction.currency,
+          description: transaction.description,
+          counterparty: transaction.counterparty,
+          kind: category.kind,
+        })
+        .from(transaction)
+        .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+        .leftJoin(category, eq(category.id, transaction.categoryId))
+        .where(and(visibleTransactions(who, scope), liquid, eq(transaction.excluded, false), gte(transaction.date, addDays(today, -WINDOW_DAYS))))
+    : []
   const [oldest] = await db
     .select({ date: min(transaction.date) })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
     .where(and(visibleTransactions(who, scope), liquid))
-  const since = oldest?.date ?? null
-  const variableMonthlyMinor = monthlyAverage(variable, window, since)
-  const averageMonthlyIncomeMinor = monthlyAverage(income, window, since)
-  const averageMonthlyOutMinor = monthlyAverage(spent, window, since)
+
+  // The actual balance for about half as long as the forecast looks ahead, at least 45 days and at most 180.
+  const historyDays = Math.min(180, Math.max(45, Math.round((months * 30.4) / 2)))
+  const balances = await balanceHistory([...accountIds], addDays(today, -historyDays), addDays(today, -1))
+  const history = combineHistory(
+    rows.map((row) => ({
+      currentMinor: convert(row.account.balanceMinor, row.account.currency),
+      days: (balances.get(row.account.id) ?? []).map((day) => ({
+        date: day.date,
+        value: day.value === null ? null : convert(day.value, row.account.currency),
+      })),
+    })),
+  )
 
   return {
     currency,
-    startMinor,
-    months: projectMonths({ today, months, startMinor, series, variableMonthlyMinor }),
-    variableMonthlyMinor,
-    averageMonthlyIncomeMinor,
-    monthlySavingsMinor: averageMonthlyIncomeMinor - averageMonthlyOutMinor,
+    ...buildForecast({
+      today,
+      months,
+      accounts,
+      series,
+      rows: transactions.map((row) => ({
+        accountId: row.accountId,
+        date: row.date,
+        amountMinor: convert(row.amountMinor, row.currency),
+        transfer: row.kind === "transfer",
+        key: row.date <= today ? seriesKey(row) : null,
+      })),
+      since: oldest?.date ?? null,
+      history,
+    }),
   }
 }
