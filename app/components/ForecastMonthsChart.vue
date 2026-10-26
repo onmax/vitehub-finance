@@ -126,8 +126,8 @@ const summary = computed(
           :y="pad.top"
           :width="x.step()"
           :height="height - pad.top - pad.bottom"
-          rx="6"
-          :class="selected === bar.index ? 'fill-(--ui-bg-elevated)' : 'fill-transparent'"
+          rx="4"
+          :class="selected === bar.index ? 'fill-primary/8 dark:fill-primary/12' : 'fill-transparent'"
         />
         <rect v-for="part in bar.up" :key="part.key" :x="bar.x" :y="part.y" :width="x.bandwidth()" :height="part.height" :class="FLOW[part.key].fill" />
         <rect v-for="part in bar.down" :key="part.key" :x="bar.x" :y="part.y" :width="x.bandwidth()" :height="part.height" :class="FLOW[part.key].fill" />

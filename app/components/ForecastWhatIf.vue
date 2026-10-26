@@ -68,14 +68,11 @@ const answer = computed(() => {
 </script>
 
 <template>
-  <section aria-labelledby="whatif-title" class="flex flex-col gap-5 rounded-xl bg-muted p-4 sm:p-5">
-    <div class="flex items-center justify-between gap-2">
-      <div>
-        <h2 id="whatif-title" class="text-base font-semibold text-highlighted">What if</h2>
-        <p class="mt-0.5 text-sm text-muted">Try a change and the chart updates.</p>
-      </div>
-      <UButton v-if="active" label="Reset" icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" size="sm" @click="reset" />
-    </div>
+  <SectionCard title="What if" body-class="gap-5">
+    <template #action>
+      <UButton v-if="active" label="Reset" icon="i-lucide-rotate-ccw" color="neutral" variant="link" size="sm" class="-me-1.5 text-muted" @click="reset" />
+    </template>
+    <p class="-my-1 text-sm text-muted">Try a change and the chart updates.</p>
 
     <fieldset class="flex flex-col gap-3">
       <legend class="mb-2 text-sm font-medium text-highlighted">Can we afford it?</legend>
@@ -91,12 +88,12 @@ const answer = computed(() => {
         <div
           v-if="answer"
           class="flex gap-2.5 rounded-lg p-3 text-sm"
-          :class="answer.ok ? 'bg-emerald-500/10' : 'bg-amber-500/12'"
+          :class="answer.ok ? 'bg-success/8 dark:bg-success/10' : 'bg-warning/8 dark:bg-warning/10'"
         >
           <UIcon
             :name="answer.ok ? 'i-lucide-circle-check' : 'i-lucide-triangle-alert'"
             class="mt-0.5 size-4 shrink-0"
-            :class="answer.ok ? FLOW.income.text : 'text-amber-600 dark:text-amber-400'"
+            :class="answer.ok ? 'text-success' : 'text-warning'"
           />
           <div>
             <p class="font-medium text-highlighted">{{ answer.title }}</p>
@@ -141,5 +138,5 @@ const answer = computed(() => {
         @click="showAll = !showAll"
       />
     </fieldset>
-  </section>
+  </SectionCard>
 </template>

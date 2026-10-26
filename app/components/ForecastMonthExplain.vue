@@ -58,7 +58,7 @@ watch(
     <div>
       <p class="text-sm font-medium text-highlighted">{{ formatMonth(month.month) }}</p>
       <p class="text-xs text-muted">
-        <span :class="month.netMinor >= 0 ? FLOW.income.text : 'text-rose-600 dark:text-rose-400'" class="money font-medium">{{ money(month.netMinor, true) }}</span>
+        <span :class="month.netMinor >= 0 ? FLOW.income.text : 'text-error'" class="money font-medium">{{ money(month.netMinor, true) }}</span>
         {{ month.netMinor >= 0 ? "left over" : "more out than in" }}
       </p>
     </div>

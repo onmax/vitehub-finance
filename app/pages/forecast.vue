@@ -123,23 +123,32 @@ const rangeNote = computed(() => {
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-7xl flex-col gap-8">
+      <div class="mx-auto flex w-full max-w-7xl flex-col gap-12">
         <PageError v-if="error" :error="error" title="The forecast didn’t load" @retry="refresh()" />
 
-        <template v-else-if="!forecast">
-          <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl ring ring-default lg:grid-cols-4">
-            <div v-for="index in 4" :key="index" class="p-4">
-              <USkeleton class="h-3 w-20" />
+        <div v-else-if="!forecast" class="flex flex-col gap-12" aria-busy="true" aria-label="Loading the forecast">
+          <div class="grid grid-cols-2 gap-y-6 lg:grid-cols-4 lg:divide-x lg:divide-default">
+            <div v-for="index in 4" :key="index" class="px-3 first:ps-0 sm:px-6 lg:first:ps-0">
+              <USkeleton class="h-4 w-20" />
               <USkeleton class="mt-2 h-7 w-28" />
               <USkeleton class="mt-2 h-3 w-36" />
             </div>
           </div>
-          <USkeleton class="h-80 w-full rounded-xl" />
-        </template>
+          <div class="grid gap-x-10 gap-y-12 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div class="border-t border-default pt-4">
+              <USkeleton class="h-4 w-24" />
+              <USkeleton class="mt-6 h-72 w-full" />
+            </div>
+            <div class="flex flex-col gap-4 border-t border-default pt-4">
+              <USkeleton class="h-4 w-16" />
+              <USkeleton v-for="index in 4" :key="index" class="h-9 w-full" />
+            </div>
+          </div>
+        </div>
 
-        <div v-else-if="empty" class="relative overflow-hidden rounded-xl bg-muted">
+        <div v-else-if="empty" class="relative overflow-hidden border-t border-default">
           <AreaChart
-            class="px-4 pt-6"
+            class="pt-10"
             dimmed
             bare
             :points="[0, 3, 2, 5, 4, 7, 6, 9].map((value, index) => ({ date: `2026-${String(index + 1).padStart(2, '0')}`, value }))"
@@ -149,7 +158,8 @@ const rangeNote = computed(() => {
             :height="240"
           />
           <UEmpty
-            class="absolute inset-0 bg-default/70"
+            variant="naked"
+            class="absolute inset-0 bg-default/75"
             icon="i-lucide-chart-line"
             title="No forecast yet"
             description="Connect an account to see where your balance is heading, from your income, bills, and usual spending."
@@ -168,16 +178,16 @@ const rangeNote = computed(() => {
             :class="status === 'pending' && 'opacity-60'"
           />
 
-          <div class="flex flex-col gap-3 empty:hidden">
-            <div v-if="lowData" class="flex gap-3 rounded-xl bg-sky-500/10 p-4 text-sm">
-              <UIcon name="i-lucide-sprout" class="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+          <div class="-mt-6 flex flex-col gap-3 empty:hidden">
+            <div v-if="lowData" class="flex gap-3 rounded-lg bg-primary/6 p-4 text-sm dark:bg-primary/10">
+              <UIcon name="i-lucide-sprout" class="mt-0.5 size-4 shrink-0 text-primary" />
               <p class="text-default">
                 Based on {{ forecast.dataDays }} {{ forecast.dataDays === 1 ? "day" : "days" }} of transactions, so treat it as a rough first look.
                 A payment counts as recurring from its third time. Until then it’s part of usual spending.
               </p>
             </div>
-            <div v-if="!hasIncome" class="flex gap-3 rounded-xl bg-amber-500/10 p-4 text-sm">
-              <UIcon name="i-lucide-circle-help" class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div v-if="!hasIncome" class="flex gap-3 rounded-lg bg-warning/8 p-4 text-sm dark:bg-warning/10">
+              <UIcon name="i-lucide-circle-help" class="mt-0.5 size-4 shrink-0 text-warning" />
               <p class="text-default">
                 No regular income found yet, so the forecast only goes down. A salary shows up after three payments, or you can confirm one sooner on
                 <ULink to="/recurring" class="font-medium text-highlighted underline underline-offset-2">Recurring</ULink>.
@@ -185,22 +195,20 @@ const rangeNote = computed(() => {
             </div>
           </div>
 
-          <div class="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <section aria-labelledby="balance-title" class="flex min-w-0 flex-col gap-3">
-              <div class="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <h2 id="balance-title" class="text-base font-semibold text-highlighted">Balance</h2>
-                  <p class="mt-0.5 text-sm text-muted">Actual until today, then expected from your payments and usual spending.</p>
-                </div>
+          <div class="grid gap-x-10 gap-y-12 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <SectionCard title="Balance" body-class="gap-3">
+              <template #action>
                 <UButton
                   :label="table ? 'Show as chart' : 'Show as table'"
                   :icon="table ? 'i-lucide-chart-line' : 'i-lucide-table'"
                   color="neutral"
-                  variant="ghost"
+                  variant="link"
                   size="sm"
+                  class="-me-1.5 text-muted"
                   @click="table = !table"
                 />
-              </div>
+              </template>
+              <p class="-mt-1 text-sm text-muted">Actual until today, then expected from your payments and usual spending.</p>
               <template v-if="!table">
                 <ForecastBalanceChart
                   class="mt-2 transition-opacity duration-150 motion-reduce:transition-none"
@@ -219,41 +227,41 @@ const rangeNote = computed(() => {
                 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Legend">
                   <li class="flex items-center gap-1.5"><span class="h-0.5 w-4 rounded-full bg-(--chart-line)" aria-hidden="true" />Actual</li>
                   <li class="flex items-center gap-1.5">
-                    <span class="h-0.5 w-4 border-t-2 border-dashed border-indigo-600 dark:border-indigo-400" aria-hidden="true" />{{ whatIf ? "With the what-if" : "Expected" }}
+                    <span class="h-0.5 w-4 border-t-2 border-dashed border-primary" aria-hidden="true" />{{ whatIf ? "With the what-if" : "Expected" }}
                   </li>
-                  <li class="flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-xs bg-indigo-500/15" aria-hidden="true" />Likely range</li>
+                  <li class="flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-xs bg-primary/15" aria-hidden="true" />Likely range</li>
                   <li v-if="whatIf" class="flex items-center gap-1.5">
                     <span class="h-0.5 w-4 border-t border-dashed border-(--ui-text-muted)" aria-hidden="true" />Without it
                   </li>
-                  <li class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-amber-500" aria-hidden="true" />Lowest point</li>
+                  <li class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-warning" aria-hidden="true" />Lowest point</li>
                   <li class="flex items-center gap-1.5">
                     <span class="size-2 rounded-full" :class="FLOW.income.bg" aria-hidden="true" /><span class="size-2 rounded-full" :class="FLOW.bills.bg" aria-hidden="true" />Payments in and out
                   </li>
                 </ul>
                 <p class="text-xs text-muted">{{ rangeNote }}</p>
               </template>
-              <div v-else class="max-h-[28rem] overflow-auto rounded-xl ring ring-default">
+              <div v-else class="max-h-[28rem] overflow-auto">
                 <table class="w-full min-w-[36rem] text-sm">
                   <caption class="sr-only">Expected balance once a week, with its likely range and the payments in that week</caption>
                   <thead class="sticky top-0 bg-default">
                     <tr class="text-xs text-muted">
-                      <th scope="col" class="px-4 py-2.5 text-left font-medium">Week to</th>
+                      <th scope="col" class="py-2.5 pe-3 text-left font-medium">Week to</th>
                       <th scope="col" class="px-3 py-2.5 text-right font-medium">Expected</th>
                       <th scope="col" class="px-3 py-2.5 text-right font-medium">Likely range</th>
-                      <th scope="col" class="px-4 py-2.5 text-left font-medium">Payments that week</th>
+                      <th scope="col" class="py-2.5 ps-3 text-left font-medium">Payments that week</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-default border-t border-default">
                     <tr v-for="week in weeks" :key="week.date">
-                      <th scope="row" class="px-4 py-2 text-left font-normal whitespace-nowrap text-default">{{ forecastDay(week.date, forecast.today) }}</th>
+                      <th scope="row" class="py-2 pe-3 text-left font-normal whitespace-nowrap text-default">{{ forecastDay(week.date, forecast.today) }}</th>
                       <td class="px-3 py-2 text-right font-medium text-highlighted"><Money :minor="week.balanceMinor" :currency="forecast.currency" /></td>
                       <td class="money px-3 py-2 text-right text-xs text-muted">{{ axis(week.lowMinor) }} to {{ axis(week.highMinor) }}</td>
-                      <td class="px-4 py-2 text-xs text-muted">{{ week.named.join(", ") || "—" }}</td>
+                      <td class="py-2 ps-3 text-xs text-muted">{{ week.named.join(", ") || "—" }}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </section>
+            </SectionCard>
 
             <ForecastWhatIf
               v-model="scenario"

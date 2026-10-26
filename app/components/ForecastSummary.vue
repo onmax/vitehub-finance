@@ -16,46 +16,46 @@ const money = (minor: number, options: { signed?: boolean } = {}) => format(mino
 const end = computed(() => props.days.at(-1)!)
 const net30 = computed(() => props.next30.inMinor - props.next30.outMinor)
 const delta = (now: number, before: number | undefined) => (before === undefined || now === before ? null : money(now - before, { signed: true }))
-const lowTone = computed(() => (props.lowest.balanceMinor < 0 ? "text-rose-600 dark:text-rose-400" : props.riskDate ? "text-amber-600 dark:text-amber-400" : "text-highlighted"))
+const lowTone = computed(() => (props.lowest.balanceMinor < 0 ? "text-error" : props.riskDate ? "text-warning" : "text-highlighted"))
 </script>
 
 <template>
-  <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-(--ui-border) ring ring-default lg:grid-cols-4">
-    <div class="bg-default p-4">
-      <dt class="text-xs font-medium text-muted">Cash today</dt>
-      <dd class="money mt-1 text-xl font-semibold tracking-[-0.02em] text-highlighted sm:text-2xl">{{ money(forecast.startMinor) }}</dd>
+  <dl class="grid grid-cols-2 gap-y-6 lg:grid-cols-4">
+    <div class="flex min-w-0 flex-col pe-3 sm:pe-6">
+      <dt class="text-xs text-muted sm:text-sm">Cash today</dt>
+      <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ money(forecast.startMinor) }}</dd>
       <dd class="mt-1 text-xs text-muted">
         {{ forecast.accounts.length }} {{ forecast.accounts.length === 1 ? "account" : "accounts" }} you can spend from
       </dd>
     </div>
-    <div class="bg-default p-4">
-      <dt class="text-xs font-medium text-muted">Next 30 days</dt>
-      <dd class="money mt-1 text-xl font-semibold tracking-[-0.02em] sm:text-2xl" :class="net30 >= 0 ? FLOW.income.text : 'text-highlighted'">
+    <div class="flex min-w-0 flex-col border-l border-default ps-3 sm:px-6">
+      <dt class="text-xs text-muted sm:text-sm">Next 30 days</dt>
+      <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="net30 >= 0 ? FLOW.income.text : 'text-highlighted'">
         {{ money(net30, { signed: true }) }}
       </dd>
       <dd class="mt-1 flex flex-wrap gap-x-2 text-xs text-muted tabular-nums">
         <span><span :class="FLOW.income.text">{{ money(next30.inMinor, { signed: true }) }}</span> in</span>
         <span>{{ money(-next30.outMinor, { signed: true }) }} out</span>
-        <span v-if="baseline && delta(net30, baseline.next30)" class="text-violet-600 dark:text-violet-400">{{ delta(net30, baseline.next30) }} what-if</span>
+        <span v-if="baseline && delta(net30, baseline.next30)" class="text-primary">{{ delta(net30, baseline.next30) }} what-if</span>
       </dd>
     </div>
-    <div class="bg-default p-4">
-      <dt class="text-xs font-medium text-muted">Lowest point</dt>
-      <dd class="money mt-1 text-xl font-semibold tracking-[-0.02em] sm:text-2xl" :class="lowTone">{{ money(lowest.balanceMinor) }}</dd>
+    <div class="flex min-w-0 flex-col pe-3 sm:pe-6 lg:border-l lg:border-default lg:ps-6">
+      <dt class="text-xs text-muted sm:text-sm">Lowest point</dt>
+      <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="lowTone">{{ money(lowest.balanceMinor) }}</dd>
       <dd class="mt-1 text-xs text-muted">
         {{ forecastDay(lowest.date, forecast.today, { weekday: false }) }}
         <template v-if="lowest.balanceMinor < 0"> · below zero</template>
         <template v-else-if="riskDate"> · may dip below zero from {{ forecastDay(riskDate, forecast.today, { weekday: false }) }}</template>
         <template v-else-if="lowest.lowMinor < lowest.balanceMinor"> · could be {{ money(lowest.lowMinor) }}</template>
-        <span v-if="baseline && delta(lowest.balanceMinor, baseline.lowest)" class="text-violet-600 dark:text-violet-400"> · {{ delta(lowest.balanceMinor, baseline.lowest) }} what-if</span>
+        <span v-if="baseline && delta(lowest.balanceMinor, baseline.lowest)" class="text-primary"> · {{ delta(lowest.balanceMinor, baseline.lowest) }} what-if</span>
       </dd>
     </div>
-    <div class="bg-default p-4">
-      <dt class="text-xs font-medium text-muted">By {{ forecastDay(end.date, forecast.today, { weekday: false }) }}</dt>
-      <dd class="money mt-1 text-xl font-semibold tracking-[-0.02em] text-highlighted sm:text-2xl">{{ money(end.balanceMinor) }}</dd>
+    <div class="flex min-w-0 flex-col border-l border-default ps-3 sm:ps-6">
+      <dt class="text-xs text-muted sm:text-sm">By {{ forecastDay(end.date, forecast.today, { weekday: false }) }}</dt>
+      <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ money(end.balanceMinor) }}</dd>
       <dd class="mt-1 text-xs text-muted tabular-nums">
         Likely {{ money(end.lowMinor) }} to {{ money(end.highMinor) }}
-        <span v-if="baseline && delta(end.balanceMinor, baseline.end)" class="text-violet-600 dark:text-violet-400"> · {{ delta(end.balanceMinor, baseline.end) }} what-if</span>
+        <span v-if="baseline && delta(end.balanceMinor, baseline.end)" class="text-primary"> · {{ delta(end.balanceMinor, baseline.end) }} what-if</span>
       </dd>
     </div>
   </dl>

@@ -16,10 +16,9 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
 </script>
 
 <template>
-  <section aria-labelledby="accounts-title" class="flex min-w-0 flex-col gap-4">
+  <SectionCard title="By account" body-class="gap-2">
     <div>
-      <h2 id="accounts-title" class="text-base font-semibold text-highlighted">By account</h2>
-      <p class="mt-0.5 text-sm text-muted">
+      <p class="text-sm text-muted">
         {{
           risky
             ? `${risky === 1 ? "One account" : `${risky} accounts`} may go below zero even though the total doesn’t. Move money in before then to avoid it.`
@@ -27,11 +26,11 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
         }}
       </p>
     </div>
-    <ul class="divide-y divide-default rounded-xl ring ring-default">
-      <li class="hidden grid-cols-[auto_minmax(0,1fr)_6rem_7rem_7rem_7rem] gap-x-3 px-4 py-2 text-right text-xs font-medium text-muted sm:grid" aria-hidden="true">
+    <ul class="divide-y divide-default">
+      <li class="hidden grid-cols-[auto_minmax(0,1fr)_6rem_7rem_7rem_7rem] gap-x-3 py-2 text-right text-xs font-medium text-muted sm:grid" aria-hidden="true">
         <span class="col-span-3" /><span>Today</span><span>Lowest</span><span>At the end</span>
       </li>
-      <li v-for="account in sorted" :key="account.id" class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)_6rem_7rem_7rem_7rem]">
+      <li v-for="account in sorted" :key="account.id" class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[auto_minmax(0,1fr)_6rem_7rem_7rem_7rem]">
         <OwnerAvatar :name="account.ownerName" size="xs" />
         <span class="min-w-0">
           <span class="flex items-center gap-2">
@@ -46,7 +45,7 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
           :height="24"
           :label="`${account.name}: ${short(account.balanceMinor)} today, ${short(account.endMinor)} at the end`"
           class="hidden sm:block"
-          :class="atRisk(account) ? 'text-rose-500' : 'text-indigo-500 dark:text-indigo-400'"
+          :class="atRisk(account) ? 'text-error' : 'text-primary'"
         />
         <dl class="col-span-2 grid grid-cols-3 gap-3 text-right text-xs sm:contents">
           <div>
@@ -55,7 +54,7 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
           </div>
           <div>
             <dt class="text-muted sm:sr-only">Lowest</dt>
-            <dd class="money text-sm" :class="atRisk(account) ? 'text-rose-600 dark:text-rose-400' : 'text-default'">
+            <dd class="money text-sm" :class="atRisk(account) ? 'text-error' : 'text-default'">
               {{ money(account.lowest.balanceMinor) }}
             </dd>
             <dd class="text-muted">{{ forecastDay(account.lowest.date, today, { weekday: false }) }}</dd>
@@ -67,5 +66,5 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
         </dl>
       </li>
     </ul>
-  </section>
+  </SectionCard>
 </template>

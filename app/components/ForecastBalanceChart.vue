@@ -265,7 +265,7 @@ const lowestPoint = computed(() => {
     <svg v-if="width" :width="width" :height="boxHeight" class="block overflow-visible" aria-hidden="true">
       <defs>
         <pattern id="forecast-below-zero" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="6" class="stroke-rose-500/25" stroke-width="2" />
+          <line x1="0" y1="0" x2="0" y2="6" class="stroke-error/25" stroke-width="2" />
         </pattern>
       </defs>
       <!-- Grid and axes -->
@@ -297,11 +297,11 @@ const lowestPoint = computed(() => {
       </g>
       <!-- Below zero -->
       <rect v-if="showZero" :x="pad.left" :y="zeroY" :width="Math.max(0, width - pad.left - pad.right)" :height="Math.max(0, plotBottom - zeroY)" fill="url(#forecast-below-zero)" />
-      <line v-if="showZero" :x1="pad.left" :x2="width - pad.right" :y1="zeroY" :y2="zeroY" class="stroke-rose-500/60" stroke-width="1" />
+      <line v-if="showZero" :x1="pad.left" :x2="width - pad.right" :y1="zeroY" :y2="zeroY" class="stroke-error/60" stroke-width="1" />
       <!-- Today -->
       <line :x1="px(today)" :x2="px(today)" :y1="pad.top - 8" :y2="plotBottom" class="stroke-(--ui-text-muted)" stroke-dasharray="3 3" stroke-opacity="0.6" />
       <!-- Range, what-if difference, lines -->
-      <path :d="bandPath" class="fill-indigo-500/12 dark:fill-indigo-400/15" />
+      <path :d="bandPath" class="fill-primary/10 dark:fill-primary/15" />
       <path v-if="baseline" :d="deltaPath" :class="better ? 'fill-emerald-500/15' : 'fill-rose-500/12'" />
       <path
         v-if="baseline"
@@ -316,7 +316,7 @@ const lowestPoint = computed(() => {
       <path
         :d="forecastPath"
         fill="none"
-        class="stroke-indigo-600 dark:stroke-indigo-400"
+        class="stroke-primary"
         stroke-width="2"
         stroke-dasharray="6 3"
         stroke-linejoin="round"
@@ -339,7 +339,7 @@ const lowestPoint = computed(() => {
         r="4.5"
         class="stroke-(--ui-bg)"
         stroke-width="2"
-        :class="lowest.balanceMinor < 0 ? 'fill-rose-500' : 'fill-amber-500'"
+        :class="lowest.balanceMinor < 0 ? 'fill-error' : 'fill-warning'"
       />
       <!-- Scrubber -->
       <g v-if="current">
@@ -352,7 +352,7 @@ const lowestPoint = computed(() => {
           r="4.5"
           fill="var(--ui-bg)"
           stroke-width="2"
-          :class="current.expected !== null ? 'stroke-indigo-600 dark:stroke-indigo-400' : 'stroke-(--chart-line)'"
+          :class="current.expected !== null ? 'stroke-primary' : 'stroke-(--chart-line)'"
         />
       </g>
     </svg>
@@ -361,8 +361,8 @@ const lowestPoint = computed(() => {
       <span class="pointer-events-none absolute -translate-x-1/2 text-[11px] font-medium text-muted" :style="{ left: `${px(today)}px`, top: '-2px' }">Today</span>
       <span
         v-if="lowestPoint && !current"
-        class="pointer-events-none absolute -translate-x-1/2 rounded-md px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap shadow-xs ring ring-default"
-        :class="lowest.balanceMinor < 0 ? 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-default text-highlighted'"
+        class="pointer-events-none absolute -translate-x-1/2 rounded-md px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ring ring-default"
+        :class="lowest.balanceMinor < 0 ? 'bg-error/10 text-error ring-error/25' : 'bg-default text-highlighted'"
         :style="{ left: `${lowestPoint.left}px`, top: `${lowestPoint.below ? lowestPoint.top + 10 : lowestPoint.top - 28}px` }"
       >
         Lowest <span class="money">{{ formatAxis(lowest.balanceMinor) }}</span> · {{ forecastDay(lowest.date, today, { weekday: false }) }}

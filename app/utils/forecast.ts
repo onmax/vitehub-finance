@@ -43,7 +43,7 @@ export function forecastWhen(date: string, today: string) {
 
 export const CONFIDENCE: Record<ForecastConfidence, { label: string; dots: number; class: string }> = {
   high: { label: "Sure", dots: 3, class: "text-emerald-600 dark:text-emerald-400" },
-  medium: { label: "Likely", dots: 2, class: "text-sky-600 dark:text-sky-400" },
+  medium: { label: "Likely", dots: 2, class: "text-toned" },
   low: { label: "Unsure", dots: 1, class: "text-amber-600 dark:text-amber-400" },
 }
 

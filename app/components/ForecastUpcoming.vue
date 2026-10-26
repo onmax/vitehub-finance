@@ -58,30 +58,27 @@ function pick(date: string) {
 </script>
 
 <template>
-  <section aria-labelledby="upcoming-title" class="flex min-w-0 flex-col gap-4">
-    <div class="flex flex-wrap items-end justify-between gap-2">
-      <div>
-        <h2 id="upcoming-title" class="text-base font-semibold text-highlighted">Coming up</h2>
-        <p class="mt-0.5 text-sm text-muted">Expected payments until {{ forecastDay(lastDay, today) }}.</p>
-      </div>
+  <SectionCard title="Coming up" body-class="gap-4">
+    <template #action>
       <p class="flex gap-3 text-sm tabular-nums">
         <span><span class="text-muted">In</span> <span class="money font-medium" :class="FLOW.income.text">{{ money(totalIn) }}</span></span>
         <span><span class="text-muted">Out</span> <span class="money font-medium text-highlighted">{{ money(totalOut) }}</span></span>
       </p>
-    </div>
+    </template>
+    <p class="-mt-1 text-sm text-muted">Expected payments until {{ forecastDay(lastDay, today) }}. Pick a day to see only its payments.</p>
 
-    <div class="rounded-xl bg-muted p-2 sm:p-3">
-      <div class="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] font-medium text-muted" aria-hidden="true">
+    <div>
+      <div class="grid grid-cols-7 gap-1 border-b border-default pb-1.5 text-center text-[11px] font-medium text-muted" aria-hidden="true">
         <span v-for="name in weekdays" :key="name">{{ name }}</span>
       </div>
-      <div class="grid grid-cols-7 gap-1" role="group" aria-label="Pick a day to see its payments">
+      <div class="grid grid-cols-7 gap-1 pt-1.5" role="group" aria-label="Pick a day to see its payments">
         <button
           v-for="day in days"
           :key="day.date"
           type="button"
           class="relative flex min-h-12 flex-col items-stretch gap-0.5 rounded-md p-1 text-left transition-[background-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:min-h-16 sm:p-1.5"
           :class="[
-            selected === day.date ? 'bg-default shadow-sm ring ring-(--ui-border-accented)' : 'hover:bg-default/70',
+            selected === day.date ? 'bg-primary/8 ring ring-primary/40 dark:bg-primary/12' : 'hover:bg-elevated/60',
             day.past && 'opacity-40',
           ]"
           :disabled="day.past"
@@ -91,7 +88,7 @@ function pick(date: string) {
         >
           <span
             class="grid size-5 place-items-center rounded-full text-[11px] tabular-nums"
-            :class="day.date === today ? 'bg-inverted font-semibold text-inverted' : 'text-toned'"
+            :class="day.date === today ? 'bg-primary font-semibold text-inverted' : 'text-toned'"
             aria-hidden="true"
           >
             {{ day.number }}
@@ -154,5 +151,5 @@ function pick(date: string) {
         />
       </div>
     </div>
-  </section>
+  </SectionCard>
 </template>
