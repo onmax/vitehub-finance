@@ -195,23 +195,124 @@ export interface Insight {
   recurringIds: string[]
 }
 
+/** What a recurring series is to the forecast: money in, a bill, or a move between accounts. */
+export type ForecastKind = "income" | "bill" | "transfer"
+
+/**
+ * How sure the forecast is that a payment lands when and as much as expected. `high`: the same amount within 3 days of
+ * its date, 4 times or more (twice for yearly ones) or confirmed. `medium`: within a week and 25% of the amount.
+ * `low`: anything less regular.
+ */
+export type ForecastConfidence = "high" | "medium" | "low"
+
+/** A recurring series the forecast counts (not dismissed, on an account it projects). */
+export interface ForecastSeries {
+  /** The recurring row's id. */
+  id: string
+  name: string
+  kind: ForecastKind
+  /** What one payment is expected to be, in the household's currency: negative for charges. */
+  amountMinor: number
+  cadence: Cadence
+  accountId: string
+  accountName: string
+  ownerName: string
+  categoryId: string | null
+  status: "detected" | "confirmed"
+  confidence: ForecastConfidence
+  /** Payments seen in the last 400 days. */
+  occurrences: number
+  /** How many days a payment has landed away from its usual date, at most (recent payments). */
+  dayRange: number
+  /** How much the amount moves around its usual value, as a share of it: 0.18 is ±18%. */
+  amountRange: number
+}
+
+/** One expected payment of a series. */
+export interface ForecastPayment {
+  seriesId: string
+  date: string
+  /** Household currency, negative for charges. */
+  amountMinor: number
+}
+
+/** The expected balance at the end of a day, and the range it likely lands in (8 times in 10). */
+export interface ForecastDay {
+  date: string
+  balanceMinor: number
+  lowMinor: number
+  highMinor: number
+}
+
+export interface ForecastMonth {
+  month: string
+  label: string
+  /** The balance the month starts with (today's, for the current month). */
+  startMinor: number
+  /** Recurring income (positive). */
+  incomeMinor: number
+  /** Recurring bills and subscriptions (positive). */
+  billsMinor: number
+  /** Usual spending outside recurring payments (positive). */
+  variableOutMinor: number
+  /**
+   * Moved to accounts the forecast doesn't count (investments, crypto, someone's private account), net of what came
+   * back. Positive when money leaves.
+   */
+  movedOutMinor: number
+  /** A one-off expense from a what-if; always 0 from the server. */
+  oneOffMinor: number
+  /** income − bills − variable − moved − one-off. */
+  netMinor: number
+  /** Expected balance at the end of the month, and its likely range. */
+  balanceMinor: number
+  lowMinor: number
+  highMinor: number
+}
+
+/** One account's own projection: its payments, its usual spending, and its usual moves to and from other accounts. */
+export interface ForecastAccount {
+  id: string
+  name: string
+  ownerName: string
+  kind: "checking" | "savings" | "cash" | "credit"
+  /** Today, in the household's currency. */
+  balanceMinor: number
+  endMinor: number
+  lowest: { date: string; balanceMinor: number }
+  /** The expected balance once a week, for a sparkline. */
+  weekly: Array<{ date: string; balanceMinor: number }>
+}
+
 export interface Forecast {
   currency: string
+  /** The server's date, the forecast's first day. */
+  today: string
+  /** Cash today: checking, savings, cash, and credit accounts counted in net worth. */
   startMinor: number
-  /** Monthly points for the requested months, the first being the end of the current month. */
-  months: Array<{
-    month: string
-    label: string
-    recurringInMinor: number
-    recurringOutMinor: number
-    variableOutMinor: number
-    balanceMinor: number
-  }>
+  /** The actual balance of the same accounts before today, from their daily balances. */
+  history: Array<{ date: string; balanceMinor: number }>
+  /** Today to the end of the last month, one point a day. */
+  days: ForecastDay[]
+  /** One per month, the first being what's left of the current month. */
+  months: ForecastMonth[]
+  series: ForecastSeries[]
+  /** Every expected payment of `series` from today to the end, soonest first. */
+  payments: ForecastPayment[]
+  accounts: ForecastAccount[]
+  /** The lowest expected balance, the first day it's reached, and the low end of the range that day. */
+  lowest: { date: string; balanceMinor: number; lowMinor: number }
+  /** The first day the low end of the range goes below zero, or null. */
+  riskDate: string | null
   /** Average monthly spending outside recurring payments, from the last 3 full months. */
   variableMonthlyMinor: number
+  /** Average monthly moves to accounts the forecast doesn't count, outside recurring ones (positive: money leaves). */
+  movedMonthlyMinor: number
   averageMonthlyIncomeMinor: number
   /** Positive when the household saves money each month on average. */
   monthlySavingsMinor: number
+  /** Days of transaction history behind the averages and the range (0 without transactions). */
+  dataDays: number
 }
 
 export interface Budget {
