@@ -150,7 +150,7 @@ function onKeydown(event: KeyboardEvent) {
                   <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
                   <span v-else class="truncate">
                     {{ find(row.categoryId)?.name ?? "Uncategorized" }}
-                    <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" aria-label="suggested by AI" />
+                    <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" aria-label="Suggested by AI" />
                     · {{ row.accountName }}
                   </span>
                   <span v-if="row.status === 'pending'" class="shrink-0">· Pending</span>

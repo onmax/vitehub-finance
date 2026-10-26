@@ -152,7 +152,7 @@ const rangeNote = computed(() => {
             class="absolute inset-0 bg-default/70"
             icon="i-lucide-chart-line"
             title="No forecast yet"
-            description="Connect an account and ViteHub Finance projects your balance from your income, bills, and usual spending."
+            description="Connect an account to see where your balance is heading, from your income, bills, and usual spending."
             :actions="[{ label: 'Connect an account', icon: 'i-lucide-plug', to: '/connect' }]"
           />
         </div>
@@ -172,14 +172,14 @@ const rangeNote = computed(() => {
             <div v-if="lowData" class="flex gap-3 rounded-xl bg-sky-500/10 p-4 text-sm">
               <UIcon name="i-lucide-sprout" class="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" />
               <p class="text-default">
-                Based on {{ forecast.dataDays }} {{ forecast.dataDays === 1 ? "day" : "days" }} of transactions, so treat it as a first sketch.
-                Payments count as recurring after the third one; until then they're part of usual spending.
+                Based on {{ forecast.dataDays }} {{ forecast.dataDays === 1 ? "day" : "days" }} of transactions, so treat it as a rough first look.
+                A payment counts as recurring from its third time. Until then it’s part of usual spending.
               </p>
             </div>
             <div v-if="!hasIncome" class="flex gap-3 rounded-xl bg-amber-500/10 p-4 text-sm">
               <UIcon name="i-lucide-circle-help" class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <p class="text-default">
-                No regular income found yet, so the forecast only goes down. A salary shows up after three payments; you can confirm one sooner on
+                No regular income found yet, so the forecast only goes down. A salary shows up after three payments, or you can confirm one sooner on
                 <ULink to="/recurring" class="font-medium text-highlighted underline underline-offset-2">Recurring</ULink>.
               </p>
             </div>

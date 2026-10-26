@@ -7,10 +7,10 @@ const notify = useNotify()
 const pending = ref<string | null>(null)
 
 function reason(connection: ConnectionSummary) {
-  if (connection.status === "error") return connection.lastError ? `Sync failed: ${connection.lastError}` : "The last sync failed."
+  if (connection.status === "error") return connection.lastError || "The last sync failed. Try again."
   if (connection.status === "expired") return "The bank’s consent expired. Reconnect to keep syncing."
   if (connection.consentExpiresAt) return `Consent ends ${formatDate(connection.consentExpiresAt)}. Reconnect before then to keep syncing.`
-  return "This connection needs a look."
+  return "Check this connection."
 }
 
 async function reconnect(connection: ConnectionSummary) {
@@ -25,7 +25,7 @@ async function reconnect(connection: ConnectionSummary) {
     notify.success("Synced", connection.name)
     await refreshStems("overview", "accounts", "connections")
   } catch (error) {
-    notify.error(error, "Couldn’t reconnect")
+    notify.error(error, connection.provider === "enable_banking" ? `Couldn’t reconnect ${connection.name}` : `Couldn’t sync ${connection.name}`)
   } finally {
     pending.value = null
   }

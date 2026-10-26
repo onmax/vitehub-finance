@@ -105,7 +105,7 @@ function updated(next: AccountSummary) {
         </template>
         <template #right>
           <template v-if="account">
-            <UTooltip v-if="account.connectionId && account.canEdit" text="Ask the bank for new data">
+            <UTooltip v-if="account.connectionId && account.canEdit" text="Fetch the latest balance and transactions">
               <UButton
                 color="neutral"
                 variant="outline"
@@ -204,10 +204,10 @@ function updated(next: AccountSummary) {
                 />
                 <p v-if="estimated && points.length > 1" class="mt-3 flex items-center gap-1.5 text-xs text-muted">
                   <UIcon name="i-lucide-info" class="size-3.5 shrink-0" />
-                  Estimated from this account’s transactions until ViteHub Finance has daily balances of its own.
+                  Estimated from this account’s transactions until there are enough daily balances.
                 </p>
                 <p v-else-if="points.length <= 1" class="grid h-40 place-items-center text-center text-sm text-muted">
-                  ViteHub Finance records the balance every day. The chart fills in from tomorrow.
+                  The balance is saved once a day, so the chart fills in from tomorrow.
                 </p>
               </section>
 

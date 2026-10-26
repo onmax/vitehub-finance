@@ -72,7 +72,7 @@ const answer = computed(() => {
     <div class="flex items-center justify-between gap-2">
       <div>
         <h2 id="whatif-title" class="text-base font-semibold text-highlighted">What if</h2>
-        <p class="mt-0.5 text-sm text-muted">Try a change; the chart follows.</p>
+        <p class="mt-0.5 text-sm text-muted">Try a change and the chart updates.</p>
       </div>
       <UButton v-if="active" label="Reset" icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" size="sm" @click="reset" />
     </div>
@@ -116,7 +116,7 @@ const answer = computed(() => {
 
     <fieldset v-if="choices.length" class="flex flex-col">
       <legend class="mb-2 text-sm font-medium text-highlighted">Counted payments</legend>
-      <p class="-mt-1 mb-2 text-xs text-muted">Untick one to see the forecast without it: a cancelled subscription, an income that stops.</p>
+      <p class="-mt-1 mb-2 text-xs text-muted">Untick a payment to see the forecast without it, like a subscription you cancel or an income that stops.</p>
       <ul class="flex flex-col">
         <li v-for="entry in shown" :key="entry.id" class="flex min-h-10 items-center gap-3">
           <UCheckbox

@@ -80,7 +80,7 @@ async function submit() {
     </UFormField>
     <p class="flex gap-2 text-xs text-muted">
       <UIcon name="i-lucide-lock" class="mt-px size-3.5 shrink-0" />
-      ViteHub Finance encrypts the token at rest. A Flex token only reads reports; it can’t trade or move money.
+      The token is stored encrypted. A Flex token only reads reports and can’t trade or move money.
     </p>
     <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
     <DemoLock v-slot="{ locked }" class="self-start">

@@ -113,8 +113,8 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
     <template v-else-if="problem === 'other-email'">
       <h1 class="text-lg font-semibold text-highlighted">This invitation is for someone else</h1>
       <p class="mt-2 text-sm text-muted">
-        You’re signed in as <span class="font-medium text-highlighted">{{ user?.email }}</span>. Sign in with the email the
-        invitation went to{{ invitedEmail ? ` (${invitedEmail})` : "" }}.
+        You’re signed in as <span class="font-medium text-highlighted">{{ user?.email }}</span>. Sign in with
+        {{ invitedEmail || "the email the invitation went to" }}.
       </p>
       <UButton block class="mt-6" label="Use another account" :loading="pending === 'switch'" @click="switchAccount" />
       <UButton block class="mt-2" color="neutral" variant="ghost" label="Go to my overview" to="/" />
@@ -150,7 +150,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
         </li>
         <li class="flex gap-2.5">
           <UIcon name="i-lucide-log-out" class="mt-0.5 size-4 shrink-0 text-muted" />
-          <span class="text-pretty">You can leave any time; your accounts go with you.</span>
+          <span class="text-pretty">You can leave any time, and your accounts go with you.</span>
         </li>
       </ul>
       <p class="mt-4 text-xs text-muted">

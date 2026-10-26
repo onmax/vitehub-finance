@@ -16,7 +16,7 @@ const bankError = ref<string | null>(typeof route.query.error === "string" ? rou
 
 onMounted(() => {
   if (typeof route.query.linked === "string") {
-    notify.success("Connected", "ViteHub Finance synced its accounts and keeps them up to date every day.")
+    notify.success("Bank connected", "Its accounts are here now and sync every day.")
     flash(route.query.linked)
     void refresh()
   }

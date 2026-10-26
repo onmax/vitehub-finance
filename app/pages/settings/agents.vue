@@ -28,7 +28,7 @@ const withKey = JSON.stringify(
       <div class="flex flex-col gap-3">
         <SegmentedControl v-model="tab" :options="tabs" label="Setup instructions" size="sm" class="self-start" />
         <template v-if="tab === 'claude'">
-          <p class="text-sm text-muted">Run this in a terminal. Claude Code opens ViteHub Finance to ask for your permission the first time.</p>
+          <p class="text-sm text-muted">Run this in a terminal. The first time, Claude Code opens your browser to ask for permission.</p>
           <CodeSnippet :code="claude" label="Claude Code command" />
         </template>
         <template v-else-if="tab === 'json'">

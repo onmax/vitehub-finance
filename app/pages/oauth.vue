@@ -114,7 +114,7 @@ const can = [
           this connection from an agent that runs there.
         </template>
       </UAlert>
-      <p class="mt-4 text-xs text-muted">Private accounts of other members stay out of its reach. Disconnect it any time in Settings › Agents.</p>
+      <p class="mt-4 text-xs text-muted">It can’t see other members’ private accounts. Disconnect it any time in Settings › Agents.</p>
       <div class="mt-6 grid grid-cols-2 gap-2">
         <UButton block color="neutral" variant="outline" label="Deny" :disabled="pending !== null" :loading="pending === 'deny'" @click="answer(false)" />
         <UButton block label="Allow" :disabled="pending !== null" :loading="pending === 'allow'" @click="answer(true)" />

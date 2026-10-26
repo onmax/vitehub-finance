@@ -28,7 +28,7 @@ const legend = computed(() => {
     <div class="flex flex-wrap items-end justify-between gap-2">
       <div>
         <h2 id="months-title" class="text-base font-semibold text-highlighted">Month by month</h2>
-        <p class="mt-0.5 text-sm text-muted">What comes in, what goes out, and what's left each month.</p>
+        <p class="mt-0.5 text-sm text-muted">What comes in, what goes out, and what’s left each month.</p>
       </div>
       <UButton
         :label="table ? 'Show as chart' : 'Show as table'"

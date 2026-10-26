@@ -28,7 +28,7 @@ async function remove(person: Person) {
     await $fetch(`/api/household/members/${person.userId}`, { method: "DELETE" })
     await refresh()
     await refreshStems("accounts", "overview", "transactions", "connections")
-    notify.success(`${person.name} left the household`)
+    notify.success(`${person.name} removed`)
   } catch (error) {
     notify.error(error, `Couldn’t remove ${person.name}`)
   } finally {

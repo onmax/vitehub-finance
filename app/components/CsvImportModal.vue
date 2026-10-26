@@ -205,11 +205,11 @@ async function runImport() {
     await refreshStems("accounts", "account", "overview", "transactions", "recurring", "forecast", "budgets")
     notify.success(
       `Added ${formatCount(result.added)} transaction${result.added === 1 ? "" : "s"}`,
-      result.skipped ? `Skipped ${formatCount(result.skipped)}: already in the account or unreadable.` : undefined,
+      result.skipped ? `Skipped ${formatCount(result.skipped)} that were already there or couldn’t be read.` : undefined,
     )
     emit("close", result)
   } catch (cause) {
-    importError.value = errorText(cause, "The import stopped. Rows imported so far stay; import the file again to add the rest.")
+    importError.value = errorText(cause, "The import stopped. Import the file again to add the rest. Rows already added stay.")
   } finally {
     importing.value = false
   }

@@ -88,7 +88,7 @@ const shownError = computed(() => connectError.value || props.error || "")
       <div>
         <p class="text-sm font-medium text-highlighted">{{ DEMO_LOCKED }}</p>
         <p class="mt-1 text-sm text-muted">
-          The demo household’s banks are fictional. On your own ViteHub Finance you pick your bank here and sign in on its page through
+          The demo household’s banks are fictional. Outside the demo, you pick your bank here and sign in on its page through
           <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>.
           Try a CSV import or a manual account instead.
         </p>
@@ -101,9 +101,9 @@ const shownError = computed(() => connectError.value || props.error || "")
     </div>
 
     <div v-else-if="!configured" class="rounded-lg bg-muted p-4">
-      <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this ViteHub Finance</p>
+      <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this server</p>
       <p class="mt-1.5 text-sm text-muted">
-        ViteHub Finance reads banks through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
+        Banks connect through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
         which is free for your own accounts. Create an app there, set <code class="font-mono text-xs">ENABLE_BANKING_APP_ID</code> and
         <code class="font-mono text-xs">ENABLE_BANKING_PRIVATE_KEY</code> on the server, and restart it. Until then, import a CSV from your bank.
       </p>
@@ -165,7 +165,7 @@ const shownError = computed(() => connectError.value || props.error || "")
         />
       </template>
       <p class="text-xs text-muted">
-        You sign in at your bank, which shares read-only access for up to 180 days. ViteHub Finance never sees your bank password and can’t move money.
+        You sign in at your bank, which shares read-only access for up to 180 days. Your password never leaves the bank, and the access can’t move money.
       </p>
     </template>
   </div>

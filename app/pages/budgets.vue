@@ -57,7 +57,7 @@ async function remove(budget: Budget) {
   const name = find(budget.categoryId)?.name ?? "this category"
   const { confirmed } = await confirm({
     title: `Delete the ${name} budget?`,
-    description: "Its spending stays; only the monthly limit goes.",
+    description: "Its transactions stay. Only the monthly limit goes.",
     confirmLabel: "Delete budget",
     destructive: true,
   })

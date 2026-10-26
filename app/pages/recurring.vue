@@ -98,7 +98,7 @@ async function show(ids: string[]) {
         v-else-if="items.length === 0"
         icon="i-lucide-repeat"
         title="No recurring payments yet"
-        description="ViteHub Finance spots subscriptions and bills once an account has two or three months of transactions. Connect a bank or import a statement to start."
+        description="Subscriptions and bills show up here once an account has two or three months of transactions. Connect a bank or import a CSV to start."
         :actions="[
           { label: 'Connect a bank', to: '/connect/banks' },
           { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect/banks#import' },

@@ -51,7 +51,7 @@ async function submit() {
 <template>
   <div>
     <h1 class="text-lg font-semibold text-highlighted">Create your account</h1>
-    <p class="mt-1 text-sm text-muted">You get a household of your own. Invite your partner once you’re in.</p>
+    <p class="mt-1 text-sm text-muted">You get a household of your own. Invite others to it once you’re in.</p>
     <UAlert
       v-if="demo"
       class="mt-4"
@@ -99,7 +99,7 @@ async function submit() {
         color="neutral"
         variant="subtle"
         icon="i-lucide-lock"
-        title="This ViteHub Finance is private"
+        title="Sign-up is by invitation"
         description="Only allowed emails can sign up here. If someone invited you, open the link in their invitation and sign up with that email."
       />
       <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>

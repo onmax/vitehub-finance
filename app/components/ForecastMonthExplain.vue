@@ -28,7 +28,7 @@ const steps = computed(() => {
     { key: "bills" as const, label: "Bills", change: -month.billsMinor, items: inMonth.value.filter((payment) => payment.series.kind === "bill") },
     { key: "variable" as const, label: current.value ? "Usual spending, rest of month" : "Usual spending", change: -month.variableOutMinor, items: [] },
     { key: "moved" as const, label: month.movedOutMinor >= 0 ? "Moved out" : "Moved in", change: -month.movedOutMinor, items: [] },
-    { key: "oneOff" as const, label: "One-off (what-if)", change: -month.oneOffMinor, items: [] },
+    { key: "oneOff" as const, label: "One-off what-if", change: -month.oneOffMinor, items: [] },
   ].filter((step) => step.change !== 0 || step.key === "income" || step.key === "bills")
   let running = month.startMinor
   return list.map((step) => {

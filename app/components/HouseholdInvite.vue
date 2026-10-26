@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Invite someone by email, and the invitations still waiting. Without email on this ViteHub Finance, each invitation shows its
+// Invite someone by email, and the invitations still waiting. When the server can't send email, each invitation shows its
 // link to send yourself.
 const props = defineProps<{ open?: boolean }>()
 const { data: me } = useMe()
@@ -21,7 +21,7 @@ const { data: invitations, refresh, status } = useAsyncData(
   async () => {
     if (!me.value) return []
     const { data, error } = await $auth.organization.listInvitations({ query: { organizationId: me.value.household.id } })
-    if (error) throw new Error(error.message ?? "Couldn’t load the invitations.")
+    if (error) throw new Error(error.message ?? "Couldn’t load the invitations. Try again.")
     return ((data ?? []) as unknown as Invitation[]).filter(
       (invitation) => invitation.status === "pending" && new Date(invitation.expiresAt).getTime() > Date.now(),
     )
@@ -48,7 +48,7 @@ async function invite() {
   lastLink.value = null
   const address = email.value.trim().toLowerCase()
   if (!/^\S+@\S+\.\S+$/.test(address)) {
-    error.value = "Enter an email address."
+    error.value = "Enter their email address."
     return
   }
   sending.value = true
@@ -62,7 +62,7 @@ async function invite() {
     const invitation = data as unknown as Invitation
     email.value = ""
     await refresh()
-    if (me.value?.email) notify.success(`Invitation sent to ${address}`, "The link works for 7 days.")
+    if (me.value?.email) notify.success(`Invitation sent to ${address}`, "Their link works for 7 days.")
     else lastLink.value = linkFor(invitation)
   } catch (cause) {
     error.value = errorText(cause, "Couldn’t invite them. Try again.")
@@ -91,7 +91,7 @@ async function copyLink(invitation: Invitation | string, id: string) {
     :description="
       me?.email
         ? 'They get an email with a link to join. It works for 7 days.'
-        : 'This ViteHub Finance can’t send email, so you get a link to send them yourself. It works for 7 days.'
+        : 'Create a link and send it to them yourself. It works for 7 days.'
     "
   >
     <form class="flex flex-col gap-2 sm:flex-row sm:items-start" novalidate @submit.prevent="invite">
@@ -111,7 +111,7 @@ async function copyLink(invitation: Invitation | string, id: string) {
     </form>
 
     <div v-if="lastLink" class="mt-4 rounded-lg bg-muted p-3">
-      <p class="text-sm font-medium text-highlighted">Send them this link</p>
+      <p class="text-sm font-medium text-highlighted">Copy this link and send it to them</p>
       <div class="mt-2 flex items-center gap-2">
         <code class="min-w-0 flex-1 truncate rounded-md border border-default bg-default px-2.5 py-2 font-mono text-xs" :title="lastLink">{{ lastLink }}</code>
         <UButton
@@ -149,6 +149,6 @@ async function copyLink(invitation: Invitation | string, id: string) {
         </li>
       </ul>
     </div>
-    <p v-else-if="status === 'error'" class="mt-4 text-sm text-error">Couldn’t load pending invitations.</p>
+    <p v-else-if="status === 'error'" class="mt-4 text-sm text-error">Couldn’t load the invitations. Reload the page to try again.</p>
   </SettingsSection>
 </template>

@@ -50,7 +50,7 @@ export const CONFIDENCE: Record<ForecastConfidence, { label: string; dots: numbe
 /** Why the forecast is as sure as it is, in a sentence. */
 export function confidenceReason(series: { confidence: ForecastConfidence; occurrences: number; dayRange: number; amountRange: number; status: string; cadence: string }) {
   const parts: string[] = []
-  if (series.occurrences === 0) return series.status === "confirmed" ? "You confirmed it; no payments seen lately." : "No payments seen lately."
+  if (series.occurrences === 0) return series.status === "confirmed" ? "You confirmed it, but no payments showed up lately." : "No payments seen lately."
   parts.push(`Seen ${series.occurrences} ${series.occurrences === 1 ? "time" : "times"}`)
   parts.push(series.dayRange === 0 ? "always on schedule" : `lands within ${series.dayRange} ${series.dayRange === 1 ? "day" : "days"} of its date`)
   parts.push(series.amountRange <= 0.01 ? "same amount" : `amount varies ±${Math.round(series.amountRange * 100)}%`)

@@ -36,7 +36,7 @@ const activity = (agent: ConnectedAgent) => {
     </div>
     <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
     <p v-else-if="!agents.length" class="py-4 text-sm text-pretty text-muted">
-      No agents yet. Add the server above to one; it shows up here once you allow it.
+      No agents yet. Add the server above to an agent, and it shows up here once you allow it.
     </p>
     <ul v-else class="divide-y divide-default">
       <li v-for="agent in agents" :key="agent.id" class="flex min-h-14 items-center gap-3 py-2">

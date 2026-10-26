@@ -157,7 +157,7 @@ watch(step, () => {
       <UIcon name="i-lucide-mail-check" class="size-6 text-muted" />
       <h1 class="mt-3 text-lg font-semibold text-highlighted">Check your email</h1>
       <p class="mt-1 text-sm text-muted">
-        We sent a sign-in link to <span class="font-medium text-highlighted">{{ state.email }}</span>. It works for 5 minutes.
+        Open the sign-in link sent to <span class="font-medium text-highlighted">{{ state.email }}</span>. It works for 5 minutes.
       </p>
       <UButton class="mt-6" block color="neutral" variant="outline" label="Back to sign in" @click="magicSent = false" />
     </template>

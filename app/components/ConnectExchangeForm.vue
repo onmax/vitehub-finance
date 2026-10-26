@@ -113,7 +113,7 @@ async function submit() {
     </UFormField>
     <p class="flex gap-2 text-xs text-muted">
       <UIcon name="i-lucide-lock" class="mt-px size-3.5 shrink-0" />
-      ViteHub Finance encrypts the key at rest and only reads balances. A key with trading or withdrawal rights isn’t needed; don’t give one.
+      The key is stored encrypted and only used to read balances. Don’t use a key that can trade or withdraw.
     </p>
     <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
     <DemoLock v-slot="{ locked }" class="self-start">

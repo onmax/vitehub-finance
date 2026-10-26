@@ -11,8 +11,8 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
 <template>
   <LegalPage title="Privacy" updated="October 2026">
     <p>
-      ViteHub Finance is open-source software that a person or household runs for themselves. Whoever runs this copy (the
-      operator) holds your data. This page covers what it keeps, where, and who can see it.
+      ViteHub Finance is open-source software that a person or household runs for themselves. Whoever runs this copy, the
+      operator, holds your data. This page covers what it keeps, where, and who can see it.
     </p>
     <p v-if="demo">
       This is the public demo. Its household, people, banks, and transactions are made up, and everything resets every night.
@@ -24,19 +24,19 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
       <li>Your name, email, and sign-in details: a hashed password, passkeys, your two-factor secret, and active sessions (with their IP address and browser).</li>
       <li>Your household and its members.</li>
       <li>The accounts you connect or add: balances, transactions, holdings, and what you add to them (categories, notes, rules, budgets, goals, recurring payments).</li>
-      <li>How to reach each connection: a bank session, an exchange’s API key, or a wallet address.</li>
+      <li>How to reach each connection: a bank session, an exchange’s API key, an Interactive Brokers Flex token, or a wallet address.</li>
       <li>API keys you create and the agents (MCP clients) you approve.</li>
       <li>
         Logs, for finding and fixing errors: each request’s page or API path, timing, and outcome, with your user and
         household ids but never your name, email, or transaction details; and errors your browser hits, with the page’s path
-        (no query) and the error message. They’re kept for a few days.
+        (no query) and the error message. On Cloudflare they’re kept for 3 to 7 days. On other hosts, the operator decides.
       </li>
     </ul>
 
     <h2>Where it lives</h2>
     <p>
       In this instance’s own database: Cloudflare D1 when it runs on Cloudflare, or an SQLite file on the operator’s server.
-      There is no central service; the ViteHub Finance project never receives your data.
+      There is no central service. The ViteHub Finance project never receives your data.
     </p>
 
     <h2>Bank data</h2>
@@ -47,8 +47,8 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
       by removing the connection here or at your bank.
     </p>
     <p>
-      Exchanges connect with read-only API keys you create. Wallets are public addresses, looked up on public blockchain
-      services. Coin prices (CoinGecko) and exchange rates (the ECB, through Frankfurter) are fetched by currency and coin
+      Exchanges connect with read-only API keys you create. Interactive Brokers connects with a Flex token that only reads
+      reports. Wallets are public addresses, looked up on public blockchain services. Coin prices (CoinGecko) and exchange rates (the ECB, through Frankfurter) are fetched by currency and coin
       symbol only.
     </p>
 
@@ -57,7 +57,7 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
       <p>
         When no rule categorizes a transaction, this instance asks
         <a href="https://typesafe.ai" target="_blank" rel="noopener">TypeSafe</a>’s Jev model to suggest one. It sends the
-        transaction’s description and payee, whether money went in or out, the amount rounded to two digits, the currency,
+        transaction’s description and payee, whether money went in or out, the amount rounded to two significant digits, the currency,
         the account type, and the household’s category names and rule keywords. Names of household members, IBANs, and
         long numbers (cards, accounts, references) are masked first. It never sends dates, balances, account names, or who
         you are. Suggestions are marked as such, and the household’s owner can turn this off in Settings.
@@ -66,8 +66,8 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
 
     <h2>How it’s protected</h2>
     <p>
-      Bank sessions and exchange keys are encrypted at rest with AES-GCM, using a key only the server holds. Passwords are
-      stored as hashes. The only cookies are for signing in; there are no ads, trackers, or analytics.
+      Bank sessions, exchange keys, and broker tokens are encrypted at rest with AES-GCM, using a key only the server holds.
+      Passwords are stored as hashes. The only cookies are for signing in. There are no ads, trackers, or analytics.
     </p>
 
     <h2>Who sees what</h2>

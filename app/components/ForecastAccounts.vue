@@ -22,7 +22,7 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
       <p class="mt-0.5 text-sm text-muted">
         {{
           risky
-            ? `${risky === 1 ? "One account" : `${risky} accounts`} may go below zero even though the total doesn't. Moving money in before then avoids it.`
+            ? `${risky === 1 ? "One account" : `${risky} accounts`} may go below zero even though the total doesn’t. Move money in before then to avoid it.`
             : "No account is expected to go below zero."
         }}
       </p>
@@ -38,7 +38,7 @@ const risky = computed(() => sorted.value.filter(atRisk).length)
             <span class="truncate text-sm font-medium text-highlighted">{{ account.name }}</span>
             <UBadge v-if="atRisk(account)" color="error" variant="soft" size="sm" label="Below zero" class="shrink-0" />
           </span>
-          <span class="block truncate text-xs text-muted capitalize">{{ account.kind }} · {{ account.ownerName.split(" ")[0] }}</span>
+          <span class="block truncate text-xs text-muted">{{ ACCOUNT_KINDS[account.kind].label }} · {{ account.ownerName.split(" ")[0] }}</span>
         </span>
         <SparkLine
           :values="account.weekly.map((point) => point.balanceMinor)"

@@ -100,7 +100,7 @@ const title = computed(() =>
 </script>
 
 <template>
-  <SettingsSection title="Two-factor authentication" description="After your password, ViteHub Finance asks for a code from an authenticator app.">
+  <SettingsSection title="Two-factor authentication" description="After your password, you enter a code from an authenticator app.">
     <template #badge>
       <UBadge v-if="enabled" color="success" variant="subtle" icon="i-lucide-shield-check" size="sm" label="On" />
       <UBadge v-else color="neutral" variant="outline" size="sm" label="Off" />

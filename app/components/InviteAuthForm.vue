@@ -71,7 +71,7 @@ async function signUp() {
     if (failure) {
       // The server's user hook refuses emails outside FINANCE_ALLOWED_EMAILS that no household invited.
       if (failure.status === 422 || failure.status === 403 || /create user/i.test(failure.message ?? ""))
-        throw new Error("This ViteHub Finance only lets invited and allowed emails sign up. Use the email the invitation went to.")
+        throw new Error("This email can’t sign up here. Use the email the invitation went to.")
       throw new Error(failure.message)
     }
     await finish()

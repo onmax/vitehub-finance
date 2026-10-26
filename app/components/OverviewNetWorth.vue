@@ -54,7 +54,7 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
       <span v-if="change.share !== null" class="money">({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span>
       <span>since {{ formatDay(change.since, { relative: false }) }}</span>
     </p>
-    <p v-else class="mt-1 text-sm text-muted">ViteHub Finance records balances every day. The chart fills in from here.</p>
+    <p v-else class="mt-1 text-sm text-muted">Balances update every day. The chart fills in from tomorrow.</p>
     <AreaChart
       v-if="points.length >= 2"
       class="mt-4"

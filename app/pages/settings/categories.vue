@@ -50,10 +50,10 @@ async function categorizeWithAi() {
     if (!asked) notify.success("Nothing to categorize", "Every transaction you can edit has a category, or AI already looked at it.")
     else
       notify.success(
-        `Categorized ${categorized} of ${asked}`,
+        `Categorized ${formatCount(categorized)} of ${formatCount(asked)}`,
         [
-          categorized < asked ? "AI wasn’t sure about the rest; they stay uncategorized." : "",
-          remaining ? `${remaining} left: run it again to continue.` : "",
+          categorized < asked ? "AI wasn’t sure about the rest, so they stay uncategorized." : "",
+          remaining ? `${formatCount(remaining)} left. Run it again to do more.` : "",
         ]
           .filter(Boolean)
           .join(" ") || undefined,

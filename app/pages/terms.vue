@@ -8,8 +8,8 @@ const demo = useDemo()
 <template>
   <LegalPage title="Terms" updated="October 2026">
     <p>
-      ViteHub Finance is open-source software. This copy is run by a person or household for themselves (the operator). By
-      using it, you agree to the following.
+      ViteHub Finance is open-source software. A person or household runs this copy for themselves, and these terms call
+      them the operator. By using it, you agree to the following.
     </p>
 
     <h2>Who it’s for</h2>
@@ -20,7 +20,7 @@ const demo = useDemo()
 
     <h2>Provided as is</h2>
     <p>
-      There is no warranty. Bank syncs can fail, arrive late, or miss a transaction, and figures can be wrong. Your bank’s
+      There is no warranty. Syncs can fail, arrive late, or miss a transaction, and figures can be wrong. Your bank’s
       own statements are the record. To the extent the law allows, neither the operator nor the project’s authors are liable
       for losses from using it.
     </p>
