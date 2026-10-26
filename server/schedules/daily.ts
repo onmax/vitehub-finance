@@ -77,7 +77,7 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
           subject: `Reconnect ${row.name} in ViteHub Finance`,
           text: [
             `Your consent for ${row.name} ends on ${until}. After that, ViteHub Finance can't fetch its balances and transactions.`,
-            origin ? `Reconnect it here (it takes a minute at your bank): ${origin}/connect` : "Open ViteHub Finance and reconnect it on the Connect page.",
+            origin ? `Reconnect it here (it takes a minute at your bank): ${origin}/connect/banks` : "Open ViteHub Finance and reconnect it on the Banks page.",
           ].join("\n\n"),
         })
         await db.update(connection).set({ remindedAt: new Date(now) }).where(eq(connection.id, row.id))

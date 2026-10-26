@@ -208,8 +208,8 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
           title="No transactions yet"
           description="Connect a bank and ViteHub Finance brings in the last 90 days or more, then keeps them up to date. You can also import a CSV."
           :actions="[
-            { label: 'Connect a bank', to: '/connect' },
-            { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect#import' },
+            { label: 'Connect a bank', to: '/connect/banks' },
+            { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
           ]"
           variant="naked"
           class="py-16"

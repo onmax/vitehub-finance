@@ -18,11 +18,11 @@ import { seal, unseal } from "../../utils/crypto"
 import { identify } from "../../utils/identity"
 import { matchReconnectedAccounts } from "../../utils/sync"
 
-const toConnect = (query: Record<string, string>) => redirect(`/connect?${new URLSearchParams(query)}`, 302)
+const toConnect = (query: Record<string, string>) => redirect(`/connect/banks?${new URLSearchParams(query)}`, 302)
 
 /**
  * Where the bank sends people back after the consent. Trades the code for a session, stores it sealed, runs the first
- * sync, and lands on /connect with `linked` or a short `error`.
+ * sync, and lands on /connect/banks with `linked` or a short `error`.
  */
 export default defineHandler(async (event) => {
   const params = event.url.searchParams

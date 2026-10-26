@@ -12,7 +12,7 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
   {
     id: "pages",
     label: "Pages",
-    items: [...MAIN_PAGES, ...SECONDARY_PAGES].map((page) => ({
+    items: [...MAIN_PAGES, ...CONNECT_PAGES, ...SECONDARY_PAGES].map((page) => ({
       label: page.label,
       icon: page.icon,
       to: page.to,
@@ -33,11 +33,12 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
     id: "actions",
     label: "Actions",
     items: [
-      { label: "Connect a bank", icon: "i-lucide-landmark", to: "/connect#bank" },
-      { label: "Add a crypto wallet", icon: "i-lucide-wallet", to: "/connect#wallet" },
-      { label: "Connect an exchange", icon: "i-lucide-bitcoin", to: "/connect#exchange" },
+      { label: "Connect a bank", icon: "i-lucide-landmark", to: "/connect/banks#bank" },
+      { label: "Add a crypto wallet", icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
+      { label: "Connect an exchange", icon: "i-lucide-bitcoin", to: "/connect/crypto#exchange" },
+      { label: "Connect Interactive Brokers", icon: "i-lucide-chart-candlestick", to: "/connect/crypto#broker" },
       { label: "Add a manual account", icon: "i-lucide-plus", to: "/accounts?new=1" },
-      { label: "Import a CSV", icon: "i-lucide-upload", to: "/connect#import" },
+      { label: "Import a CSV", icon: "i-lucide-upload", to: "/connect/banks#import" },
       { label: "Invite someone to the household", icon: "i-lucide-user-plus", to: "/household?invite=1" },
       { label: "Connect an agent (MCP)", icon: "i-lucide-bot", to: "/settings/agents" },
       ...(shared.value

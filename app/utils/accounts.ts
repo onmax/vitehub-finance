@@ -43,6 +43,10 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
   manual: { label: "Manual", kind: "manual" },
 }
 
+/** The connect page for a provider: banks and manual accounts on one, exchanges, wallets, and brokers on the other. */
+export const connectPageOf = (provider: ProviderId) =>
+  PROVIDERS[provider].kind === "bank" || PROVIDERS[provider].kind === "manual" ? "/connect/banks" : "/connect/crypto"
+
 /** A connection's state in words, and the semantic color its dot takes. */
 export const CONNECTION_STATUS: Record<ConnectionStatus, { label: string; color: "success" | "warning" | "error" | "neutral" }> = {
   active: { label: "Up to date", color: "success" },

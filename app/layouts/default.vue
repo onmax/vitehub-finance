@@ -7,26 +7,33 @@ import type { NavigationMenuItem } from "@nuxt/ui"
 const route = useRoute()
 const open = ref(false)
 const isActive = (to: string) => (to === "/" ? route.path === "/" : route.path === to || route.path.startsWith(`${to}/`))
-// Connections that need someone (expired consent, failed sync) badge Connect. The same request the overview makes.
+// Connections that need someone (expired consent, failed sync) badge their connect page. The same request the overview
+// makes.
 const { data: overview } = useOverview()
-const attention = computed(() => overview.value?.attention.length ?? 0)
+const attention = (to: string) => overview.value?.attention.filter((connection) => connectPageOf(connection.provider) === to).length ?? 0
 
 // The public demo's banner sits above the whole shell, which starts below it.
 const demo = useDemo()
 
-const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => ({
-  label: page.label,
-  icon: page.icon,
-  to: page.to,
-  active: isActive(page.to),
-  badge: page.to === "/connect" && attention.value ? { label: String(attention.value), color: "warning", variant: "subtle" } : undefined,
-  onSelect: () => (open.value = false),
-})
+const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => {
+  const count = attention(page.to)
+  return {
+    label: page.label,
+    icon: page.icon,
+    to: page.to,
+    active: isActive(page.to),
+    badge: count ? { label: String(count), color: "warning", variant: "subtle" } : undefined,
+    onSelect: () => (open.value = false),
+  }
+}
 const main = computed(() => MAIN_PAGES.map(toItem))
+const connect = computed<NavigationMenuItem[]>(() => [{ label: "Connect", type: "label" }, ...CONNECT_PAGES.map(toItem)])
 const secondary = computed(() => SECONDARY_PAGES.map(toItem))
 
 // `g o`, `g t`… like GitHub and Linear.
-defineShortcuts(Object.fromEntries([...MAIN_PAGES, ...SECONDARY_PAGES].map((page) => [`g-${page.key}`, () => navigateTo(page.to)])))
+defineShortcuts(
+  Object.fromEntries([...MAIN_PAGES, ...CONNECT_PAGES, ...SECONDARY_PAGES].map((page) => [`g-${page.key}`, () => navigateTo(page.to)])),
+)
 </script>
 
 <template>
@@ -66,6 +73,14 @@ defineShortcuts(Object.fromEntries([...MAIN_PAGES, ...SECONDARY_PAGES].map((page
           tooltip
           aria-label="Main"
           :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="connect"
+          orientation="vertical"
+          tooltip
+          aria-label="Connect"
+          :ui="{ link: 'h-9', linkLabel: 'text-sm', label: 'px-2.5 pt-2 pb-1 text-xs font-medium text-dimmed' }"
         />
         <UNavigationMenu
           :collapsed="collapsed"

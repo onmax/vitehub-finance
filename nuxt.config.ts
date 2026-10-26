@@ -188,6 +188,7 @@ export default defineNuxtConfig({
           // Navigation (app/utils/navigation.ts).
           "layout-dashboard",
           "settings",
+          "wallet-cards",
           // Account kinds (shared/accounts.ts).
           "landmark",
           "piggy-bank",
@@ -226,6 +227,10 @@ export default defineNuxtConfig({
           "key-round",
           "bike",
         ].map((name) => `lucide:${name}`),
+        // Bank marks (shared/banks.ts).
+        ...["revolut", "n26", "wise", "bunq", "monzo", "caixabank", "starlingbank", "deutschebank", "commerzbank", "barclays", "hsbc", "paypal", "klarna", "sparkasse"].map(
+          (name) => `simple-icons:${name}`,
+        ),
       ],
     },
   },

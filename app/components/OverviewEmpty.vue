@@ -11,45 +11,45 @@ const sample = Array.from({ length: 60 }, (_, index) => ({
   value: 1000 + index * 12 + Math.sin(index / 5) * 60 + Math.cos(index / 2.3) * 25,
 }))
 const options = [
-  { label: "Add a crypto wallet", description: "Bitcoin, Ethereum, Solana, XRP, or Nimiq, by address", icon: "i-lucide-wallet", to: "/connect#wallet" },
+  { label: "Add a crypto wallet", description: "Bitcoin, Ethereum, Solana, XRP, or Nimiq, by address", icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
   { label: "Add a manual account", description: "Cash, a pension, a loan", icon: "i-lucide-plus", action: () => addAccount.open() },
-  { label: "Import a CSV", description: "Any bank’s export", icon: "i-lucide-file-up", to: "/connect#import" },
+  { label: "Import a CSV", description: "Any bank’s export", icon: "i-lucide-file-up", to: "/connect/banks#import" },
 ]
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <section class="relative overflow-hidden rounded-xl border border-default bg-default shadow-xs">
-      <div class="p-4 sm:p-5" aria-hidden="true">
+  <div class="flex flex-col gap-10">
+    <section class="relative overflow-hidden border-t border-default">
+      <div class="pt-4" aria-hidden="true">
         <p class="text-sm font-medium text-muted">Net worth</p>
         <p class="money mt-1 text-3xl font-semibold tracking-[-0.02em] text-dimmed">—</p>
         <AreaChart class="mt-4" :points="sample" :format="() => ''" label="Sample chart" :height="220" dimmed bare />
       </div>
       <div class="absolute inset-0 grid place-items-center bg-default/40 p-4">
-        <div class="flex max-w-sm flex-col items-center rounded-xl border border-default bg-default p-6 text-center shadow-xs">
-          <span class="grid size-10 place-items-center rounded-lg border border-default bg-elevated">
-            <UIcon name="i-lucide-landmark" class="size-5 text-highlighted" />
+        <div class="flex max-w-sm flex-col items-center rounded-xl bg-default/90 p-6 text-center">
+          <span class="grid size-10 place-items-center rounded-lg bg-primary/10">
+            <UIcon name="i-lucide-landmark" class="size-5 text-primary" />
           </span>
           <h2 class="mt-4 text-base font-semibold text-highlighted">Connect your bank</h2>
           <p class="mt-1 text-sm text-muted">
             ViteHub Finance reads balances and transactions through your bank’s own open-banking access. Read only: it can’t move money.
           </p>
-          <UButton class="mt-5" to="/connect#bank" label="Connect a bank account" icon="i-lucide-plug" />
+          <UButton class="mt-5" to="/connect/banks#bank" label="Connect a bank account" icon="i-lucide-plug" />
         </div>
       </div>
     </section>
     <div>
-      <h2 class="text-sm font-medium text-muted">Or start another way</h2>
-      <ul class="mt-3 grid gap-3 sm:grid-cols-3">
+      <h2 class="border-b border-default pb-2 text-sm font-medium text-highlighted">Or start another way</h2>
+      <ul class="mt-2 grid gap-x-4 sm:grid-cols-3">
         <li v-for="option in options" :key="option.label">
           <component
             :is="option.to ? resolveComponent('NuxtLink') : 'button'"
             :to="option.to"
             type="button"
-            class="flex h-full w-full cursor-pointer items-start gap-3 rounded-xl border border-default bg-default p-4 text-left shadow-xs transition-colors duration-150 hover:bg-elevated/50 focus-visible:outline-2 focus-visible:outline-primary"
+            class="-mx-2 flex h-full w-[calc(100%+1rem)] cursor-pointer items-start gap-3 rounded-lg p-2 py-3 text-left transition-colors duration-150 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary"
             @click="option.action?.()"
           >
-            <span class="grid size-8 shrink-0 place-items-center rounded-md border border-default bg-elevated">
+            <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated">
               <UIcon :name="option.icon" class="size-4 text-highlighted" />
             </span>
             <span>

@@ -18,13 +18,13 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
     <template #header>
       <PageNavbar title="Overview">
         <template #right>
-          <UButton v-if="overview && !empty" to="/connect" icon="i-lucide-plus" label="Connect" color="neutral" variant="outline" class="hidden sm:inline-flex" />
+          <UButton v-if="overview && !empty" to="/connect/banks" icon="i-lucide-plus" label="Connect" color="neutral" variant="outline" class="hidden sm:inline-flex" />
         </template>
       </PageNavbar>
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <h1 class="text-xl font-semibold text-highlighted sm:text-2xl">{{ greeting }}</h1>
 
         <PageError v-if="error && !overview" :error="error" @retry="refresh()" />
@@ -32,11 +32,11 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
         <OverviewEmpty v-else-if="empty" />
         <template v-else-if="overview">
           <OverviewAttention v-if="overview.attention.length" :connections="overview.attention" />
-          <div class="grid gap-6 lg:grid-cols-3">
+          <div class="grid gap-x-10 gap-y-12 lg:grid-cols-3">
             <OverviewNetWorth :overview="overview" class="lg:col-span-2" />
             <OverviewMonth :overview="overview" />
             <OverviewFlow class="lg:col-span-3" />
-            <div class="flex flex-col gap-6">
+            <div class="flex flex-col gap-12">
               <OverviewSpending :overview="overview" />
               <OverviewUpcoming :overview="overview" />
             </div>

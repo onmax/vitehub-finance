@@ -183,7 +183,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `GET /api/connect/providers` | | `ProviderInfo[]` |
 | `GET /api/connect/banks` | `country` (ISO 3166 alpha-2) | `Bank[]` |
 | `POST /api/connect/bank` | `{ name, country }` | `{ url }` — open it; the bank returns to `/api/connect/callback` |
-| `GET /api/connect/callback` (bank redirect) | `code, state, error` | 302 to `/connect?linked=<id>` or `/connect?error=<message>` |
+| `GET /api/connect/callback` (bank redirect) | `code, state, error` | 302 to `/connect/banks?linked=<id>` or `/connect/banks?error=<message>` |
 | `POST /api/connect/exchange` | `{ provider: kraken/binance/coinbase, key, secret, name? }` | `ConnectionSummary` |
 | `POST /api/connect/wallet` | `{ chain: bitcoin/ethereum/solana/xrpl/nimiq, address, name? }` | `ConnectionSummary` |
 | `POST /api/connect/broker` | `{ provider: ibkr, token, queryId, name? }` (a Flex token and an Activity Flex Query id) | `ConnectionSummary` |

@@ -11,7 +11,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
     { label: "Members and invitations", icon: "i-lucide-users", to: "/household" },
     { label: "Invite someone", icon: "i-lucide-user-plus", to: "/household?invite=1" },
   ],
-  [{ label: "Connect an account", icon: "i-lucide-plug", to: "/connect" }],
+  [{ label: "Connect an account", icon: "i-lucide-plug", to: "/connect/banks" }],
 ])
 const subtitle = computed(() => {
   const count = me.value?.members.length ?? 1
