@@ -20,9 +20,9 @@ watch(
       <PageNavbar title="Household" :scoped="false" />
     </template>
     <template #body>
-      <div class="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <div class="flex gap-3 rounded-xl border border-default bg-muted p-4">
-          <UIcon name="i-lucide-shield-check" class="mt-0.5 size-5 shrink-0 text-toned" />
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-8">
+        <div class="flex gap-3 rounded-lg bg-primary/6 p-4 dark:bg-primary/10">
+          <UIcon name="i-lucide-shield-check" class="mt-0.5 size-5 shrink-0 text-primary" />
           <p class="text-sm text-toned">
             Shared accounts are visible to everyone in the household, with their transactions. Private accounts are visible only
             to their owner and stay out of everyone else’s totals.

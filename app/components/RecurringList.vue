@@ -41,18 +41,18 @@ const changed = (item: Recurring) => item.previousAmountMinor !== null && item.p
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <section v-for="group in groups" :key="group.label" :aria-label="group.label" class="flex flex-col gap-2">
-      <h3 class="text-sm font-medium text-muted">{{ group.label }}</h3>
-      <ul class="divide-y divide-default overflow-hidden rounded-xl border border-default bg-default shadow-xs">
+  <div class="flex flex-col gap-8">
+    <section v-for="group in groups" :key="group.label" :aria-label="group.label">
+      <h3 class="border-b border-default pb-2 text-xs font-medium text-muted">{{ group.label }}</h3>
+      <ul class="divide-y divide-default">
         <li
           v-for="item in group.items"
           :id="`recurring-${item.id}`"
           :key="item.id"
-          class="flex scroll-mt-24 items-center gap-3 px-4 py-3 transition-[background-color] duration-200"
-          :class="highlighted.includes(item.id) && 'bg-elevated'"
+          class="flex scroll-mt-24 items-center gap-3 py-3 transition-[background-color] duration-200"
+          :class="highlighted.includes(item.id) && 'bg-primary/8'"
         >
-          <div class="hidden w-14 shrink-0 flex-col items-center rounded-md border border-default py-1 sm:flex" aria-hidden="true">
+          <div class="hidden w-12 shrink-0 flex-col items-center rounded-md bg-elevated py-1 sm:flex" aria-hidden="true">
             <span class="text-[11px] text-muted">{{ formatMonth(item.nextDate.slice(0, 7), "short").slice(0, 3) }}</span>
             <span class="money text-base leading-tight font-semibold text-highlighted">{{ Number(item.nextDate.slice(8)) }}</span>
           </div>

@@ -20,7 +20,7 @@ const items = [
 </script>
 
 <template>
-  <li class="group flex items-center gap-3 px-4 py-3 sm:px-5">
+  <li class="group flex items-center gap-3 py-3.5">
     <CategoryIcon :icon="category?.icon" :color="category?.color" />
     <div class="min-w-0 flex-1">
       <div class="flex items-baseline justify-between gap-3">

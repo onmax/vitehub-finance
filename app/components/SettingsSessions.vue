@@ -73,17 +73,17 @@ async function revokeOthers() {
         @click="revokeOthers"
       />
     </template>
-    <p v-if="demo" class="flex items-center gap-2 p-4 text-sm text-muted sm:px-5">
+    <p v-if="demo" class="flex items-center gap-2 py-4 text-sm text-muted">
       <UIcon name="i-lucide-lock" class="size-4 shrink-0" />{{ DEMO_LOCKED }} Every visitor shares the demo’s sign-in.
     </p>
-    <div v-else-if="status === 'pending' && !sessions.length" class="flex flex-col gap-3 p-4 sm:px-5">
+    <div v-else-if="status === 'pending' && !sessions.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-56" />
       <USkeleton class="h-5 w-44" />
     </div>
-    <div v-else-if="error" class="p-4 sm:px-5"><PageError :error="error" @retry="refresh()" /></div>
+    <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
     <ul v-else class="divide-y divide-default">
-      <li v-for="session in sorted" :key="session.id" class="flex min-h-14 items-center gap-3 px-4 py-2 sm:px-5">
-        <span class="grid size-8 shrink-0 place-items-center rounded-md border border-default bg-elevated text-muted">
+      <li v-for="session in sorted" :key="session.id" class="flex min-h-14 items-center gap-3 py-2">
+        <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated text-muted">
           <UIcon :name="isMobileAgent(session.userAgent) ? 'i-lucide-smartphone' : 'i-lucide-monitor'" class="size-4" />
         </span>
         <div class="min-w-0 flex-1">

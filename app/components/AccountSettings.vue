@@ -122,10 +122,10 @@ const permissionOptions = [
 </script>
 
 <template>
-  <section class="rounded-xl border border-default bg-default shadow-xs" aria-labelledby="account-settings">
-    <h2 id="account-settings" class="border-b border-default px-4 py-3 text-sm font-medium text-highlighted sm:px-5">Settings</h2>
+  <section class="border-t border-default" aria-labelledby="account-settings">
+    <h2 id="account-settings" class="flex h-12 items-center text-sm font-medium text-highlighted">Settings</h2>
 
-    <div class="flex flex-col gap-5 p-4 sm:p-5">
+    <div class="flex flex-col gap-5 pt-1">
       <template v-if="account.canEdit">
         <UFormField label="Name" name="name" :error="errors.name || undefined">
           <div class="flex gap-2">
@@ -211,7 +211,7 @@ const permissionOptions = [
       <p v-if="errors.networth" class="text-sm text-error" role="alert">{{ errors.networth }}</p>
     </div>
 
-    <div v-if="account.canEdit" class="flex flex-col gap-3 border-t border-default p-4 sm:p-5">
+    <div v-if="account.canEdit" class="mt-6 flex flex-col gap-4 border-t border-default pt-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
           <p class="text-sm font-medium text-highlighted">{{ account.archived ? "Restore account" : "Archive account" }}</p>

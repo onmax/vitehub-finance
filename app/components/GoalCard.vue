@@ -19,9 +19,9 @@ const items = [
 </script>
 
 <template>
-  <article class="flex flex-col rounded-xl border border-default bg-default shadow-xs" :aria-labelledby="`goal-${goal.id}`">
-    <header class="flex items-start gap-3 p-4 pb-0 sm:p-5 sm:pb-0">
-      <span class="grid size-9 shrink-0 place-items-center rounded-lg border border-default bg-elevated text-toned" aria-hidden="true">
+  <article class="flex flex-col border-t border-default pt-4" :aria-labelledby="`goal-${goal.id}`">
+    <header class="flex items-start gap-3">
+      <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
         <UIcon :name="goal.icon || 'i-lucide-target'" class="size-4" />
       </span>
       <div class="min-w-0 flex-1">
@@ -55,7 +55,7 @@ const items = [
       </UDropdownMenu>
     </header>
 
-    <div class="flex items-center gap-4 p-4 sm:p-5">
+    <div class="flex items-center gap-4 py-5">
       <GoalRing :value="share" :label="`${formatPercent(share)} saved`" />
       <div class="min-w-0">
         <p class="text-xl font-semibold text-highlighted">
@@ -65,7 +65,7 @@ const items = [
       </div>
     </div>
 
-    <dl class="mt-auto grid gap-1.5 border-t border-default px-4 py-3 text-xs sm:px-5">
+    <dl class="mt-auto grid gap-1.5 border-t border-default pt-3 text-xs">
       <div class="flex items-center justify-between gap-3">
         <dt class="text-muted">Each month</dt>
         <dd class="flex items-center gap-1 text-right">

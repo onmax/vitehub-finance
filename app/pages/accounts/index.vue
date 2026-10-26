@@ -60,22 +60,22 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div class="mx-auto flex w-full max-w-4xl flex-col gap-8">
         <PageError v-if="error" :error="error" title="Your accounts didn’t load" @retry="refresh()" />
 
         <template v-else-if="loading">
-          <div class="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-default bg-(--ui-border)">
-            <div v-for="index in 3" :key="index" class="bg-default p-4">
+          <div class="grid grid-cols-3 divide-x divide-default">
+            <div v-for="index in 3" :key="index" class="px-4 first:ps-0 sm:px-6">
               <USkeleton class="h-3 w-16" />
               <USkeleton class="mt-2 h-6 w-28" />
             </div>
           </div>
-          <div v-for="index in 2" :key="index" class="overflow-hidden rounded-xl border border-default">
-            <div class="flex justify-between border-b border-default bg-muted/50 px-5 py-3">
+          <div v-for="index in 2" :key="index">
+            <div class="flex justify-between border-b border-default pb-2">
               <USkeleton class="h-4 w-24" />
               <USkeleton class="h-4 w-20" />
             </div>
-            <div v-for="row in 3" :key="row" class="flex items-center gap-3 px-5 py-3">
+            <div v-for="row in 3" :key="row" class="flex items-center gap-3 py-3">
               <USkeleton class="size-9 rounded-lg" />
               <div class="flex-1">
                 <USkeleton class="h-4 w-40" />
@@ -88,30 +88,30 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
 
         <UEmpty
           v-else-if="accounts.length === 0 && !showArchived"
-          variant="outline"
+          variant="naked"
           icon="i-lucide-landmark"
           title="No accounts yet"
           description="Connect your bank and ViteHub Finance keeps balances and transactions up to date. For cash or a bank ViteHub Finance can’t reach, add an account by hand."
           :actions="[
-            { label: 'Connect a bank', icon: 'i-lucide-plug', to: '/connect' },
+            { label: 'Connect a bank', icon: 'i-lucide-plug', to: '/connect/banks' },
             { label: 'Add a manual account', color: 'neutral', variant: 'ghost', onClick: addAccount },
           ]"
           class="py-16"
         />
 
         <template v-else>
-          <dl class="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-default bg-(--ui-border) shadow-xs">
-            <div class="bg-default px-4 py-3 sm:px-5">
+          <dl class="grid grid-cols-3 divide-x divide-default">
+            <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">Net worth</dt>
-              <dd class="mt-1 text-base font-semibold text-highlighted sm:text-xl"><Money :minor="assets + debts" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets + debts" compact /></dd>
             </div>
-            <div class="bg-default px-4 py-3 sm:px-5">
+            <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">Assets</dt>
-              <dd class="mt-1 text-base font-semibold text-highlighted sm:text-xl"><Money :minor="assets" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets" compact /></dd>
             </div>
-            <div class="bg-default px-4 py-3 sm:px-5">
+            <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">Debts</dt>
-              <dd class="mt-1 text-base font-semibold text-highlighted sm:text-xl"><Money :minor="Math.abs(debts)" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="Math.abs(debts)" compact /></dd>
             </div>
           </dl>
 

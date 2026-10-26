@@ -30,16 +30,16 @@ const activity = (agent: ConnectedAgent) => {
 
 <template>
   <SettingsSection title="Connected agents" description="Agents you allowed to read your money. Each one acts as you." flush>
-    <div v-if="status === 'pending' && !agents.length" class="flex flex-col gap-3 p-4 sm:px-5">
+    <div v-if="status === 'pending' && !agents.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-48" />
       <USkeleton class="h-5 w-36" />
     </div>
-    <div v-else-if="error" class="p-4 sm:px-5"><PageError :error="error" @retry="refresh()" /></div>
-    <p v-else-if="!agents.length" class="p-4 text-sm text-pretty text-muted sm:px-5">
+    <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
+    <p v-else-if="!agents.length" class="py-4 text-sm text-pretty text-muted">
       No agents yet. Add the server above to one; it shows up here once you allow it.
     </p>
     <ul v-else class="divide-y divide-default">
-      <li v-for="agent in agents" :key="agent.id" class="flex min-h-14 items-center gap-3 px-4 py-2 sm:px-5">
+      <li v-for="agent in agents" :key="agent.id" class="flex min-h-14 items-center gap-3 py-2">
         <AgentMark :name="agent.name" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-highlighted">{{ agent.name }}</p>

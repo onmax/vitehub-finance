@@ -97,21 +97,21 @@ async function remove(category: Category) {
       />
       <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add category" @click="edit()" />
     </template>
-    <div v-if="status === 'pending' && !categories.length" class="flex flex-col gap-3 p-4 sm:px-5">
+    <div v-if="status === 'pending' && !categories.length" class="flex flex-col gap-3 py-4">
       <div v-for="index in 6" :key="index" class="flex items-center gap-3">
         <USkeleton class="size-8 rounded-md" />
         <USkeleton class="h-4 w-32" />
       </div>
     </div>
-    <div v-else-if="error" class="p-4 sm:px-5"><PageError :error="error" @retry="refresh()" /></div>
-    <div v-else>
-      <div v-for="group in groups" :key="group.kind" class="border-b border-default last:border-b-0">
-        <h3 class="border-b border-default bg-muted/50 px-4 py-2 text-xs font-medium text-muted sm:px-5">
+    <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
+    <div v-else class="flex flex-col gap-6">
+      <div v-for="group in groups" :key="group.kind">
+        <h3 class="border-b border-default pb-2 text-xs font-medium text-muted">
           {{ group.label }} <span class="tabular-nums text-dimmed">{{ group.items.length }}</span>
         </h3>
-        <p v-if="!group.items.length" class="px-4 py-3 text-sm text-muted sm:px-5">None yet.</p>
-        <ul class="grid sm:grid-cols-2 [&>li]:border-default [&>li:not(:last-child)]:border-b sm:[&>li:nth-last-child(2):nth-child(odd)]:border-b-0 sm:[&>li:nth-child(odd)]:border-r">
-          <li v-for="category in group.items" :key="category.id" class="group flex min-h-12 items-center gap-3 px-4 py-1.5 sm:px-5">
+        <p v-if="!group.items.length" class="py-3 text-sm text-muted">None yet.</p>
+        <ul class="grid gap-x-8 sm:grid-cols-2">
+          <li v-for="category in group.items" :key="category.id" class="group flex min-h-12 items-center gap-3 border-b border-default py-1.5">
             <CategoryIcon :icon="category.icon" :color="category.color" />
             <span class="min-w-0 flex-1 truncate text-sm text-highlighted">{{ category.name }}</span>
             <UTooltip text="Edit">

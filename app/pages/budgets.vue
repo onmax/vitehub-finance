@@ -99,17 +99,17 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div class="mx-auto flex w-full max-w-4xl flex-col gap-10">
       <PageError v-if="error" :error="error" title="Budgets didn’t load" @retry="refresh()" />
 
       <template v-else-if="!data">
-        <div class="rounded-xl border border-default p-5">
+        <div>
           <USkeleton class="h-4 w-32" />
           <USkeleton class="mt-3 h-8 w-48" />
           <USkeleton class="mt-4 h-2 w-full" />
         </div>
-        <div class="divide-y divide-default rounded-xl border border-default">
-          <div v-for="index in 4" :key="index" class="flex items-center gap-3 p-4">
+        <div class="divide-y divide-default border-t border-default">
+          <div v-for="index in 4" :key="index" class="flex items-center gap-3 py-4">
             <USkeleton class="size-8 rounded-md" />
             <div class="flex-1">
               <USkeleton class="h-4 w-40" />
@@ -121,7 +121,7 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
 
       <template v-else-if="data.items.length === 0">
         <UEmpty
-          variant="outline"
+          variant="naked"
           icon="i-lucide-chart-pie"
           title="No budgets yet"
           description="Set a monthly limit for a category, like groceries or eating out, and see how much is left as the month goes."
@@ -138,13 +138,13 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
       <template v-else>
         <section
           aria-label="This month’s totals"
-          class="rounded-xl border border-default bg-default p-4 shadow-xs transition-opacity duration-150 sm:p-5"
+          class="transition-opacity duration-150"
           :class="status === 'pending' && 'opacity-60'"
         >
           <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div>
               <p class="text-sm text-muted">Spent of budgeted</p>
-              <p class="mt-1 text-2xl font-semibold tracking-[-0.02em] text-highlighted">
+              <p class="mt-1 text-3xl font-semibold tracking-[-0.02em] text-highlighted">
                 <Money :minor="totals.spent" :currency="currency" />
                 <span class="text-base font-normal text-muted"> of <Money :minor="totals.budgeted" :currency="currency" compact /></span>
               </p>
@@ -187,12 +187,12 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
         </section>
 
         <section v-for="section in sections" :key="section.id" :aria-labelledby="`budgets-${section.id}`">
-          <div class="mb-2 flex items-baseline justify-between gap-3">
-            <h2 :id="`budgets-${section.id}`" class="text-sm font-medium text-muted">{{ section.title }}</h2>
+          <div class="flex items-baseline justify-between gap-3 border-b border-default pb-2">
+            <h2 :id="`budgets-${section.id}`" class="text-sm font-medium text-highlighted">{{ section.title }}</h2>
             <p v-if="section.note" class="hidden text-xs text-muted sm:block">{{ section.note }}</p>
           </div>
           <ul
-            class="divide-y divide-default rounded-xl border border-default bg-default shadow-xs transition-opacity duration-150"
+            class="divide-y divide-default transition-opacity duration-150"
             :class="status === 'pending' && 'opacity-60'"
           >
             <BudgetRow v-for="budget in section.items" :key="budget.id" :budget="budget" :currency="currency" @edit="open(budget)" @remove="remove(budget)" />

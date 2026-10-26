@@ -65,8 +65,8 @@ async function remove(goal: Goal) {
     <template #body>
       <PageError v-if="error" :error="error" title="Goals didn’t load" @retry="refresh()" />
 
-      <div v-else-if="!goals" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div v-for="index in 3" :key="index" class="rounded-xl border border-default p-5">
+      <div v-else-if="!goals" class="grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
+        <div v-for="index in 3" :key="index" class="border-t border-default pt-4">
           <div class="flex gap-3">
             <USkeleton class="size-9 rounded-lg" />
             <div class="flex-1">
@@ -86,7 +86,7 @@ async function remove(goal: Goal) {
 
       <UEmpty
         v-else-if="goals.length === 0"
-        variant="outline"
+        variant="naked"
         icon="i-lucide-target"
         title="No goals yet"
         description="Save toward something together, like an emergency fund or a trip. ViteHub Finance tells you how much to put aside each month."
@@ -101,7 +101,7 @@ async function remove(goal: Goal) {
             · <Money :minor="totals.monthly" :currency="currency" class="font-medium text-highlighted" /> a month keeps every goal on time
           </template>
         </p>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
           <GoalCard
             v-for="goal in goals"
             :key="goal.id"

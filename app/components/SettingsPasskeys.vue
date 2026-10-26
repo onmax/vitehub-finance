@@ -72,16 +72,16 @@ function deviceName() {
     </template>
     <div class="flex flex-col">
       <p v-if="addError" class="mx-4 mt-4 text-sm text-error sm:mx-5" role="alert">{{ addError }}</p>
-      <p v-if="!supported" class="p-4 text-sm text-muted sm:px-5">This browser can’t create passkeys.</p>
-      <div v-if="status === 'pending' && !passkeys.length" class="flex flex-col gap-3 p-4 sm:px-5">
+      <p v-if="!supported" class="py-4 text-sm text-muted">This browser can’t create passkeys.</p>
+      <div v-if="status === 'pending' && !passkeys.length" class="flex flex-col gap-3 py-4">
         <USkeleton class="h-5 w-48" />
         <USkeleton class="h-5 w-40" />
       </div>
-      <div v-else-if="error" class="p-4 sm:px-5"><PageError :error="error" @retry="refresh()" /></div>
-      <p v-else-if="!passkeys.length" class="p-4 text-sm text-muted sm:px-5">No passkeys yet. Add one to sign in without typing a password.</p>
+      <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
+      <p v-else-if="!passkeys.length" class="py-4 text-sm text-muted">No passkeys yet. Add one to sign in without typing a password.</p>
       <ul v-else class="divide-y divide-default">
-        <li v-for="passkey in passkeys" :key="passkey.id" class="flex min-h-14 items-center gap-3 px-4 py-2 sm:px-5">
-          <span class="grid size-8 shrink-0 place-items-center rounded-md border border-default bg-elevated text-muted">
+        <li v-for="passkey in passkeys" :key="passkey.id" class="flex min-h-14 items-center gap-3 py-2">
+          <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated text-muted">
             <UIcon name="i-lucide-key-round" class="size-4" />
           </span>
           <div class="min-w-0 flex-1">

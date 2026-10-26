@@ -63,7 +63,7 @@ async function leave() {
 <template>
   <SettingsSection title="Members" :description="`${me?.members.length ?? 1} ${me?.members.length === 1 ? 'person' : 'people'}`" flush>
     <ul v-if="me" class="divide-y divide-default">
-      <li v-for="person in me.members" :key="person.userId" class="flex min-h-16 items-center gap-3 px-4 py-3 sm:px-5">
+      <li v-for="person in me.members" :key="person.userId" class="flex min-h-16 items-center gap-3 py-3">
         <UAvatar :alt="person.name" :src="person.image ?? undefined" size="md" />
         <div class="min-w-0 flex-1">
           <p class="flex items-center gap-2 text-sm font-medium text-highlighted">
@@ -95,7 +95,7 @@ async function leave() {
       </li>
     </ul>
     <div v-else class="flex flex-col divide-y divide-default">
-      <div v-for="row in 2" :key="row" class="flex items-center gap-3 px-4 py-3 sm:px-5">
+      <div v-for="row in 2" :key="row" class="flex items-center gap-3 py-3">
         <USkeleton class="size-8 rounded-full" />
         <div class="flex flex-1 flex-col gap-1.5"><USkeleton class="h-4 w-32" /><USkeleton class="h-3.5 w-44" /></div>
       </div>

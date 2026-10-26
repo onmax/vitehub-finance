@@ -69,19 +69,20 @@ async function show(ids: string[]) {
     </template>
 
     <template #body>
+      <div class="mx-auto flex w-full max-w-5xl flex-col gap-10">
       <PageError v-if="error" :error="error" title="Recurring payments didn’t load" @retry="refresh()" />
 
       <template v-else-if="loading && !data?.items.length">
-        <div class="grid shrink-0 grid-cols-1 gap-px overflow-hidden rounded-xl border border-default bg-(--ui-border) sm:grid-cols-3">
-          <div v-for="index in 3" :key="index" class="flex flex-col gap-2 bg-default p-4 sm:p-5">
+        <div class="grid shrink-0 grid-cols-3 divide-x divide-default">
+          <div v-for="index in 3" :key="index" class="flex flex-col gap-2 px-4 first:ps-0 sm:px-6">
             <USkeleton class="h-4 w-24" />
             <USkeleton class="h-7 w-32" />
           </div>
         </div>
         <div class="flex flex-col gap-2">
           <USkeleton class="h-4 w-28" />
-          <div class="divide-y divide-default rounded-xl border border-default">
-            <div v-for="index in 5" :key="index" class="flex items-center gap-3 px-4 py-3">
+          <div class="divide-y divide-default border-t border-default">
+            <div v-for="index in 5" :key="index" class="flex items-center gap-3 py-3">
               <USkeleton class="size-8 rounded-md" />
               <div class="flex flex-1 flex-col gap-1.5">
                 <USkeleton class="h-3.5 w-36" />
@@ -99,24 +100,24 @@ async function show(ids: string[]) {
         title="No recurring payments yet"
         description="ViteHub Finance spots subscriptions and bills once an account has two or three months of transactions. Connect a bank or import a statement to start."
         :actions="[
-          { label: 'Connect a bank', to: '/connect' },
-          { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect#import' },
+          { label: 'Connect a bank', to: '/connect/banks' },
+          { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
         ]"
         variant="naked"
         class="py-16"
       />
 
       <template v-else>
-        <dl class="grid shrink-0 grid-cols-3 gap-px overflow-hidden rounded-xl border border-default bg-(--ui-border) shadow-xs">
-          <div class="flex min-w-0 flex-col gap-1 bg-default p-3 sm:p-5">
+        <dl class="grid shrink-0 grid-cols-3 divide-x divide-default">
+          <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">Charges a month</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.monthlyOutMinor) }}</dd>
           </div>
-          <div class="flex min-w-0 flex-col gap-1 bg-default p-3 sm:p-5">
+          <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">Charges a year</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.yearlyOutMinor, null, { compact: true }) }}</dd>
           </div>
-          <div class="flex min-w-0 flex-col gap-1 bg-default p-3 sm:p-5">
+          <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">Income a month</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="data!.totals.monthlyInMinor > 0 ? 'money-in' : 'text-highlighted'">
               {{ format(data!.totals.monthlyInMinor) }}
@@ -128,7 +129,7 @@ async function show(ids: string[]) {
 
         <section aria-labelledby="upcoming-title" class="flex flex-col gap-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="upcoming-title" class="text-sm font-medium text-muted">
+            <h2 id="upcoming-title" class="text-sm font-medium text-highlighted">
               {{ kind === "out" ? "Upcoming charges" : "Upcoming income" }}
             </h2>
             <div class="flex items-center gap-2">
@@ -154,7 +155,7 @@ async function show(ids: string[]) {
             </div>
           </div>
           <RecurringList v-if="active.length" :items="active" :highlighted="highlighted" :shared="shared" :pending="pending" @status="setStatus" />
-          <p v-else class="rounded-xl border border-dashed border-default p-6 text-center text-sm text-muted">
+          <p v-else class="rounded-lg bg-muted p-6 text-center text-sm text-muted">
             {{ kind === "out" ? "No recurring charges right now." : "No regular income found yet." }}
           </p>
         </section>
@@ -170,8 +171,8 @@ async function show(ids: string[]) {
             :aria-expanded="showDismissed"
             @click="showDismissed = !showDismissed"
           />
-          <ul v-if="showDismissed" class="divide-y divide-default rounded-xl border border-default">
-            <li v-for="item in dismissed" :key="item.id" class="flex items-center gap-3 px-4 py-2.5">
+          <ul v-if="showDismissed" class="divide-y divide-default border-t border-default">
+            <li v-for="item in dismissed" :key="item.id" class="flex items-center gap-3 py-2.5">
               <span class="min-w-0 flex-1 truncate text-sm text-muted">{{ item.name }}</span>
               <Money :minor="item.amountMinor" :currency="item.currency" class="text-sm text-muted" />
               <UButton color="neutral" variant="outline" size="sm" label="Restore" :loading="pending.includes(item.id)" @click="setStatus(item, 'detected')" />
@@ -179,6 +180,7 @@ async function show(ids: string[]) {
           </ul>
         </section>
       </template>
+      </div>
     </template>
   </UDashboardPanel>
 </template>

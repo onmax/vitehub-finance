@@ -17,15 +17,15 @@ const columns: TableColumn<Holding>[] = [
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-xl border border-default bg-default shadow-xs" aria-labelledby="holdings">
-    <header class="flex items-baseline justify-between gap-3 border-b border-default px-4 py-3 sm:px-5">
+  <section class="border-t border-default" aria-labelledby="holdings">
+    <header class="flex h-12 items-center justify-between gap-3">
       <h2 id="holdings" class="text-sm font-medium text-highlighted">Holdings</h2>
       <span class="money text-sm text-muted">{{ holdings.length }} asset{{ holdings.length === 1 ? "" : "s" }}</span>
     </header>
-    <UTable :data="holdings" :columns="columns" :ui="{ th: 'px-4 sm:px-5', td: 'px-4 sm:px-5' }">
+    <UTable :data="holdings" :columns="columns" :ui="{ th: 'px-3 first:ps-0 last:pe-0', td: 'px-3 first:ps-0 last:pe-0' }">
       <template #symbol-cell="{ row }">
         <div class="flex min-w-0 items-center gap-2.5">
-          <span class="grid size-7 shrink-0 place-items-center rounded-md border border-default bg-elevated text-[10px] font-semibold text-toned">
+          <span class="grid size-7 shrink-0 place-items-center rounded-md bg-elevated text-[10px] font-semibold text-toned">
             {{ row.original.symbol.slice(0, 4) }}
           </span>
           <div class="min-w-0">

@@ -92,15 +92,15 @@ const expiry = (key: ApiKey) => {
     <template #actions>
       <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Create key" @click="startCreate" />
     </template>
-    <div v-if="status === 'pending' && !keys.length" class="flex flex-col gap-3 p-4 sm:px-5">
+    <div v-if="status === 'pending' && !keys.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-48" />
       <USkeleton class="h-5 w-36" />
     </div>
-    <div v-else-if="error" class="p-4 sm:px-5"><PageError :error="error" @retry="refresh()" /></div>
-    <p v-else-if="!keys.length" class="p-4 text-sm text-muted sm:px-5">No API keys. Most agents connect with OAuth above and don’t need one.</p>
+    <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
+    <p v-else-if="!keys.length" class="py-4 text-sm text-muted">No API keys. Most agents connect with OAuth above and don’t need one.</p>
     <ul v-else class="divide-y divide-default">
-      <li v-for="key in keys" :key="key.id" class="flex min-h-14 items-center gap-3 px-4 py-2 sm:px-5">
-        <span class="grid size-8 shrink-0 place-items-center rounded-md border border-default bg-elevated text-muted">
+      <li v-for="key in keys" :key="key.id" class="flex min-h-14 items-center gap-3 py-2">
+        <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated text-muted">
           <UIcon name="i-lucide-key-round" class="size-4" />
         </span>
         <div class="min-w-0 flex-1">

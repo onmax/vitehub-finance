@@ -161,7 +161,7 @@ const title = computed(() =>
       </form>
 
       <div v-else class="flex flex-col gap-3">
-        <ul class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border border-default bg-muted p-3 font-mono text-sm text-highlighted" aria-label="Backup codes">
+        <ul class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-muted p-3 font-mono text-sm text-highlighted" aria-label="Backup codes">
           <li v-for="item in backupCodes" :key="item" class="tabular-nums">{{ item }}</li>
         </ul>
         <div class="flex gap-2">

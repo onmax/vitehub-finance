@@ -22,26 +22,24 @@ const KIND = {
 </script>
 
 <template>
-  <section v-if="visible.length" aria-labelledby="insights-title" class="flex flex-col gap-3">
-    <div class="flex items-baseline justify-between gap-3">
-      <h2 id="insights-title" class="text-sm font-medium text-muted">Ways to save</h2>
+  <section v-if="visible.length" aria-labelledby="insights-title" class="flex flex-col">
+    <div class="flex items-baseline justify-between gap-3 border-b border-default pb-2">
+      <h2 id="insights-title" class="text-sm font-medium text-highlighted">Ways to save</h2>
       <p class="text-sm text-muted">
         Up to <span class="money font-medium text-highlighted">{{ format(total, null, { compact: true }) }}</span> a year
       </p>
     </div>
-    <ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      <li v-for="insight in visible" :key="idOf(insight)" class="flex flex-col gap-3 rounded-xl border border-default bg-default p-4 shadow-xs">
-        <div class="flex items-start gap-3">
-          <span class="grid size-8 shrink-0 place-items-center rounded-md bg-elevated text-toned" aria-hidden="true">
-            <UIcon :name="KIND[insight.kind].icon" class="size-4" />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="text-xs text-muted">{{ KIND[insight.kind].label }}</p>
-            <h3 class="text-sm font-medium text-highlighted">{{ insight.title }}</h3>
-          </div>
+    <ul class="divide-y divide-default">
+      <li v-for="insight in visible" :key="idOf(insight)" class="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
+        <span class="grid size-8 shrink-0 place-items-center rounded-md bg-warning/10 text-warning" aria-hidden="true">
+          <UIcon :name="KIND[insight.kind].icon" class="size-4" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs text-muted">{{ KIND[insight.kind].label }}</p>
+          <h3 class="text-sm font-medium text-highlighted">{{ insight.title }}</h3>
+          <p class="mt-1 text-sm text-muted">{{ insight.detail }}</p>
         </div>
-        <p class="text-sm text-muted">{{ insight.detail }}</p>
-        <div class="mt-auto flex items-center justify-between gap-2 border-t border-default pt-3">
+        <div class="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
           <p class="text-sm">
             <span class="text-muted">Save </span>
             <span class="money font-medium text-highlighted">{{ format(insight.savingsMinor, null, { compact: true }) }}</span>

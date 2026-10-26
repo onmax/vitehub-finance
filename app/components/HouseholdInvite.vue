@@ -110,7 +110,7 @@ async function copyLink(invitation: Invitation | string, id: string) {
       </DemoLock>
     </form>
 
-    <div v-if="lastLink" class="mt-4 rounded-lg border border-default bg-muted p-3">
+    <div v-if="lastLink" class="mt-4 rounded-lg bg-muted p-3">
       <p class="text-sm font-medium text-highlighted">Send them this link</p>
       <div class="mt-2 flex items-center gap-2">
         <code class="min-w-0 flex-1 truncate rounded-md border border-default bg-default px-2.5 py-2 font-mono text-xs" :title="lastLink">{{ lastLink }}</code>
@@ -125,9 +125,9 @@ async function copyLink(invitation: Invitation | string, id: string) {
     </div>
 
     <div v-if="invitations.length" class="mt-5">
-      <h3 class="text-sm font-medium text-muted">Waiting to join</h3>
-      <ul class="mt-2 divide-y divide-default rounded-lg border border-default">
-        <li v-for="invitation in invitations" :key="invitation.id" class="flex min-h-14 items-center gap-3 px-3 py-2">
+      <h3 class="border-b border-default pb-2 text-xs font-medium text-muted">Waiting to join</h3>
+      <ul class="divide-y divide-default">
+        <li v-for="invitation in invitations" :key="invitation.id" class="flex min-h-14 items-center gap-3 py-2">
           <span class="grid size-8 shrink-0 place-items-center rounded-full border border-dashed border-default">
             <UIcon name="i-lucide-mail" class="size-4 text-muted" />
           </span>
