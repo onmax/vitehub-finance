@@ -11,7 +11,7 @@ import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
 import { valueCoinTransactions, valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
-import { backfillHoldingSnapshots, backfillSnapshots, recordSnapshot } from "./snapshots"
+import { backfillDailyValues, backfillHoldingSnapshots, backfillSnapshots, recordSnapshot } from "./snapshots"
 import { detectTransfers, transferCategory } from "./transfers"
 
 export type SyncTrigger = "schedule" | "manual" | "link"
@@ -157,6 +157,8 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
   }
   if (hasHoldings) await replaceHoldings(account.id, holdings)
   await recordSnapshot(account.id, balance ?? account.balanceMinor)
+  // A broker's own daily values fill the chart's past; only days without a snapshot, so it runs every time.
+  if (hasHoldings && remote.dailyValues?.length) await backfillDailyValues(account.id, currency, remote.dailyValues)
   // A wallet's history, to walk back from what it holds now into a balance chart once its rows are in.
   const history: HoldingsHistory | null = hasHoldings && remote.coinHistory ? { currency, holdings: remote.holdings!, coins: remote.coinHistory } : null
   // A wallet's coin movements, valued in the account's currency. They never set its balance: the holdings do.

@@ -1,4 +1,5 @@
-// The one data model every broker answers in: per account, what it holds and the cash it keeps, at the broker's prices.
+// The one data model every broker answers in: per account, what it holds and the cash it keeps at the broker's prices,
+// and, over the period the broker reports on, its trades, its cash movements, and what it was worth each day.
 
 export type BrokerId = "ibkr"
 export type BrokerProviderId = BrokerId | "fake"
@@ -30,11 +31,53 @@ export interface CashBalance {
   amount: number
 }
 
+/** A buy or a sell. */
+export interface Trade {
+  /** The broker's id for it, when it gives one. */
+  id: string | null
+  /** `YYYY-MM-DD`, the trade date. */
+  date: string
+  symbol: string
+  description: string | null
+  /** Units bought, negative when sold. */
+  quantity: number
+  /** Per unit, in `currency`. */
+  price: number
+  /** What the cash changed by, commission included: negative for a buy. */
+  netCash: number
+  currency: string
+}
+
+/** Money in or out of the account that isn't a trade: a deposit, a withdrawal, a dividend, its tax, interest, a fee. */
+export interface CashMovement {
+  id: string | null
+  /** `YYYY-MM-DD`. */
+  date: string
+  /** The broker's kind for it, as it names it: "Deposits/Withdrawals", "Dividends", "Withholding Tax", "Other Fees", … */
+  type: string
+  description: string
+  /** Negative when money left. */
+  amount: number
+  currency: string
+}
+
+/** What the whole account was worth at the end of a day, in the account's base currency. */
+export interface DailyValue {
+  /** `YYYY-MM-DD`. */
+  date: string
+  value: number
+  currency: string
+}
+
 export interface BrokerAccount {
   /** The broker's account number: U1234567. */
   id: string
   positions: Position[]
   cash: CashBalance[]
+  /** Over the period the broker reported on, oldest first; empty when it reports none. */
+  trades: Trade[]
+  cashMovements: CashMovement[]
+  history: DailyValue[]
 }
 
 export interface BrokerProvider {

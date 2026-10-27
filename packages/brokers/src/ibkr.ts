@@ -3,7 +3,7 @@
 // only read reports: it can't trade or move money.
 import { BrokerError, type BrokerErrorCode } from "./errors.ts"
 import { requester, type ClientOptions } from "./http.ts"
-import type { BrokerAccount, BrokerProvider, CashBalance, Position } from "./model.ts"
+import type { BrokerAccount, BrokerProvider, CashBalance, CashMovement, DailyValue, Position, Trade } from "./model.ts"
 import { find, findAll, parseXml, type XmlElement } from "./xml.ts"
 
 export interface IbkrCredentials {
@@ -116,6 +116,74 @@ function cashOf(statement: XmlElement): CashBalance[] {
   return [...cash].filter(([, amount]) => amount !== 0).map(([currency, amount]) => ({ currency, amount }))
 }
 
+/**
+ * A Flex date as `YYYY-MM-DD`, or null. The query's Date Format decides how it's written: yyyyMMdd (the default),
+ * yyyy-MM-dd, or yyyy/MM/dd are read; a date and time ("20261023;101500", "2026-10-23, 10:15:00") keeps the date.
+ */
+function dayOf(value: string | undefined) {
+  const match = /^(\d{4})[-/]?(\d{2})[-/]?(\d{2})(?:$|[;, T])/.exec((value ?? "").trim())
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : null
+}
+
+const dateFormatError = () =>
+  new BrokerError("invalid_credentials", `The Flex Query's dates can't be read. Set its Date Format to yyyyMMdd in ${LABEL}'s Flex Queries and save.`, "ibkr")
+
+/** Rows of one kind with their date read, or the date format error when there are rows and none has one. */
+function dated<T extends { date: string | null }>(rows: T[]) {
+  const readable = rows.filter((row): row is T & { date: string } => row.date !== null)
+  if (rows.length && !readable.length) throw dateFormatError()
+  return readable.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/** Executions, or orders when the query has no execution rows. Each one's cash change is IBKR's net cash, commission included. */
+function tradesOf(statement: XmlElement): Trade[] {
+  const rows = [...findAll(statement, "Trade"), ...findAll(statement, "Order")]
+  const level = (row: XmlElement) => (row.attributes.levelOfDetail ?? (row.name === "Order" ? "ORDER" : "EXECUTION")).toUpperCase()
+  const executions = rows.filter((row) => level(row) === "EXECUTION")
+  return dated(
+    (executions.length ? executions : rows.filter((row) => level(row) === "ORDER")).map((row) => {
+      const attributes = row.attributes
+      // The CSV and Text formats call the quantity "Quantity", which the column names read as an open position's.
+      const quantity = number(attributes.quantity ?? attributes.position)
+      const price = number(attributes.tradePrice)
+      const netCash = attributes.netCash ? number(attributes.netCash) : -quantity * price + number(attributes.ibCommission)
+      return {
+        id: attributes.tradeID || attributes.transactionID || null,
+        date: dayOf(attributes.tradeDate) ?? dayOf(attributes.dateTime),
+        symbol: attributes.symbol ?? "",
+        description: attributes.description || null,
+        quantity,
+        price,
+        netCash,
+        currency: (attributes.currency ?? "").toUpperCase(),
+      }
+    }),
+  ).filter((trade) => trade.symbol && /^[A-Z]{3}$/.test(trade.currency) && trade.quantity !== 0)
+}
+
+/** Deposits, withdrawals, dividends and their tax, interest, and fees, one row each. Summary rows are left out. */
+function cashMovementsOf(statement: XmlElement): CashMovement[] {
+  const rows = findAll(statement, "CashTransaction").filter((row) => (row.attributes.levelOfDetail ?? "DETAIL").toUpperCase() !== "SUMMARY")
+  return dated(
+    rows.map(({ attributes }) => ({
+      id: attributes.transactionID || null,
+      date: dayOf(attributes.dateTime) ?? dayOf(attributes.settleDate) ?? dayOf(attributes.reportDate),
+      type: attributes.type ?? "",
+      description: attributes.description || attributes.type || "",
+      amount: number(attributes.amount),
+      currency: (attributes.currency ?? "").toUpperCase(),
+    })),
+  ).filter((movement) => /^[A-Z]{3}$/.test(movement.currency) && movement.amount !== 0)
+}
+
+/** The account's net asset value each day of the period, from the NAV in Base section. */
+function historyOf(statement: XmlElement): DailyValue[] {
+  const days = new Map<string, DailyValue>()
+  for (const row of dated(findAll(statement, "EquitySummaryByReportDateInBase").map(({ attributes }) => ({ date: dayOf(attributes.reportDate), attributes }))))
+    days.set(row.date, { date: row.date, value: number(row.attributes.total), currency: (row.attributes.currency ?? "").toUpperCase() })
+  return [...days.values()].filter((day) => /^[A-Z]{3}$/.test(day.currency))
+}
+
 // IBKR's names for the fields read here, lowercased without punctuation: XML attributes, and CSV and Text column
 // headers, which name some of them differently ("ClientAccountID" for `accountId`, "Quantity" for `position`).
 const COLUMNS: Record<string, string> = {
@@ -135,6 +203,40 @@ const COLUMNS: Record<string, string> = {
   positionvalue: "positionValue",
   levelofdetail: "levelOfDetail",
   endingcash: "endingCash",
+  tradedate: "tradeDate",
+  datetime: "dateTime",
+  settledate: "settleDate",
+  reportdate: "reportDate",
+  tradeprice: "tradePrice",
+  netcash: "netCash",
+  ibcommission: "ibCommission",
+  buysell: "buySell",
+  tradeid: "tradeID",
+  transactionid: "transactionID",
+  type: "type",
+  amount: "amount",
+  total: "total",
+}
+
+// What each section's rows are called in XML, and the element they sit in.
+const SECTIONS = {
+  OpenPosition: "OpenPositions",
+  CashReportCurrency: "CashReport",
+  Trade: "Trades",
+  CashTransaction: "CashTransactions",
+  EquitySummaryByReportDateInBase: "EquitySummaryInBase",
+} as const
+type Section = keyof typeof SECTIONS
+
+/** Which section a row of column names starts, from the columns only it has. */
+function sectionOf(names: Array<string | undefined>): Section | null {
+  const has = (name: string) => names.includes(name)
+  if (has("endingCash")) return "CashReportCurrency"
+  if (has("tradePrice") || has("buySell")) return "Trade"
+  if (has("total") && has("reportDate")) return "EquitySummaryByReportDateInBase"
+  if (has("type") && has("amount")) return "CashTransaction"
+  if (has("position") || has("positionValue")) return "OpenPosition"
+  return null
 }
 // "Include header and trailer records" frames every row with one of these, and HEADER and DATA rows with a section code.
 const RECORDS = new Set(["BOF", "EOF", "BOA", "EOA", "BOS", "EOS", "HEADER", "DATA", "TRAILER"])
@@ -158,8 +260,8 @@ function cellsOf(line: string, delimiter: string) {
 }
 
 /**
- * A Flex statement in CSV or Text as the elements the XML one has (FlexStatement per account, with OpenPosition and
- * CashReportCurrency rows named as in XML), or null when it has neither section. Each section starts with a row of
+ * A Flex statement in CSV or Text as the elements the XML one has (FlexStatement per account, with each section's rows
+ * named as in XML), or null when it has none of the sections read here. Each section starts with a row of
  * column names; a row is that when it has two of the names read here and no numbers.
  */
 function readDelimited(text: string): XmlElement | null {
@@ -169,7 +271,7 @@ function readDelimited(text: string): XmlElement | null {
   const element = (name: string, attributes: Record<string, string> = {}): XmlElement => ({ name, attributes, children: [], text: "" })
   const statements = new Map<string, XmlElement>()
   let header: Array<string | undefined> = []
-  let section: "OpenPosition" | "CashReportCurrency" | null = null
+  let section: Section | null = null
   for (const line of lines) {
     let cells = cellsOf(line, delimiter)
     const record = cells[0]?.toUpperCase() ?? ""
@@ -180,7 +282,7 @@ function readDelimited(text: string): XmlElement | null {
     const names = cells.map((cell) => COLUMNS[cell.toLowerCase().replace(/[^a-z0-9]/g, "")])
     if (names.filter(Boolean).length >= 2 && !cells.some((cell) => /^-?[\d.,]+$/.test(cell))) {
       header = names
-      section = names.includes("endingCash") ? "CashReportCurrency" : names.includes("position") || names.includes("positionValue") ? "OpenPosition" : null
+      section = sectionOf(names)
       continue
     }
     if (!section) continue
@@ -190,10 +292,12 @@ function readDelimited(text: string): XmlElement | null {
     let statement = statements.get(account)
     if (!statement) {
       statement = element("FlexStatement", { accountId: account })
-      statement.children.push(element("OpenPositions"), element("CashReport"))
       statements.set(account, statement)
     }
-    statement.children[section === "OpenPosition" ? 0 : 1]!.children.push(element(section, attributes))
+    const container = SECTIONS[section]
+    let parent = statement.children.find((child) => child.name === container)
+    if (!parent) statement.children.push((parent = element(container)))
+    parent.children.push(element(section, attributes))
   }
   if (!statements.size) return null
   const response = element("FlexQueryResponse")
@@ -203,7 +307,7 @@ function readDelimited(text: string): XmlElement | null {
 
 /**
  * An Activity Flex statement, in whichever format the query uses (XML, CSV, or Text), as accounts with their positions
- * and cash. Throws `invalid_credentials` when the query has neither the Open Positions nor the Cash Report section,
+ * and cash, and the trades, cash movements, and daily values of its period when the query has those sections. Throws `invalid_credentials` when the query has neither the Open Positions nor the Cash Report section,
  * since there would be nothing to show.
  */
 export function parseFlexStatement(body: string): BrokerAccount[] {
@@ -218,6 +322,9 @@ export function parseFlexStatement(body: string): BrokerAccount[] {
     id: statement.attributes.accountId ?? "",
     positions: positionsOf(statement),
     cash: cashOf(statement),
+    trades: tradesOf(statement),
+    cashMovements: cashMovementsOf(statement),
+    history: historyOf(statement),
   }))
 }
 

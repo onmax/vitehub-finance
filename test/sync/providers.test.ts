@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { mapTransactions, type EbTransaction } from "@vitehub-finance/banking/enable-banking"
 import { coinTransaction, shortAddress } from "../../server/providers/crypto"
-import { brokerHoldings } from "../../server/providers/ibkr"
+import { brokerHoldings, brokerTransactions } from "../../server/providers/ibkr"
 import { categorize, decimalToMinor, dedupeKeys, isDate } from "../../server/providers/dedupe"
 
 describe("parsing and rules", () => {
@@ -130,12 +130,36 @@ describe("broker holdings", () => {
         { ...position, symbol: "SHEL", quantity: 20, markPrice: 27.4, value: 548, currency: "GBP" },
       ],
       cash: [{ currency: "USD", amount: -120.5 }],
+      trades: [],
+      cashMovements: [],
+      history: [],
     })
     expect(holdings).toEqual([
       { symbol: "VWCE", name: "VANG FTSE AW USDA", quantity: 42, quote: { currency: "EUR", price: 138.56, value: 5819.52 } },
       { symbol: "SHEL", name: null, quantity: 10, quote: { currency: "USD", price: 35.1, value: 351 } },
       { symbol: "SHEL GBP", name: null, quantity: 20, quote: { currency: "GBP", price: 27.4, value: 548 } },
       { symbol: "USD", name: "Cash", quantity: -120.5, quote: { currency: "USD", price: 1, value: -120.5 } },
+    ])
+  })
+
+  it("reads trades and deposits as transfers, and dividends and their tax as money in and out", () => {
+    const rows = brokerTransactions({
+      id: "U1234567",
+      positions: [],
+      cash: [],
+      trades: [{ id: "741", date: "2026-10-02", symbol: "VWCE", description: "VANG FTSE AW USDA", quantity: 28, price: 167.5, netCash: -4693, currency: "EUR" }],
+      cashMovements: [
+        { id: "1", date: "2026-10-01", type: "Deposits/Withdrawals", description: "CASH RECEIPTS / ELECTRONIC FUND TRANSFERS", amount: 5000, currency: "EUR" },
+        { id: "2", date: "2026-10-15", type: "Dividends", description: "AAPL CASH DIVIDEND", amount: 2.6, currency: "USD" },
+        { id: "3", date: "2026-10-15", type: "Withholding Tax", description: "AAPL CASH DIVIDEND - US TAX", amount: -0.39, currency: "USD" },
+      ],
+      history: [],
+    })
+    expect(rows).toEqual([
+      { externalId: "trade:741", date: "2026-10-02", amountMinor: -469300, currency: "EUR", description: "Buy 28 VWCE at 167.5 EUR", counterparty: "VANG FTSE AW USDA", transfer: true },
+      { externalId: "cash:1", date: "2026-10-01", amountMinor: 500000, currency: "EUR", description: "CASH RECEIPTS / ELECTRONIC FUND TRANSFERS", transfer: true },
+      { externalId: "cash:2", date: "2026-10-15", amountMinor: 260, currency: "USD", description: "AAPL CASH DIVIDEND", transfer: false },
+      { externalId: "cash:3", date: "2026-10-15", amountMinor: -39, currency: "USD", description: "AAPL CASH DIVIDEND - US TAX", transfer: false },
     ])
   })
 })

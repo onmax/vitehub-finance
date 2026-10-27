@@ -45,6 +45,30 @@ describe("Flex statements", () => {
     ])
   })
 
+  it("reads the period's trades, cash movements, and daily value", () => {
+    const [account] = parseFlexStatement(statement)
+    // Executions only: the order row repeats them.
+    expect(account!.trades).toEqual([
+      { id: "741852963", date: "2026-10-02", symbol: "VWCE", description: "VANG FTSE AW USDA", quantity: 28, price: 167.5, netCash: -4693, currency: "EUR" },
+    ])
+    expect(account!.cashMovements).toEqual([
+      { id: "1110001", date: "2026-10-01", type: "Deposits/Withdrawals", description: "CASH RECEIPTS / ELECTRONIC FUND TRANSFERS", amount: 5000, currency: "EUR" },
+      { id: "1110002", date: "2026-10-15", type: "Dividends", description: "AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE (Ordinary Dividend)", amount: 2.6, currency: "USD" },
+      { id: "1110003", date: "2026-10-15", type: "Withholding Tax", description: "AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE - US TAX", amount: -0.39, currency: "USD" },
+    ])
+    expect(account!.history).toEqual([
+      { date: "2026-10-22", value: 14072.4, currency: "EUR" },
+      { date: "2026-10-23", value: 14213.55, currency: "EUR" },
+    ])
+  })
+
+  it("reads dates in the other formats, and says when it can't", () => {
+    const dashed = statement.replace(/(tradeDate|dateTime|reportDate|settleDate)="(\d{4})(\d{2})(\d{2})(;\d+)?"/g, '$1="$2-$3-$4"')
+    expect(parseFlexStatement(dashed)).toEqual(parseFlexStatement(statement))
+    const american = statement.replace(/reportDate="(\d{4})(\d{2})(\d{2})"/g, 'reportDate="$2/$3/$1"')
+    expect(() => parseFlexStatement(american)).toThrow(expect.objectContaining({ code: "invalid_credentials", message: expect.stringContaining("yyyyMMdd") }))
+  })
+
   it("adds lots up when the query has no summary rows", () => {
     const lots = statement.replace(/levelOfDetail="SUMMARY"/g, 'levelOfDetail="IGNORED"').replace(
       /(<OpenPosition [^>]*symbol="AAPL" [^>]*levelOfDetail="LOT"[^>]*\/>)/,
@@ -127,7 +151,7 @@ describe("Interactive Brokers", () => {
 
 describe("fake", () => {
   it("answers what it's given, or fails", async () => {
-    await expect(fake({ accounts: [{ id: "U1", positions: [], cash: [] }] }).accounts()).resolves.toHaveLength(1)
+    await expect(fake({ accounts: [{ id: "U1", positions: [], cash: [], trades: [], cashMovements: [], history: [] }] }).accounts()).resolves.toHaveLength(1)
     await expect(fake({ fail: "rate_limited" }).accounts()).rejects.toMatchObject({ code: "rate_limited" })
   })
 })

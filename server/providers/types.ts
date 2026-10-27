@@ -63,6 +63,11 @@ export interface ProviderAccount {
    * walk back from today's holdings into a balance history. Left out when the history couldn't be read.
    */
   coinHistory?: CoinHistory
+  /**
+   * Only with `holdings`: what the whole account was worth at the end of past days, by the provider's own count (a
+   * broker's net asset value), for the engine to fill the balance chart's missing days with.
+   */
+  dailyValues?: Array<{ date: string; value: number; currency: string }>
   /** Set when this one account failed; the others still sync. */
   error?: string
 }

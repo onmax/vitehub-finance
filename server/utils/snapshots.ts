@@ -4,6 +4,7 @@ import { balanceSnapshot, financialAccount, transaction } from "../databases/con
 import { currencyDigits } from "#shared/money"
 import { addDays } from "./dates"
 import { quantityTimeline, valueTimeline, type CoinHistory } from "./holdings-history"
+import { rates } from "./fx"
 import { closingPrices } from "./prices"
 
 export const today = () => new Date().toISOString().slice(0, 10)
@@ -59,6 +60,25 @@ export async function backfillSnapshots(accountId: string, days = 400) {
     if (!known.has(day)) rows.push({ accountId, date: day, balanceMinor: close })
   }
   await insertMissing(rows)
+}
+
+/**
+ * A holdings account's past days as the provider valued them (a broker's net asset value), in the account's currency at
+ * today's ECB rate, for the days before today without a snapshot. Today's is the live value the sync just wrote.
+ */
+export async function backfillDailyValues(accountId: string, currency: string, values: Array<{ date: string; value: number; currency: string }>) {
+  const past = values.filter((day) => day.date < today())
+  if (!past.length) return 0
+  // `rates` gives units of each currency per unit of `currency`; an unknown one counts 1:1, as in valueHoldings.
+  const table = past.some((day) => day.currency !== currency) ? await rates(currency) : {}
+  const scale = 10 ** currencyDigits(currency)
+  const rows = past.map((day) => ({
+    accountId,
+    date: day.date,
+    balanceMinor: Math.round((day.value / (day.currency === currency ? 1 : (table[day.currency] ?? 1))) * scale),
+  }))
+  await insertMissing(rows)
+  return rows.length
 }
 
 // Three parameters a row: 30 rows stay under D1's 100.

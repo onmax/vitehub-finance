@@ -2,7 +2,7 @@
 <!-- An Activity Flex statement in IBKR's XML format, with IBKR's attribute names and made-up numbers. -->
 <FlexQueryResponse queryName="ViteHub Finance" type="AF">
 <FlexStatements count="1">
-<FlexStatement accountId="U1234567" fromDate="20261023" toDate="20261023" period="LastBusinessDay" whenGenerated="20261026;083012">
+<FlexStatement accountId="U1234567" fromDate="20251024" toDate="20261023" period="Last365CalendarDays" whenGenerated="20261026;083012">
 <OpenPositions>
 <OpenPosition accountId="U1234567" acctAlias="" model="" currency="EUR" fxRateToBase="1" assetCategory="STK" subCategory="ETF" symbol="VWCE" description="VANG FTSE AW USDA" conid="358689487" securityID="IE00BK5BQT80" securityIDType="ISIN" cusip="" isin="IE00BK5BQT80" listingExchange="IBIS2" underlyingConid="" underlyingSymbol="" multiplier="1" reportDate="20261023" position="42" markPrice="138.56" positionValue="5819.52" openPrice="104.2" costBasisPrice="104.2" costBasisMoney="4376.4" percentOfNAV="40.12" fifoPnlUnrealized="1443.12" side="Long" levelOfDetail="SUMMARY" openDateTime="" holdingPeriodDateTime="" code="" originatingOrderID="" originatingTransactionID="" accruedInt="" />
 <OpenPosition accountId="U1234567" acctAlias="" model="" currency="USD" fxRateToBase="0.92125" assetCategory="STK" subCategory="COMMON" symbol="AAPL" description="APPLE INC" conid="265598" securityID="US0378331005" securityIDType="ISIN" cusip="037833100" isin="US0378331005" listingExchange="NASDAQ" underlyingConid="" underlyingSymbol="" multiplier="1" reportDate="20261023" position="10" markPrice="251.3" positionValue="2513" openPrice="190.5" costBasisPrice="190.5" costBasisMoney="1905" percentOfNAV="15.96" fifoPnlUnrealized="608" side="Long" levelOfDetail="SUMMARY" />
@@ -16,7 +16,18 @@
 <CashReportCurrency accountId="U1234567" acctAlias="" model="" currency="USD" levelOfDetail="Currency" fromDate="20261023" toDate="20261023" startingCash="1316.42" endingCash="1,314.03" endingSettledCash="1314.03" />
 <CashReportCurrency accountId="U1234567" acctAlias="" model="" currency="GBP" levelOfDetail="Currency" fromDate="20261023" toDate="20261023" startingCash="0" endingCash="0" endingSettledCash="0" />
 </CashReport>
+<Trades>
+<Trade accountId="U1234567" acctAlias="" model="" currency="EUR" fxRateToBase="1" assetCategory="STK" subCategory="ETF" symbol="VWCE" description="VANG FTSE AW USDA" conid="358689487" isin="IE00BK5BQT80" listingExchange="IBIS2" tradeID="741852963" transactionID="963852741" reportDate="20261002" tradeDate="20261002" dateTime="20261002;093512" quantity="28" tradePrice="167.5" proceeds="-4690" ibCommission="-3" netCash="-4693" buySell="BUY" levelOfDetail="EXECUTION" />
+<Order accountId="U1234567" currency="EUR" assetCategory="STK" symbol="VWCE" description="VANG FTSE AW USDA" conid="358689487" tradeDate="20261002" dateTime="20261002;093512" quantity="28" tradePrice="167.5" proceeds="-4690" ibCommission="-3" netCash="-4693" buySell="BUY" levelOfDetail="ORDER" />
+</Trades>
+<CashTransactions>
+<CashTransaction accountId="U1234567" acctAlias="" model="" currency="EUR" fxRateToBase="1" type="Deposits/Withdrawals" dateTime="20261001;120000" settleDate="20261001" reportDate="20261001" amount="5000" description="CASH RECEIPTS / ELECTRONIC FUND TRANSFERS" transactionID="1110001" levelOfDetail="DETAIL" />
+<CashTransaction accountId="U1234567" acctAlias="" model="" currency="USD" fxRateToBase="0.92125" type="Dividends" symbol="AAPL" dateTime="20261015" settleDate="20261015" reportDate="20261015" amount="2.6" description="AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE (Ordinary Dividend)" transactionID="1110002" levelOfDetail="DETAIL" />
+<CashTransaction accountId="U1234567" acctAlias="" model="" currency="USD" fxRateToBase="0.92125" type="Withholding Tax" symbol="AAPL" dateTime="20261015" settleDate="20261015" reportDate="20261015" amount="-0.39" description="AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE - US TAX" transactionID="1110003" levelOfDetail="DETAIL" />
+<CashTransaction accountId="U1234567" acctAlias="" model="" currency="BASE_SUMMARY" type="" dateTime="" amount="5002.04" description="" transactionID="" levelOfDetail="SUMMARY" />
+</CashTransactions>
 <EquitySummaryInBase>
+<EquitySummaryByReportDateInBase accountId="U1234567" acctAlias="" model="" currency="EUR" reportDate="20261022" cash="6461.2" stock="8001.3" options="-390.1" bonds="0" funds="0" crypto="0" total="14072.4" />
 <EquitySummaryByReportDateInBase accountId="U1234567" acctAlias="" model="" currency="EUR" reportDate="20261023" cash="6461.2" stock="8134.67" options="-382.32" bonds="0" funds="0" crypto="0" total="14213.55" />
 </EquitySummaryInBase>
 </FlexStatement>

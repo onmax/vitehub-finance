@@ -23,8 +23,8 @@ const querySteps = computed(() => [
 ])
 const tokenSteps = computed(() => [translate('catalogIbkrTokenStep1'), translate('catalogIbkrTokenStep2'), translate('catalogIbkrTokenStep3'), translate('catalogIbkrTokenStep4')])
 // In English whatever the app's language: it names IBKR's sections and fields as IBKR does. It asks for what
-// @vitehub-finance/brokers reads (OpenPosition and CashReportCurrency rows).
-const PROMPT = "Create an Activity Flex Query named ViteHub Finance with two sections and nothing else. Open Positions at the Summary level of detail, with all fields, including Account ID, Currency, Asset Class, Symbol, Description, Conid, ISIN, Quantity, Mark Price, and Position Value. Cash Report per currency, with all fields, including Currency and Ending Cash. Format: XML. Period: Last Business Day. Keep Display Account Alias in Place of Account ID and Breakout by Day on No, and add no filters."
+// @vitehub-finance/brokers reads: positions, cash, trades, cash movements, and a year of daily net asset value.
+const PROMPT = "Create an Activity Flex Query named ViteHub Finance with these five sections and nothing else. Open Positions at the Summary level of detail, with all fields, including Account ID, Currency, Asset Class, Symbol, Description, Conid, ISIN, Quantity, Mark Price, and Position Value. Cash Report per currency, with all fields, including Currency and Ending Cash. Trades at the Execution level of detail, with all fields, including Trade ID, Trade Date, Symbol, Description, Quantity, Trade Price, Net Cash, and Currency. Cash Transactions, with all fields, including Type, Date/Time, Amount, Currency, Description, and Transaction ID. Net Asset Value (NAV) in Base, with all fields, including Report Date and Total. Format: XML. Period: Last 365 Calendar Days. Date Format: yyyyMMdd. Keep Display Account Alias in Place of Account ID and Breakout by Day on No, and add no filters."
 const { copy, copied } = useClipboard({ copiedDuring: 1500, legacy: true })
 
 async function submit() {
