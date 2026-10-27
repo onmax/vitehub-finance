@@ -116,16 +116,104 @@ function cashOf(statement: XmlElement): CashBalance[] {
   return [...cash].filter(([, amount]) => amount !== 0).map(([currency, amount]) => ({ currency, amount }))
 }
 
+// IBKR's names for the fields read here, lowercased without punctuation: XML attributes, and CSV and Text column
+// headers, which name some of them differently ("ClientAccountID" for `accountId`, "Quantity" for `position`).
+const COLUMNS: Record<string, string> = {
+  accountid: "accountId",
+  clientaccountid: "accountId",
+  currency: "currency",
+  currencyprimary: "currency",
+  assetcategory: "assetCategory",
+  assetclass: "assetCategory",
+  symbol: "symbol",
+  description: "description",
+  conid: "conid",
+  isin: "isin",
+  position: "position",
+  quantity: "position",
+  markprice: "markPrice",
+  positionvalue: "positionValue",
+  levelofdetail: "levelOfDetail",
+  endingcash: "endingCash",
+}
+// "Include header and trailer records" frames every row with one of these, and HEADER and DATA rows with a section code.
+const RECORDS = new Set(["BOF", "EOF", "BOA", "EOA", "BOS", "EOS", "HEADER", "DATA", "TRAILER"])
+
+/** One line of CSV (quoted cells, doubled quotes inside) or of IBKR's Text format (`|` or tab between cells). */
+function cellsOf(line: string, delimiter: string) {
+  const cells: string[] = []
+  let cell = ""
+  let quoted = false
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index]!
+    if (quoted) {
+      if (char !== '"') cell += char
+      else if (line[index + 1] === '"') (cell += '"'), index++
+      else quoted = false
+    } else if (char === '"') quoted = true
+    else if (char === delimiter) cells.push(cell.trim()), (cell = "")
+    else cell += char
+  }
+  return [...cells, cell.trim()]
+}
+
 /**
- * An Activity Flex statement (XML) as accounts with their positions and cash. Throws `invalid_credentials` when the
- * query has neither the Open Positions nor the Cash Report section, since there would be nothing to show.
+ * A Flex statement in CSV or Text as the elements the XML one has (FlexStatement per account, with OpenPosition and
+ * CashReportCurrency rows named as in XML), or null when it has neither section. Each section starts with a row of
+ * column names; a row is that when it has two of the names read here and no numbers.
  */
-export function parseFlexStatement(xml: string): BrokerAccount[] {
-  const document = parseXml(xml)
+function readDelimited(text: string): XmlElement | null {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim())
+  if (!lines.length) return null
+  const delimiter = ["|", "\t", ","].map((char) => [char, lines[0]!.split(char).length] as const).sort((a, b) => b[1] - a[1])[0]![0]
+  const element = (name: string, attributes: Record<string, string> = {}): XmlElement => ({ name, attributes, children: [], text: "" })
+  const statements = new Map<string, XmlElement>()
+  let header: Array<string | undefined> = []
+  let section: "OpenPosition" | "CashReportCurrency" | null = null
+  for (const line of lines) {
+    let cells = cellsOf(line, delimiter)
+    const record = cells[0]?.toUpperCase() ?? ""
+    if (RECORDS.has(record)) {
+      if (record !== "HEADER" && record !== "DATA") continue
+      cells = cells.slice(2)
+    }
+    const names = cells.map((cell) => COLUMNS[cell.toLowerCase().replace(/[^a-z0-9]/g, "")])
+    if (names.filter(Boolean).length >= 2 && !cells.some((cell) => /^-?[\d.,]+$/.test(cell))) {
+      header = names
+      section = names.includes("endingCash") ? "CashReportCurrency" : names.includes("position") || names.includes("positionValue") ? "OpenPosition" : null
+      continue
+    }
+    if (!section) continue
+    const attributes: Record<string, string> = {}
+    header.forEach((name, index) => name && (attributes[name] = cells[index] ?? ""))
+    const account = attributes.accountId ?? ""
+    let statement = statements.get(account)
+    if (!statement) {
+      statement = element("FlexStatement", { accountId: account })
+      statement.children.push(element("OpenPositions"), element("CashReport"))
+      statements.set(account, statement)
+    }
+    statement.children[section === "OpenPosition" ? 0 : 1]!.children.push(element(section, attributes))
+  }
+  if (!statements.size) return null
+  const response = element("FlexQueryResponse")
+  response.children.push(...statements.values())
+  return { ...element("#document"), children: [response] }
+}
+
+/**
+ * An Activity Flex statement, in whichever format the query uses (XML, CSV, or Text), as accounts with their positions
+ * and cash. Throws `invalid_credentials` when the query has neither the Open Positions nor the Cash Report section,
+ * since there would be nothing to show.
+ */
+export function parseFlexStatement(body: string): BrokerAccount[] {
+  const needsSections = () =>
+    new BrokerError("invalid_credentials", `The Flex Query needs the Open Positions and Cash Report sections. Add them in ${LABEL}'s Flex Queries and save.`, "ibkr")
+  const document = body.includes("<FlexQueryResponse") ? parseXml(body) : readDelimited(body)
+  if (!document) throw needsSections()
   const response = find(document, "FlexQueryResponse")
   if (!response) throw new BrokerError("unavailable", `${LABEL} sent something other than a Flex statement. Try again later.`, "ibkr")
-  if (!find(response, "OpenPositions") && !find(response, "CashReport"))
-    throw new BrokerError("invalid_credentials", `The Flex Query needs the Open Positions and Cash Report sections. Add them in ${LABEL}'s Flex Queries and save.`, "ibkr")
+  if (!find(response, "OpenPositions") && !find(response, "CashReport")) throw needsSections()
   return findAll(response, "FlexStatement").map((statement) => ({
     id: statement.attributes.accountId ?? "",
     positions: positionsOf(statement),
@@ -135,7 +223,7 @@ export function parseFlexStatement(xml: string): BrokerAccount[] {
 
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-/** Interactive Brokers with a Flex token and an Activity Flex Query in XML. */
+/** Interactive Brokers with a Flex token and an Activity Flex Query, in any of its formats. */
 export function ibkr(credentials: IbkrCredentials, options: IbkrOptions = {}): BrokerProvider {
   const request = requester("ibkr", LABEL, options)
   const base = options.baseUrl ?? IBKR_FLEX_URL
@@ -165,10 +253,9 @@ export function ibkr(credentials: IbkrCredentials, options: IbkrOptions = {}): B
       for (let poll = 0; poll < maxPolls; poll++) {
         if (poll > 0) await sleep(pollIntervalMs)
         const body = await get("GetStatement", { t: token, q: sent.reference })
-        if (body.includes("<FlexQueryResponse")) return parseFlexStatement(body)
-        const answer = flexResponse(body)
-        if (!answer)
-          throw new BrokerError("invalid_credentials", `The Flex Query must be in XML. Edit it in ${LABEL}, set Format to XML, and save.`, "ibkr")
+        // Not ready yet, or an error, is a FlexStatementResponse; anything else is the statement, in the query's format.
+        const answer = body.includes("<FlexQueryResponse") ? null : flexResponse(body)
+        if (!answer) return parseFlexStatement(body)
         if (NOT_READY.has(answer.code) || TOO_MANY.has(answer.code)) continue
         throw flexError(answer.code, answer.message)
       }

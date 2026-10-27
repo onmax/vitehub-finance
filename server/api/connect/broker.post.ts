@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
@@ -6,7 +7,7 @@ import type { ConnectionSummary } from "#shared/api"
 import { connection } from "../../databases/config"
 import { ibkrProvider } from "../../providers/ibkr"
 import { BROKER_PROVIDERS } from "../../providers/index"
-import { assertNotLinked, connectionSummary, fail, providerHttpError, readValid, rememberOrigin } from "../../utils/connections"
+import { connectionSummary, fail, providerHttpError, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
 import { refuseDemoPerson } from "../../demo/mode"
@@ -21,6 +22,8 @@ const Body = v.object({
 /**
  * Connects Interactive Brokers with a Flex token and an Activity Flex Query. The query runs once before anything is
  * saved, so a wrong token or a query without positions answers 401 with IBKR's reason; then it's sealed and synced.
+ * Flex tokens expire, so connecting a query that's already connected gives that connection the new token, keeping its
+ * accounts and history.
  */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
   refuseDemoPerson(await requireMember(event))
@@ -29,11 +32,30 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   const credentials = { token: body.token, queryId: body.queryId }
   // The query decides what's read; a new token for the same query is the same connection.
   const externalId = `query:${body.queryId}`
-  await assertNotLinked(who, body.provider, externalId)
+  const [existing] = await db
+    .select({ id: connection.id })
+    .from(connection)
+    .where(
+      and(
+        eq(connection.householdId, who.householdId),
+        eq(connection.ownerId, who.userId),
+        eq(connection.provider, body.provider),
+        eq(connection.externalId, externalId),
+      ),
+    )
+    .limit(1)
   const result = await ibkrProvider(credentials).catch((error) => {
     throw providerHttpError(error)
   })
   if (!result.accounts.length) throw fail(400, "The Flex Query has no accounts in it. Check its Accounts setting.")
+  if (existing) {
+    await db
+      .update(connection)
+      .set({ credentials: await seal(credentials), status: "active", lastError: null, lastErrorCode: null })
+      .where(eq(connection.id, existing.id))
+    await dispatchSync(existing.id, "link").catch((error) => console.error("[finance] Broker sync after a new token failed", error))
+    return connectionSummary(who, existing.id)
+  }
   const id = crypto.randomUUID()
   await db.insert(connection).values({
     id,

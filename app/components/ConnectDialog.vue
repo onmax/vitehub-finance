@@ -23,7 +23,6 @@ const formId = `connect-step-${useId()}`
 provideConnectFlow({
   entry: props.entry,
   formId,
-  draft: reactive({}),
   pending,
   error,
   next() {

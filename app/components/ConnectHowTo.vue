@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Exact instructions, folded under a one-line summary: people who know the way skip them, the rest open the numbered
-// list. The provider's own guide sits under it.
+// list. The default slot goes under the summary (a shortcut), the provider's own guide under the list.
 const props = defineProps<{ summary: string; steps: string[]; guide?: { label: string; to: string } | null; defaultOpen?: boolean }>()
 const open = ref(props.defaultOpen ?? false)
 </script>
@@ -8,6 +8,7 @@ const open = ref(props.defaultOpen ?? false)
 <template>
   <div class="rounded-lg border border-default bg-elevated/40">
     <p class="px-3 pt-3 text-sm text-pretty text-toned">{{ summary }}</p>
+    <div v-if="$slots.default" class="pt-2"><slot /></div>
     <UCollapsible v-model:open="open" :ui="{ content: 'px-3' }">
       <UButton
         color="neutral"

@@ -4,10 +4,7 @@
 // connect (`GET /api/connect/providers`); `soon` ones can't be connected anywhere yet.
 import type { Component } from "vue"
 import ExchangeKey from "~/components/connect/ExchangeKey.vue"
-import IbkrCredentials from "~/components/connect/IbkrCredentials.vue"
-import IbkrIntro from "~/components/connect/IbkrIntro.vue"
-import IbkrQuery from "~/components/connect/IbkrQuery.vue"
-import IbkrToken from "~/components/connect/IbkrToken.vue"
+import IbkrConnect from "~/components/connect/IbkrConnect.vue"
 import WalletAddress from "~/components/connect/WalletAddress.vue"
 import type { ConnectionSummary, ProviderId, ProviderInfo } from "#shared/api"
 
@@ -159,10 +156,7 @@ export const CATALOG: CatalogProvider[] = [
     get authDetail() { return translate('catalogFlexTokenDetail') },
     docs: "https://www.ibkrguides.com/clientportal/performanceandstatements/flex3.htm",
     steps: [
-      step("intro", () => translate('catalogStepWhatItReads'), IbkrIntro),
-      step("query", () => translate('catalogStepCreateTheFlexQuery'), IbkrQuery),
-      step("token", () => translate('catalogStepCreateTheToken'), IbkrToken),
-      step("credentials", () => translate('catalogStepPasteAndCheck'), IbkrCredentials, () => translate('catalogCheckAndConnect')),
+      step("connect", () => translate('catalogIbkrStepTitle'), IbkrConnect, () => translate('catalogCheckAndConnect')),
     ],
   },
   comingSoon("trade-republic", "Trade Republic", "traderepublic.com", () => translate('catalogTradeRepublicDescription')),

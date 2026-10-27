@@ -28,7 +28,8 @@ still generating (error 1019 and the other "not ready" codes) the client asks ag
 IBKR answers errors with HTTP 200 and a `FlexStatementResponse`, and its edge answers 403 to requests without a
 User-Agent.
 
-The query must be an Activity Flex Query in XML with the Open Positions and Cash Report sections. A period of "Last
+The query must be an Activity Flex Query with the Open Positions and Cash Report sections, in any format: XML, or CSV
+and Text, whose column names (`ClientAccountID`, `Quantity`) are read as the XML attributes they stand for. A period of "Last
 Business Day" keeps it small. Open positions use the summary rows, or add the lots up per instrument when the query
 only has lots. Cash is `endingCash` per currency; the `BASE_SUMMARY` row is left out because it repeats the others in
 the base currency. One query can cover several linked accounts, one `BrokerAccount` each.
@@ -36,7 +37,7 @@ the base currency. One query can cover several linked accounts, one `BrokerAccou
 In Client Portal:
 
 1. Performance & Reports › Flex Queries. Next to Activity Flex Query, click +. Tick Open Positions and Cash Report, set
-   Format to XML and Period to Last Business Day, and save. The Query ID is in the query's info.
+   Period to Last Business Day, and save. The Query ID is in the query's info.
 2. Flex Web Service Configuration: turn the service on and generate a token. Leave "Valid For IP Address" empty
    (Workers have no fixed IP) and pick the longest expiry. A new token replaces the old one.
 

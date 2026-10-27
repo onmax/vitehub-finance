@@ -4,6 +4,8 @@ import { BrokerError, ibkr, IBKR_FLEX_URL, parseFlexStatement } from "../src/ind
 import { fake } from "../src/fake.ts"
 
 const statement = readFileSync(new URL("./fixtures/activity-statement.xml", import.meta.url), "utf8")
+// The same statement as a query set to CSV writes it: each section's column names, then its rows.
+const csvStatement = readFileSync(new URL("./fixtures/activity-statement.csv", import.meta.url), "utf8")
 
 const flexResponse = (fields: string) =>
   `<FlexStatementResponse timestamp='26 October, 2026 02:58 PM EDT'>\n${fields}\n</FlexStatementResponse>`
@@ -52,6 +54,16 @@ describe("Flex statements", () => {
     expect(account!.positions).toMatchObject([{ symbol: "AAPL", quantity: 15, value: 3769.5 }])
   })
 
+  it("reads the same statement from a query in CSV or Text", () => {
+    const fromXml = parseFlexStatement(statement)
+    expect(parseFlexStatement(csvStatement)).toEqual(fromXml)
+    // "Include header and trailer records" frames the rows; Text separates cells with a bar.
+    const framed = ['"BOF","U1234567"', ...csvStatement.trim().split("\n").map((line) => (line.startsWith('"ClientAccountID"') ? `"HEADER","POST",${line}` : `"DATA","POST",${line}`)), '"EOF","U1234567"'].join("\n")
+    expect(parseFlexStatement(framed)).toEqual(fromXml)
+    const text = csvStatement.replace(/"1,314\.03"/, '"1314.03"').replace(/","/g, "|").replace(/"/g, "")
+    expect(parseFlexStatement(text)).toEqual(fromXml)
+  })
+
   it("asks for the Open Positions and Cash Report sections", () => {
     const empty = `<FlexQueryResponse queryName="q" type="AF"><FlexStatements count="1"><FlexStatement accountId="U1"><Trades /></FlexStatement></FlexStatements></FlexQueryResponse>`
     expect(() => parseFlexStatement(empty)).toThrow(expect.objectContaining({ code: "invalid_credentials", message: expect.stringContaining("Open Positions") }))
@@ -96,12 +108,14 @@ describe("Interactive Brokers", () => {
     await expect(ibkr(credentials, { fetch: edge }).accounts()).rejects.toMatchObject({ code: "unavailable" })
   })
 
-  it("gives up after a few polls, and refuses a query that isn't XML", async () => {
+  it("gives up after a few polls, and reads a query that isn't XML", async () => {
     const slow = flexStub(success, [failure("1019", "Statement generation in progress.")])
     await expect(ibkr(credentials, { fetch: slow.stub, pollIntervalMs: 0, maxPolls: 3 }).accounts()).rejects.toMatchObject({ code: "unavailable" })
     expect(slow.calls.filter((call) => call.path === "GetStatement")).toHaveLength(3)
-    const csv = flexStub(success, ['"ClientAccountID","Symbol"\n"U1234567","AAPL"'])
-    await expect(ibkr(credentials, { fetch: csv.stub }).accounts()).rejects.toMatchObject({ code: "invalid_credentials", message: expect.stringContaining("XML") })
+    const csv = flexStub(success, [csvStatement])
+    expect(await ibkr(credentials, { fetch: csv.stub }).accounts()).toEqual(parseFlexStatement(statement))
+    const trades = flexStub(success, ['"ClientAccountID","Symbol","TradePrice"\n"U1234567","AAPL","251.3"'])
+    await expect(ibkr(credentials, { fetch: trades.stub }).accounts()).rejects.toMatchObject({ code: "invalid_credentials", message: expect.stringContaining("Open Positions") })
   })
 
   it("checks the credentials' shape before calling", async () => {

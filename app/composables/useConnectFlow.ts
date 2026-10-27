@@ -5,12 +5,11 @@ import type { CatalogProvider } from "~/utils/connect-catalog"
 /**
  * What a connect dialog (ConnectDialog) shares with its steps. Each step renders a UForm with `formId`, so the dialog's
  * primary button submits the current step: its validation runs on submit, then the step calls `next()`, or, on the last
- * step, `connect()` with its request. `draft` carries what earlier steps collected (a ticked "done", a name).
+ * step, `connect()` with its request.
  */
 export interface ConnectFlow {
   entry: CatalogProvider
   formId: string
-  draft: Record<string, string | boolean>
   pending: Ref<boolean>
   error: Ref<string>
   next: () => void
