@@ -29,5 +29,10 @@ export function deployment(env: Record<string, string | undefined> = process.env
 
   const demo = ["1", "true"].includes((env.FINANCE_DEMO ?? "").trim().toLowerCase())
 
-  return { host, email: email as "" | "resend" | "cloudflare", demo }
+  // The public hostname (finance.example.com), when the build knows it: Cloudflare routes it to the Worker, and links in
+  // emails always point at it, whatever a request's Host header said.
+  const domain = (env.FINANCE_DOMAIN ?? "").trim().toLowerCase()
+  if (domain && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) throw new Error(`FINANCE_DOMAIN must be a hostname like finance.example.com; got "${domain}".`)
+
+  return { host, email: email as "" | "resend" | "cloudflare", demo, domain }
 }

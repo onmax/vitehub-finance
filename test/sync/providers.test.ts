@@ -3,6 +3,7 @@ import { mapTransactions, type EbTransaction } from "@vitehub-finance/banking/en
 import { coinTransaction, shortAddress } from "../../server/providers/crypto"
 import { brokerHoldings, brokerTransactions } from "../../server/providers/ibkr"
 import { categorize, decimalToMinor, dedupeKeys, isDate } from "../../server/providers/dedupe"
+import { sessionDigest } from "../../server/providers/enable-banking"
 
 describe("parsing and rules", () => {
   it("turns decimal strings and numbers into minor units", () => {
@@ -161,5 +162,16 @@ describe("broker holdings", () => {
       { externalId: "cash:2", date: "2026-10-15", amountMinor: 260, currency: "USD", description: "AAPL CASH DIVIDEND", transfer: false },
       { externalId: "cash:3", date: "2026-10-15", amountMinor: -39, currency: "USD", description: "AAPL CASH DIVIDEND - US TAX", transfer: false },
     ])
+  })
+})
+
+describe("bank session ids at rest", () => {
+  it("keeps a one-way digest in the connection, never the id", async () => {
+    const id = "8e3c2b0e-6a7f-4c1d-9f0a-2b5d7e9c1a34"
+    const digest = await sessionDigest(id)
+    expect(digest).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(digest).not.toContain(id)
+    expect(await sessionDigest(id)).toBe(digest)
+    expect(await sessionDigest("another-session")).not.toBe(digest)
   })
 })

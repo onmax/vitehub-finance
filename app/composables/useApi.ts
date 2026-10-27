@@ -66,6 +66,11 @@ export function useNotify() {
   const toast = useToast()
   return {
     error: (error: unknown, title = translate('thatDidnTWork')) => {
+      // The read-only demo refusing an edit isn't a failure: say why, calmly, and leave the logs alone.
+      if (isDemoLocked(error)) {
+        const [lockedTitle, description] = [translate('notAvailableInTheDemo'), translate('demoLockedHint')]
+        return toast.add({ id: "demo-locked", title: lockedTitle, description, color: "neutral", icon: "i-lucide-lock", duration: readingTime(lockedTitle, description) })
+      }
       reportClientError("toast", error, { title })
       const description = errorText(error)
       return toast.add({ title, description, color: "error", icon: "i-lucide-circle-alert", duration: readingTime(title, description) })

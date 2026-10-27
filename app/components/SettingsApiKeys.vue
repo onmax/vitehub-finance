@@ -90,7 +90,9 @@ const expiry = (key: ApiKey) => {
 <template>
   <SettingsSection :title="$t('apiKeys')" :description="$t('forScriptsAndAgentsThatCanTSignInWith')" flush>
     <template #actions>
-      <UButton color="neutral" variant="outline" icon="i-lucide-plus" :label="$t('createKey')" @click="startCreate" />
+      <DemoLock v-slot="{ locked }">
+        <UButton color="neutral" variant="outline" icon="i-lucide-plus" :label="$t('createKey')" :disabled="locked" @click="startCreate" />
+      </DemoLock>
     </template>
     <div v-if="status === 'pending' && !keys.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-48" />

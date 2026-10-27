@@ -3,6 +3,7 @@ import evlog from "evlog/nitro/v3"
 import type { NuxtConfig } from "nuxt/schema"
 import { env, typesafeEnv } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
+import { URL_QUERY } from "./server/utils/log-text.ts"
 
 const target = deployment()
 // `nuxt dev` runs as a Node host whatever the target: local SQLite, KV files, inline syncs. It needs no Cloudflare
@@ -29,9 +30,10 @@ const EVLOG = {
   exclude: ["/_nuxt/**", "/_fonts/**", "/favicon.svg", "/__nuxt_error", "/api/_nuxt_icon/**"],
   redact: {
     // Built-in masks (emails, IBANs, card numbers, bearer tokens, JWTs, and keys ending in password, secret, or token)
-    // plus ViteHub Finance's own: submitted exchange keys, sealed credentials, PEM keys, fin_ API keys.
+    // plus ViteHub Finance's own: submitted exchange keys, sealed credentials, PEM keys, fin_ API keys, and the query
+    // of any URL in any field (`path` is already the bare pathname; error messages and stacks may hold a full URL).
     paths: ["**.key", "**.secret", "**.privateKey", "**.credentials", "**.apiKey"],
-    patterns: [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, /\bfin_[A-Za-z0-9_-]{8,}/g],
+    patterns: [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, /\bfin_[A-Za-z0-9_-]{8,}/g, URL_QUERY],
   },
 }
 
@@ -68,6 +70,17 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
   },
 }
 
+/**
+ * On every page and API response. The CSP only stops framing, `<base>` rewrites, and plugins: the SPA, Nuxt UI, the
+ * OAuth consent page, and passkeys load scripts and styles the CSP doesn't restrict.
+ */
+const SECURITY_HEADERS = {
+  "content-security-policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+  "x-frame-options": "DENY",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+}
+
 const EMAIL = {
   resend: {
     driver: "resend" as const,
@@ -99,11 +112,14 @@ export default defineNuxtConfig({
   css: ["@fontsource-variable/geist", "@fontsource-variable/geist-mono", "~/assets/css/main.css"],
 
   runtimeConfig: {
+    // Where links in emails point (server/utils/connections.ts `knownOrigin`). Empty without FINANCE_DOMAIN.
+    origin: target.domain ? `https://${target.domain}` : "",
     public: { email: Boolean(email), host, demo },
   },
 
   routeRules: {
-    "/api/**": { headers: { "cache-control": "private, no-store" } },
+    "/**": { headers: SECURITY_HEADERS },
+    "/api/**": { headers: { ...SECURITY_HEADERS, "cache-control": "private, no-store" } },
   },
 
   // OAuth discovery for MCP clients (server/handlers/oauth-metadata.ts), bare and path-suffixed (`.../mcp`).
@@ -263,16 +279,15 @@ export default defineNuxtConfig({
     cloudflare: {
       wrangler: {
         name: worker,
-        // Workers Logs keeps every console line (evlog's events) and every invocation (requests, the Schedule, Queue
-        // batches) for querying in the dashboard or `wrangler tail`.
-        observability: { enabled: true, head_sampling_rate: 1, logs: { enabled: true, invocation_logs: true } },
+        // Workers Logs keeps every console line: evlog's events, which already cover each request, the Schedule, and
+        // Queue batches, without queries. Invocation logs stay off: they record each request's full URL, so a bank's
+        // redirect (`/api/connect/callback?code=…`) would keep its authorization code for days.
+        observability: { enabled: true, head_sampling_rate: 1, logs: { enabled: true, invocation_logs: false } },
         placement: { mode: "smart" },
         // The sync Queue (server/queues/sync.ts): ViteHub generates its producer and consumer as the package name plus
         // queue--<hex of "sync">, binding QUEUE_73796E63. This only tunes the consumer: five syncs per batch.
         ...(queue ? { queues: { consumers: [{ queue: "vitehub-finance-queue--73796e63", max_batch_size: 5, max_retries: 3 }] } } : {}),
-        ...(process.env.FINANCE_DOMAIN
-          ? { routes: [{ pattern: process.env.FINANCE_DOMAIN, custom_domain: true }], workers_dev: false }
-          : {}),
+        ...(target.domain ? { routes: [{ pattern: target.domain, custom_domain: true }], workers_dev: false } : {}),
       },
     },
   },
@@ -315,6 +330,9 @@ export default defineNuxtConfig({
           emailFrom: env({ source: env.source("FINANCE_EMAIL_FROM"), default: "ViteHub Finance <finance@example.com>" }),
           // Optional. Where people write about their data; /privacy shows it (server/api/legal.get.ts) and omits the line when empty.
           contactEmail: env({ source: env.source("FINANCE_CONTACT_EMAIL"), default: "" }),
+          // Optional, for hosts built without FINANCE_DOMAIN (a Node server): the public origin links in emails use,
+          // like https://finance.example.com. Unset, they use the first origin someone connected from.
+          origin: env({ source: env.source("FINANCE_ORIGIN"), default: "" }),
         },
         // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
         enableBanking: {

@@ -88,7 +88,9 @@ async function submit() {
     <template #footer>
       <div class="flex w-full justify-end gap-2">
         <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
-        <UButton type="submit" form="account-create" :label="$t('addAccount')" :loading="pending" />
+        <DemoLock v-slot="{ locked }">
+          <UButton type="submit" form="account-create" :label="$t('addAccount')" :loading="pending" :disabled="locked" />
+        </DemoLock>
       </div>
     </template>
   </UModal>

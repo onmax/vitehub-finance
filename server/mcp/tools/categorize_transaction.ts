@@ -1,6 +1,7 @@
 import { HTTPError } from "h3"
 import { defineMcpTool } from "nitro-mcp-toolkit"
 import * as v from "valibot"
+import { refuseDemoPerson } from "../../demo/mode"
 import { requireMember } from "../../utils/identity"
 import { getTransaction, updateTransaction } from "../../utils/transactions"
 import { categoryNames, resolveCategory } from "../categories"
@@ -23,6 +24,8 @@ export default defineMcpTool({
   ),
   handler: async ({ id, categoryId, applyToSimilar, scope }, event) => {
     const who = await requireMember(event)
+    // The demo is read-only for its people (server/demo/read-only.ts); /mcp isn't under /api/, so the tool checks.
+    refuseDemoPerson(who)
     if (!(await getTransaction(who, id, scope ?? "household"))) throw new HTTPError({ status: 404, message: `No transaction with id ${id}.` })
     const names = await categoryNames(who)
     const resolved = await resolveCategory(who, categoryId, names)

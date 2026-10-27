@@ -1,16 +1,22 @@
 import { and, desc, eq, gte } from "drizzle-orm"
 import { defineHandler } from "h3"
 import { db } from "vite-hub/database/drizzle"
+import { checkRateLimit } from "vite-hub/rate-limit"
 import { dispatchSync } from "#dispatch"
 import { syncRun } from "../../../databases/config"
 import { errorMessage, fail, requireOwnConnection } from "../../../utils/connections"
 import { requireMember } from "../../../utils/identity"
+import { refuseOverLimit } from "../../../utils/rate-limit"
+import { releaseSync, reserveSync } from "../../../utils/sync"
 import { refuseDemoPerson } from "../../../demo/mode"
 
 // Banks allow about four unattended fetches a day under PSD2; the daily schedule uses one.
 const BANK_INTERVAL = 6 * 60 * 60 * 1000
 
-/** Syncs now. On Node it waits for the sync and reports its failure; on Cloudflare it queues one. */
+/**
+ * Syncs now. On Node it waits for the sync and reports its failure; on Cloudflare it queues one. A connection syncs
+ * by hand at most three times a minute and once at a time: the reservation holds it until that sync ends.
+ */
 export default defineHandler(async (event) => {
   refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
@@ -25,10 +31,14 @@ export default defineHandler(async (event) => {
       "syncAfter", { time: next.toISOString().slice(11, 16) },
     )
   }
+  refuseOverLimit(await checkRateLimit(event, "manual-sync", { limit: 3, window: "1m", key: row.id }))
+  if (!(await reserveSync(row.id))) throw fail(409, "This connection is already syncing. Wait for it to finish.")
   const started = new Date(Date.now() - 1000)
   try {
     await dispatchSync(row.id, "manual")
   } catch (error) {
+    // Queued or not, the manual sync releases the reservation when it ends; one that never started can't.
+    await releaseSync(row.id)
     throw fail(502, errorMessage(error))
   }
   // Inline syncs record expected failures (an expired consent, a revoked key) instead of throwing.

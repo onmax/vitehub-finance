@@ -30,8 +30,8 @@ async function switchPerson() {
     <UIcon name="i-lucide-flask-conical" class="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
     <p class="min-w-0 text-balance leading-tight">
       <span class="font-medium text-highlighted">{{ $t('demoHousehold') }}</span>
-      <span class="ml-1 hidden sm:inline"> {{ $t('changesResetEveryNight') }}</span>
-      <span class="ml-1 sm:hidden"> {{ $t('resetsNightly') }}</span>
+      <span class="ml-1 hidden sm:inline"> {{ $t('demoReadOnly') }}</span>
+      <span class="ml-1 sm:hidden"> {{ $t('demoReadOnlyShort') }}</span>
     </p>
     <UButton
       v-if="me"

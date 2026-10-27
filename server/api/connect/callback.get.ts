@@ -6,7 +6,7 @@ import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
 import { dispatchSync } from "#dispatch"
 import { connection } from "../../databases/config"
-import { createSession, deleteSession, type EnableBankingCredentials } from "../../providers/enable-banking"
+import { createSession, deleteSession, sessionDigest, type EnableBankingCredentials } from "../../providers/enable-banking"
 import {
   bankConfig,
   errorMessage,
@@ -80,7 +80,7 @@ export default defineHandler(async (event) => {
       .update(connection)
       .set({
         credentials: await seal(session.credentials),
-        externalId: session.credentials.sessionId,
+        externalId: await sessionDigest(session.credentials.sessionId),
         consentExpiresAt: session.consentExpiresAt,
         status: "active",
         lastError: null,

@@ -113,7 +113,9 @@ const can = [
       <p class="mt-4 text-xs text-muted">{{ $t('itCanTSeeOtherMembersPrivateAccountsDisconnectIt') }}</p>
       <div class="mt-6 grid grid-cols-2 gap-2">
         <UButton block color="neutral" variant="outline" :label="$t('deny')" :disabled="pending !== null" :loading="pending === 'deny'" @click="answer(false)" />
-        <UButton block :label="$t('allow')" :disabled="pending !== null" :loading="pending === 'allow'" @click="answer(true)" />
+        <DemoLock v-slot="{ locked }" block>
+          <UButton block :label="$t('allow')" :disabled="locked || pending !== null" :loading="pending === 'allow'" @click="answer(true)" />
+        </DemoLock>
       </div>
     </template>
 

@@ -5,6 +5,7 @@ import { type H3Event } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
+import { useRuntimeConfig } from "nitro/runtime-config"
 import { useServerEnv } from "#vitehub/env/server"
 import type { Bank, ConnectionSummary, SyncRun } from "#shared/api"
 import { connection, financialAccount, syncRun, user as users } from "../databases/config"
@@ -14,6 +15,7 @@ import { ProviderError, providerMessageCode } from "../providers/types"
 import { bankLogos } from "./bank-logos"
 import type { Member } from "./identity"
 import { isDemo } from "../demo/mode"
+import { linkOrigin, remembersRequestOrigin, type OriginSettings } from "./origin"
 
 export type ConnectionRow = typeof connection.$inferSelect
 
@@ -81,16 +83,22 @@ export function providerHttpError(error: unknown) {
   return fail(502, errorMessage(error))
 }
 
-/** The schedule has no request to read its origin from, so remember the one people use when they connect something. */
-export async function rememberOrigin(event: H3Event) {
-  const origin = event.url.origin
-  const [, known] = await kv.get<string>("app:origin")
-  if (known !== origin) await kv.set("app:origin", origin)
+async function originSettings(): Promise<OriginSettings> {
+  const [, remembered] = await kv.get<string>("app:origin")
+  return { built: useRuntimeConfig().origin, configured: useServerEnv().finance.origin, remembered: remembered ?? null }
 }
 
+/**
+ * The schedule has no request to read its origin from. Without FINANCE_DOMAIN or FINANCE_ORIGIN, remember the first
+ * one people connect something from; later requests never replace it (server/utils/origin.ts).
+ */
+export async function rememberOrigin(event: H3Event) {
+  if (remembersRequestOrigin(await originSettings())) await kv.set("app:origin", event.url.origin)
+}
+
+/** Where links in emails point, or null before anyone connected anything on a host that doesn't know its origin. */
 export async function knownOrigin() {
-  const [, origin] = await kv.get<string>("app:origin")
-  return origin ?? null
+  return linkOrigin(await originSettings())
 }
 
 const BANKS_TTL = 24 * 60 * 60 * 1000

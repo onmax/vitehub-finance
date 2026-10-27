@@ -94,7 +94,9 @@ const matchesLink = (rule: Rule) => ({ path: "/transactions", query: { q: rule.m
         <UFormField name="categoryId" class="sm:w-56" :label="$t('ruleFileUnder')">
           <CategorySelect v-model="state.categoryId" allow-none :none-label="$t('ruleKeepCategory')" :placeholder="$t('pickACategory2')" class="w-full" />
         </UFormField>
-        <UButton type="submit" color="neutral" variant="outline" icon="i-lucide-plus" :label="$t('addRule')" :loading="pending" class="justify-center sm:mt-6" />
+        <DemoLock v-slot="{ locked }" class="sm:mt-6">
+          <UButton type="submit" color="neutral" variant="outline" icon="i-lucide-plus" :label="$t('addRule')" :loading="pending" :disabled="locked" class="justify-center" :class="{ 'sm:mt-6': !locked }" />
+        </DemoLock>
       </div>
       <UCheckbox v-model="state.exclude" :label="$t('ruleExclude')" :description="$t('ruleExcludeHelp')" />
     </UForm>

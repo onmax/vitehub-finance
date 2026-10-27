@@ -240,11 +240,12 @@ describe("XRP Ledger history", () => {
   })
 })
 
-describe("XRP Ledger history of a real address", () => {
-  // `account_tx` and `account_info` for rRedactedXrpAddress01xxxxxxxxxxx, recorded from s1.ripple.com at validated
-  // ledger 107932070 (2026-10-27): 25 transactions, of which 9 payments changed its XRP balance.
-  const address = "rRedactedXrpAddress01xxxxxxxxxxx"
-  const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/xrpl-redacted-${name}.json`, import.meta.url), "utf8"))
+describe("XRP Ledger history in a ledger server's shape", () => {
+  // `account_tx` and `account_info` in the shape s1.ripple.com (a clio server) answers, with made-up addresses, hashes,
+  // keys, ledgers, dates, amounts, and memos: 25 transactions, of which 9 payments changed its XRP balance; the rest
+  // are other people's checks and token escrows.
+  const address = "rpcisbyD7qz2EvDcEsgGVAkgUu9srkc3L7"
+  const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/xrpl-synthetic-${name}.json`, import.meta.url), "utf8"))
   const accountTx = fixture("account_tx")
   const accountInfo = fixture("account_info")
   const read = async () => {
@@ -255,17 +256,17 @@ describe("XRP Ledger history of a real address", () => {
   it("reads the payments and leaves out other people's checks and token escrows", async () => {
     expect(accountTx.result.transactions).toHaveLength(25)
     const parsed = await read()
-    const sender = "rRedactedXrpAddress06xxxxxxxxxxx"
+    const sender = "rN4tJtvjd5zWJssvn9hGUVg8ukDsDhVRhw"
     expect(parsed.map(({ date, kind, quantity, fee, counterparty }) => [date, kind, quantity, fee, counterparty])).toEqual([
-      ["2026-08-26", "receive", 0.000001, 0, "rRedactedXrpAddress04xxxxxxxxxxx"],
-      ["2026-08-26", "receive", 0.000001, 0, "rRedactedXrpAddress04xxxxxxxxxxx"],
-      ["2026-08-23", "receive", 0.000001, 0, "rRedactedXrpAddress10xxxxxxxxxxx"],
-      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
-      ["2026-08-01", "receive", 3559.800466, 0, sender],
-      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
-      ["2026-08-01", "receive", 43788.683248, 0, sender],
-      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
-      ["2026-08-01", "receive", 13.7, 0, sender],
+      ["2026-07-04", "receive", 0.000001, 0, "rG5dhukNGC4eLeX1zqijtBAunBSc6dJN3h"],
+      ["2026-07-04", "receive", 0.000001, 0, "rG5dhukNGC4eLeX1zqijtBAunBSc6dJN3h"],
+      ["2026-07-01", "receive", 0.000001, 0, "rnSJiMwviqbAwSh8Ud1hvBVtx84CcTifsC"],
+      ["2026-06-09", "receive", 0.000002, 0, "r3rfavBoWAZ2g91fFCWCuKzj5DkCMAdz3g"],
+      ["2026-06-09", "receive", 1323.889793, 0, sender],
+      ["2026-06-09", "receive", 0.000002, 0, "r3rfavBoWAZ2g91fFCWCuKzj5DkCMAdz3g"],
+      ["2026-06-09", "receive", 16285.0113, 0, sender],
+      ["2026-06-09", "receive", 0.000002, 0, "r3rfavBoWAZ2g91fFCWCuKzj5DkCMAdz3g"],
+      ["2026-06-09", "receive", 5.09503, 0, sender],
     ])
     expect(new Set(parsed.map((row) => row.id)).size).toBe(9)
   })
@@ -276,7 +277,7 @@ describe("XRP Ledger history of a real address", () => {
     const drops = parsed.reduce((sum, row) => sum + Math.round((row.quantity - row.fee) * 1e6), 0)
     expect(String(drops)).toBe(accountInfo.result.account_data.Balance)
     const [holding] = await xrpl(address, { fetch: urlStub({ [XRPL_SERVERS[0]!]: [json(accountInfo)] }).stub }).balances()
-    expect(holding!.quantity).toBe(0)
+    expect(holding!.quantity).toBe(17613.996132)
   })
 })
 
