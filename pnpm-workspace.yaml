@@ -12,7 +12,7 @@ overrides:
 
 patchedDependencies:
   # Jev through TypeSafe, Vercel AI Gateway, or Cloudflare AI Gateway: `typesafeEnv({ provider: "cloudflare" })` and the
-  # `jev()` client in vite-hub/agent/gateways. Upstream: PR_LINK. Drop both when the vite-hub pin includes it.
+  # `jev()` client in vite-hub/agent/gateways. Upstream: https://github.com/vite-hub/vitehub/pull/2985. Drop both when the vite-hub pin includes it.
   '@vite-hub/agent@0.0.4': patches/@vite-hub__agent@0.0.4.patch
   '@vite-hub/env@0.0.4': patches/@vite-hub__env@0.0.4.patch
   # Logs the error behind a JSON-RPC "Internal error"; upstream returns it without a trace.
