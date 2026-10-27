@@ -10,14 +10,14 @@ const { copy, copied } = useClipboard({ copiedDuring: 1500, legacy: true })
       class="min-w-0 flex-1 overflow-x-auto px-3 py-2.5 font-mono text-[13px] leading-5 text-highlighted"
       :class="wrap ? 'whitespace-pre-wrap break-all' : multiline ? 'whitespace-pre' : 'whitespace-nowrap'"
     ><code>{{ props.code }}</code></pre>
-    <UTooltip :text="copied ? 'Copied' : `Copy ${label}`">
+    <UTooltip :text="copied ? $t('copied') : $t('copy', { value1: label })">
       <UButton
         color="neutral"
         variant="ghost"
         size="sm"
         class="m-1 shrink-0"
         :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-        :aria-label="copied ? 'Copied' : `Copy ${label}`"
+        :aria-label="copied ? $t('copied') : $t('copy', { value1: label })"
         @click="copy(props.code)"
       />
     </UTooltip>

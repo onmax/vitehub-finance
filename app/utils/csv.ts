@@ -1,3 +1,4 @@
+import { translate } from "./translate"
 // Bank exports as CSV, parsed in the browser: quoted fields (with "" escapes and line breaks inside), `;`, `,`, or
 // tab delimiters, a byte-order mark, and a header row or none. Then dates and amounts in the formats banks use.
 import { parseAmount } from "#shared/money"
@@ -7,10 +8,10 @@ export type DateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD" | "DD-MM-YYY
 export type DecimalSeparator = "auto" | "," | "."
 
 export const CSV_DELIMITERS: Array<{ value: CsvDelimiter; label: string }> = [
-  { value: ";", label: "Semicolon (;)" },
-  { value: ",", label: "Comma (,)" },
-  { value: "\t", label: "Tab" },
-  { value: "|", label: "Pipe (|)" },
+  { value: ";", get label() { return translate('semicolon') } },
+  { value: ",", get label() { return translate('comma') } },
+  { value: "\t", get label() { return translate('tabDelimiter') } },
+  { value: "|", get label() { return translate('pipe') } },
 ]
 
 export const CSV_DATE_FORMATS: DateFormat[] = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD-MM-YYYY", "DD.MM.YYYY"]
@@ -225,17 +226,17 @@ export function mapCsvRows(rows: string[][], mapping: CsvMapping): ParsedRow[] {
     const line = index + offset
     const cell = (column: number | null) => (column === null ? "" : (cells[column] ?? "").replace(/\s+/g, " ").trim())
     const date = parseCsvDate(cell(mapping.date), mapping.dateFormat)
-    if (!date) return { line, cells, ok: false, error: cell(mapping.date) ? `“${cell(mapping.date)}” isn’t a ${mapping.dateFormat} date` : "No date" }
+    if (!date) return { line, cells, ok: false, error: cell(mapping.date) ? translate('isnTADate', { value1: cell(mapping.date), value2: mapping.dateFormat }) : translate('noDate') }
     let amount: number | null
     if (mapping.amountMode === "split") {
       const out = parseCsvAmount(cell(mapping.debit), mapping.decimal)
       const into = parseCsvAmount(cell(mapping.credit), mapping.decimal)
       amount = out === null && into === null ? null : (into ?? 0) - Math.abs(out ?? 0)
     } else amount = parseCsvAmount(cell(mapping.amount), mapping.decimal)
-    if (amount === null) return { line, cells, ok: false, error: "No amount" }
+    if (amount === null) return { line, cells, ok: false, error: translate('noAmount') }
     if (mapping.invert) amount = -amount
     const description = cell(mapping.description) || cell(mapping.counterparty)
-    if (!description) return { line, cells, ok: false, error: "No description" }
+    if (!description) return { line, cells, ok: false, error: translate('noDescription') }
     const counterparty = cell(mapping.counterparty) || null
     return {
       line,

@@ -30,7 +30,7 @@ const saving = ref(false)
 const demo = useDemo()
 const error = ref("")
 
-const validate = (values: typeof state) => (values.name.trim() ? [] : [{ name: "name", message: "Give the household a name." }])
+const validate = (values: typeof state) => (values.name.trim() ? [] : [{ name: "name", message: translate('giveTheHouseholdAName') }])
 
 async function save() {
   saving.value = true
@@ -48,9 +48,9 @@ async function save() {
     const currencyChanged = state.currency !== me.value?.household.currency
     await refresh()
     if (currencyChanged) await refreshNuxtData()
-    notify.success("Household saved")
+    notify.success(translate('householdSaved'))
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t save. Try again.")
+    error.value = errorText(cause, translate('couldnTSaveTryAgain'))
   } finally {
     saving.value = false
   }
@@ -59,32 +59,32 @@ async function save() {
 
 <template>
   <UForm :state="state" :validate="validate" :disabled="!isOwner || demo" @submit="save">
-    <SettingsSection title="Household" :description="demo ? DEMO_LOCKED : isOwner ? undefined : 'Only the household’s owner changes these.'">
+    <SettingsSection :title="$t('household')" :description="demo ? demoLocked() : isOwner ? undefined : $t('onlyTheHouseholdSOwnerChangesThese')">
       <div class="flex flex-col gap-5">
         <div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
-          <UFormField label="Name" name="name">
+          <UFormField :label="$t('name')" name="name">
             <UInput v-model="state.name" class="w-full" />
           </UFormField>
-          <UFormField label="Currency" name="currency" help="Totals and charts use it.">
+          <UFormField :label="$t('currency')" name="currency" :help="$t('totalsAndChartsUseIt')">
             <USelect v-model="state.currency" :items="CURRENCIES" class="w-full" />
           </UFormField>
         </div>
         <USwitch
           v-model="state.shareNewAccounts"
-          label="Share new accounts by default"
-          description="Accounts anyone connects start visible to the whole household. Each owner can still make theirs private."
+          :label="$t('shareNewAccountsByDefault')"
+          :description="$t('accountsAnyoneConnectsStartVisibleToTheWholeHouseholdEach')"
         />
         <USwitch
           v-if="me?.ai"
           v-model="state.aiCategorize"
-          label="Suggest categories with AI"
-          description="When no rule matches a transaction, TypeSafe’s Jev model suggests a category from its description, payee, and rounded amount. It never sees names, IBANs, or account numbers. Suggestions are marked, and you can change them."
+          :label="$t('suggestCategoriesWithAi')"
+          :description="$t('whenNoRuleMatchesATransactionTypesafeSJevModel')"
         />
       </div>
       <template v-if="isOwner" #footer>
         <p v-if="error" class="mr-auto text-sm text-error" role="alert">{{ error }}</p>
         <DemoLock v-slot="{ locked }">
-          <UButton type="submit" color="neutral" variant="outline" label="Save" :loading="saving" :disabled="locked || !dirty" />
+          <UButton type="submit" color="neutral" variant="outline" :label="$t('save')" :loading="saving" :disabled="locked || !dirty" />
         </DemoLock>
       </template>
     </SettingsSection>

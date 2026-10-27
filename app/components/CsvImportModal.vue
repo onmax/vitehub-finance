@@ -23,9 +23,9 @@ const currency = computed(() => account.value?.currency)
 type Step = "upload" | "map" | "preview"
 const step = ref<Step>("upload")
 const steps = computed(() => [
-  { value: "upload", title: "File", icon: "i-lucide-upload" },
-  { value: "map", title: "Columns", icon: "i-lucide-columns-3", disabled: !text.value },
-  { value: "preview", title: "Preview", icon: "i-lucide-eye", disabled: !ready.value },
+  { value: "upload", get title() { return translate('file') }, icon: "i-lucide-upload" },
+  { value: "map", get title() { return translate('columns') }, icon: "i-lucide-columns-3", disabled: !text.value },
+  { value: "preview", get title() { return translate('preview') }, icon: "i-lucide-eye", disabled: !ready.value },
 ])
 
 // Step 1: the file.
@@ -50,11 +50,11 @@ function decode(buffer: ArrayBuffer) {
 async function readFile(file: File) {
   loadError.value = ""
   if (file.size > 5 * 1024 * 1024) {
-    loadError.value = "That file is over 5 MB. Export a shorter period and import it in parts."
+    loadError.value = translate('thatFileIsOver5MbExportAShorterPeriod')
     return
   }
   if (/\.(xlsx?|ods|pdf)$/i.test(file.name)) {
-    loadError.value = "That’s not a CSV. In your bank or spreadsheet app, export or save it as CSV first."
+    loadError.value = translate('thatSNotACsvInYourBankOrSpreadsheet')
     return
   }
   load(file.name, decode(await file.arrayBuffer()))
@@ -67,7 +67,7 @@ async function loadSample() {
     const sample = await $fetch<string>("/samples/household-sample.csv", { responseType: "text" })
     load("household-sample.csv", sample)
   } catch (cause) {
-    loadError.value = errorText(cause, "Couldn’t load the sample file.")
+    loadError.value = errorText(cause, translate('couldnTLoadTheSampleFile'))
   } finally {
     loading.value = false
   }
@@ -91,7 +91,7 @@ const mapping = reactive<CsvMapping>({
 function load(name: string, content: string) {
   const suggestion = suggestCsvMapping(content)
   if (suggestion.rows.length === 0) {
-    loadError.value = "That file is empty."
+    loadError.value = translate('thatFileIsEmpty')
     return
   }
   fileName.value = name
@@ -113,12 +113,12 @@ const columnItems = computed(() => {
     const example = sample[index]?.trim()
     return {
       value: index,
-      label: name || `Column ${index + 1}`,
+      label: name || translate('column', { value1: index + 1 }),
       description: example ? (example.length > 28 ? `${example.slice(0, 28)}…` : example) : undefined,
     }
   })
 })
-const optionalItems = computed(() => [{ value: NONE, label: "None" }, ...columnItems.value])
+const optionalItems = computed(() => [{ value: NONE, get label() { return translate('none') } }, ...columnItems.value])
 /** A column choice as the select sees it (−1 for none) and as the mapping keeps it (null). */
 function column(key: "date" | "amount" | "debit" | "credit" | "description" | "counterparty") {
   return computed({
@@ -134,20 +134,20 @@ const descriptionColumn = column("description")
 const counterpartyColumn = column("counterparty")
 
 const decimalItems = [
-  { value: "auto", label: "Detect per row" },
-  { value: ",", label: "Comma (1.234,56)" },
-  { value: ".", label: "Point (1,234.56)" },
+  { value: "auto", get label() { return translate('detectPerRow') } },
+  { value: ",", get label() { return translate('comma123456') } },
+  { value: ".", get label() { return translate('point123456') } },
 ]
 const amountModes = [
-  { value: "single" as const, label: "One column" },
-  { value: "split" as const, label: "Debit and credit" },
+  { value: "single" as const, get label() { return translate('oneColumn') } },
+  { value: "split" as const, get label() { return translate('debitAndCredit') } },
 ]
 
 const missing = computed(() => {
   const list: string[] = []
-  if (mapping.date === null) list.push("the date")
-  if (mapping.amountMode === "single" ? mapping.amount === null : mapping.debit === null && mapping.credit === null) list.push("the amount")
-  if (mapping.description === null && mapping.counterparty === null) list.push("the description")
+  if (mapping.date === null) list.push(translate('theDate'))
+  if (mapping.amountMode === "single" ? mapping.amount === null : mapping.debit === null && mapping.credit === null) list.push(translate('theAmount'))
+  if (mapping.description === null && mapping.counterparty === null) list.push(translate('theDescription'))
   return list
 })
 const ready = computed(() => Boolean(text.value) && missing.value.length === 0)
@@ -183,7 +183,7 @@ const notify = useNotify()
 
 async function runImport() {
   if (!chosenId.value) {
-    importError.value = "Choose the account these transactions belong to."
+    importError.value = translate('chooseTheAccountTheseTransactionsBelongTo')
     return
   }
   importing.value = true
@@ -204,12 +204,12 @@ async function runImport() {
     }
     await refreshStems("accounts", "account", "overview", "transactions", "recurring", "forecast", "budgets")
     notify.success(
-      `Added ${formatCount(result.added)} transaction${result.added === 1 ? "" : "s"}`,
-      result.skipped ? `Skipped ${formatCount(result.skipped)} that were already there or couldn’t be read.` : undefined,
+      translate('addedTransaction', { count: formatCount(result.added) }, result.added),
+      result.skipped ? translate('skippedThatWereAlreadyThereOrCouldnTBeRead', { value1: formatCount(result.skipped) }) : undefined,
     )
     emit("close", result)
   } catch (cause) {
-    importError.value = errorText(cause, "The import stopped. Import the file again to add the rest. Rows already added stay.")
+    importError.value = errorText(cause, translate('theImportStoppedImportTheFileAgainToAddThe'))
   } finally {
     importing.value = false
   }
@@ -222,8 +222,8 @@ function back() {
 
 <template>
   <UModal
-    title="Import transactions from a CSV"
-    :description="account ? `Into ${account.name}${account.institution ? ` · ${account.institution}` : ''}` : 'Most banks export one from their website.'"
+    :title="$t('importTransactionsFromACsv')"
+    :description="account ? $t('into', { value1: account.name, value2: account.institution ? ` · ${account.institution}` : '' }) : $t('mostBanksExportOneFromTheirWebsite')"
     :ui="{ content: 'sm:max-w-2xl', body: 'flex flex-col gap-5' }"
     @update:open="(open) => !open && emit('close')"
   >
@@ -232,19 +232,15 @@ function back() {
 
       <!-- 1. The file -->
       <div v-if="step === 'upload'" class="flex flex-col gap-4">
-        <UFormField v-if="!accountId" label="Into account" name="account">
+        <UFormField v-if="!accountId" :label="$t('intoAccount')" name="account">
           <USelectMenu
             v-model="chosenId"
             :items="editable.map((item) => ({ value: item.id, label: item.name, description: item.institution ?? undefined, icon: ACCOUNT_KINDS[item.kind].icon }))"
             value-key="value"
-            placeholder="Choose an account"
+            :placeholder="$t('chooseAnAccount')"
             class="w-full"
           />
-          <template v-if="editable.length === 0" #help>
-            You need an account to import into.
-            <NuxtLink to="/accounts?new=1" class="font-medium text-highlighted underline underline-offset-2" @click="emit('close')">Add a manual account</NuxtLink>
-            first.
-          </template>
+          <template v-if="editable.length === 0" #help> {{ $t('youNeedAnAccountToImportInto') }} <NuxtLink to="/accounts?new=1" class="font-medium text-highlighted underline underline-offset-2" @click="emit('close')">{{ $t('addAManualAccount') }}</NuxtLink> {{ $t('first') }} </template>
         </UFormField>
 
         <div
@@ -256,22 +252,18 @@ function back() {
             <UIcon name="i-lucide-file-spreadsheet" class="size-5 text-muted" />
           </span>
           <div>
-            <p class="text-sm font-medium text-highlighted">Drop a CSV here</p>
-            <p class="mt-1 text-sm text-muted">Comma, semicolon, or tab separated, with or without a header row.</p>
+            <p class="text-sm font-medium text-highlighted">{{ $t('dropACsvHere') }}</p>
+            <p class="mt-1 text-sm text-muted">{{ $t('commaSemicolonOrTabSeparatedWithOrWithoutAHeader') }}</p>
           </div>
-          <UButton color="neutral" variant="outline" label="Choose a file" icon="i-lucide-upload" @click="picker.open()" />
+          <UButton color="neutral" variant="outline" :label="$t('chooseAFile')" icon="i-lucide-upload" @click="picker.open()" />
         </div>
-        <p class="text-sm text-muted">
-          No export at hand?
-          <button
+        <p class="text-sm text-muted"> {{ $t('noExportAtHand') }} <button
             type="button"
             class="cursor-pointer font-medium text-highlighted underline underline-offset-2 disabled:opacity-50"
             :disabled="loading"
             @click="loadSample"
-          >
-            Try it with a sample file</button
-          >, six months of a Spanish household’s current account.
-        </p>
+          > {{ $t('tryItWithASampleFile') }}</button
+          >{{ $t('sixMonthsOfASpanishHouseholdSCurrentAccount') }} </p>
         <p v-if="loadError" class="text-sm text-error" role="alert">{{ loadError }}</p>
       </div>
 
@@ -280,96 +272,91 @@ function back() {
         <div class="flex items-center gap-2 rounded-lg border border-default bg-muted px-3 py-2 text-sm">
           <UIcon name="i-lucide-file-spreadsheet" class="size-4 shrink-0 text-muted" />
           <span class="min-w-0 flex-1 truncate font-medium text-highlighted" :title="fileName">{{ fileName }}</span>
-          <span class="money shrink-0 text-muted">{{ formatCount(Math.max(0, rows.length - (mapping.hasHeader ? 1 : 0))) }} rows</span>
+          <span class="money shrink-0 text-muted">{{ $t('rows', { value1: formatCount(Math.max(0, rows.length - (mapping.hasHeader ? 1 : 0))) }) }}</span>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <UFormField label="Separator" name="delimiter">
+          <UFormField :label="$t('separator')" name="delimiter">
             <USelect v-model="delimiter" :items="CSV_DELIMITERS" class="w-full" />
           </UFormField>
-          <UFormField label="Header" name="header">
+          <UFormField :label="$t('header')" name="header">
             <div class="flex h-9 items-center">
-              <USwitch v-model="mapping.hasHeader" label="The first row names the columns" />
+              <USwitch v-model="mapping.hasHeader" :label="$t('theFirstRowNamesTheColumns')" />
             </div>
           </UFormField>
-          <UFormField label="Date" name="date" required>
-            <USelect v-model="dateColumn" :items="columnItems" placeholder="Choose a column" class="w-full" />
+          <UFormField :label="$t('date')" name="date" required>
+            <USelect v-model="dateColumn" :items="columnItems" :placeholder="$t('chooseAColumn')" class="w-full" />
           </UFormField>
-          <UFormField label="Date format" name="dateFormat">
+          <UFormField :label="$t('dateFormat')" name="dateFormat">
             <USelect v-model="mapping.dateFormat" :items="CSV_DATE_FORMATS" class="w-full" />
           </UFormField>
-          <UFormField label="Description" name="description" required>
-            <USelect v-model="descriptionColumn" :items="columnItems" placeholder="Choose a column" class="w-full" />
+          <UFormField :label="$t('description')" name="description" required>
+            <USelect v-model="descriptionColumn" :items="columnItems" :placeholder="$t('chooseAColumn')" class="w-full" />
           </UFormField>
-          <UFormField label="Counterparty" name="counterparty" hint="Optional">
+          <UFormField :label="$t('counterparty')" name="counterparty" hint="Optional">
             <USelect v-model="counterpartyColumn" :items="optionalItems" class="w-full" />
           </UFormField>
         </div>
 
         <div class="flex flex-col gap-3 rounded-lg border border-default p-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-sm font-medium text-highlighted">Amount</p>
-            <SegmentedControl v-model="mapping.amountMode" :options="amountModes" label="How the file shows amounts" size="sm" />
+            <p class="text-sm font-medium text-highlighted">{{ $t('amount') }}</p>
+            <SegmentedControl v-model="mapping.amountMode" :options="amountModes" :label="$t('howTheFileShowsAmounts')" size="sm" />
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
-            <UFormField v-if="mapping.amountMode === 'single'" label="Amount column" name="amount" required>
-              <USelect v-model="amountColumn" :items="columnItems" placeholder="Choose a column" class="w-full" />
+            <UFormField v-if="mapping.amountMode === 'single'" :label="$t('amountColumn')" name="amount" required>
+              <USelect v-model="amountColumn" :items="columnItems" :placeholder="$t('chooseAColumn')" class="w-full" />
             </UFormField>
             <template v-else>
-              <UFormField label="Money out (debit)" name="debit">
+              <UFormField :label="$t('moneyOutDebit')" name="debit">
                 <USelect v-model="debitColumn" :items="optionalItems" class="w-full" />
               </UFormField>
-              <UFormField label="Money in (credit)" name="credit">
+              <UFormField :label="$t('moneyInCredit')" name="credit">
                 <USelect v-model="creditColumn" :items="optionalItems" class="w-full" />
               </UFormField>
             </template>
-            <UFormField label="Decimal separator" name="decimal">
+            <UFormField :label="$t('decimalSeparator')" name="decimal">
               <USelect v-model="mapping.decimal" :items="decimalItems" class="w-full" />
             </UFormField>
           </div>
           <UCheckbox
             v-if="mapping.amountMode === 'single'"
             v-model="mapping.invert"
-            label="Spending shows as positive numbers"
-            description="Some card exports list purchases without a minus. This flips every sign."
+            :label="$t('spendingShowsAsPositiveNumbers')"
+            :description="$t('someCardExportsListPurchasesWithoutAMinusThisFlips')"
           />
         </div>
         <p v-if="missing.length" class="flex items-center gap-1.5 text-sm text-muted">
-          <UIcon name="i-lucide-info" class="size-4 shrink-0" />
-          Choose the column with {{ missing.join(" and ") }}.
-        </p>
+          <UIcon name="i-lucide-info" class="size-4 shrink-0" /> {{ $t('chooseTheColumnWith', { value1: missing.join(" and ") }) }} </p>
       </div>
 
       <!-- 3. The preview -->
       <div v-else class="flex flex-col gap-4">
         <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-default bg-(--ui-border)">
           <div class="bg-default px-3 py-2.5">
-            <p class="text-xs text-muted">Ready to import</p>
-            <p class="money mt-0.5 text-sm font-medium text-highlighted">{{ formatCount(good.length) }} rows</p>
+            <p class="text-xs text-muted">{{ $t('readyToImport') }}</p>
+            <p class="money mt-0.5 text-sm font-medium text-highlighted">{{ $t('rows', { value1: formatCount(good.length) }) }}</p>
           </div>
           <div class="bg-default px-3 py-2.5">
-            <p class="text-xs text-muted">Money in</p>
+            <p class="text-xs text-muted">{{ $t('moneyIn') }}</p>
             <p class="money money-in mt-0.5 text-sm font-medium">{{ money(totals.in) }}</p>
           </div>
           <div class="bg-default px-3 py-2.5">
-            <p class="text-xs text-muted">Money out</p>
+            <p class="text-xs text-muted">{{ $t('moneyOut') }}</p>
             <p class="money mt-0.5 text-sm font-medium text-highlighted">{{ money(totals.out) }}</p>
           </div>
         </div>
-        <p v-if="range" class="text-sm text-muted">
-          From <span class="money text-default">{{ formatDate(range.from) }}</span> to
-          <span class="money text-default">{{ formatDate(range.to) }}</span>. Rows already in the account are skipped.
-        </p>
+        <p v-if="range" class="text-sm text-muted"> {{ $t('from') }} <span class="money text-default">{{ formatDate(range.from) }}</span> {{ $t('to') }} <span class="money text-default">{{ formatDate(range.to) }}</span>{{ $t('rowsAlreadyInTheAccountAreSkipped') }} </p>
 
         <div class="overflow-x-auto rounded-lg border border-default">
           <table class="w-full text-sm">
-            <caption class="sr-only">The first ten rows as they will be imported</caption>
+            <caption class="sr-only">{{ $t('theFirstTenRowsAsTheyWillBeImported') }}</caption>
             <thead class="bg-muted">
               <tr class="text-left text-xs text-muted">
-                <th scope="col" class="w-12 px-3 py-2 font-medium">Row</th>
-                <th scope="col" class="w-24 px-3 py-2 font-medium">Date</th>
-                <th scope="col" class="px-3 py-2 font-medium">Description</th>
-                <th scope="col" class="px-3 py-2 text-right font-medium">Amount</th>
+                <th scope="col" class="w-12 px-3 py-2 font-medium">{{ $t('row') }}</th>
+                <th scope="col" class="w-24 px-3 py-2 font-medium">{{ $t('date') }}</th>
+                <th scope="col" class="px-3 py-2 font-medium">{{ $t('description') }}</th>
+                <th scope="col" class="px-3 py-2 text-right font-medium">{{ $t('amount') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-default">
@@ -388,7 +375,7 @@ function back() {
                 <td v-else colspan="3" class="px-3 py-2">
                   <span class="flex items-center gap-1.5 text-error">
                     <UIcon name="i-lucide-circle-alert" class="size-4 shrink-0" />
-                    <span class="truncate">{{ row.error }}. This row will be skipped.</span>
+                    <span class="truncate">{{ $t('thisRowWillBeSkipped', { value1: row.error }) }}</span>
                   </span>
                 </td>
               </tr>
@@ -396,24 +383,22 @@ function back() {
           </table>
         </div>
         <p v-if="bad.length" class="flex items-center gap-1.5 text-sm text-muted">
-          <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" />
-          {{ formatCount(bad.length) }} row{{ bad.length === 1 ? "" : "s" }} can’t be read and will be skipped. Check the date format and columns if that’s more than a footer.
-        </p>
-        <UProgress v-if="importing && good.length > 500" :model-value="progress * 100" size="sm" aria-label="Import progress" />
+          <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" /> {{ $t('rowCanTBeReadAndWillBeSkippedCheck', { count: formatCount(bad.length) }, bad.length) }} </p>
+        <UProgress v-if="importing && good.length > 500" :model-value="progress * 100" size="sm" :aria-label="$t('importProgress')" />
         <p v-if="importError" class="text-sm text-error" role="alert">{{ importError }}</p>
       </div>
     </template>
 
     <template #footer>
       <div class="flex w-full items-center justify-between gap-2">
-        <UButton v-if="step !== 'upload'" color="neutral" variant="ghost" icon="i-lucide-arrow-left" label="Back" :disabled="importing" @click="back" />
+        <UButton v-if="step !== 'upload'" color="neutral" variant="ghost" icon="i-lucide-arrow-left" :label="$t('back')" :disabled="importing" @click="back" />
         <span v-else />
         <div class="flex gap-2">
-          <UButton color="neutral" variant="outline" label="Cancel" :disabled="importing" @click="emit('close')" />
-          <UButton v-if="step === 'map'" label="Preview" trailing-icon="i-lucide-arrow-right" :disabled="!ready" @click="step = 'preview'" />
+          <UButton color="neutral" variant="outline" :label="$t('cancel')" :disabled="importing" @click="emit('close')" />
+          <UButton v-if="step === 'map'" :label="$t('preview')" trailing-icon="i-lucide-arrow-right" :disabled="!ready" @click="step = 'preview'" />
           <UButton
             v-else-if="step === 'preview'"
-            :label="`Import ${formatCount(good.length)} rows`"
+            :label="$t('importRows', { value1: formatCount(good.length) })"
             :loading="importing"
             :disabled="good.length === 0"
             @click="runImport"

@@ -220,10 +220,10 @@ const tooltipStyle = computed(() => {
 })
 const describe = (point: Point) => {
   const parts: string[] = []
-  if (point.actual !== null && point.date !== props.today) parts.push(`balance ${props.format(point.actual)}`)
+  if (point.actual !== null && point.date !== props.today) parts.push(translate('balance', { value1: props.format(point.actual) }))
   else if (point.expected !== null) {
-    parts.push(`expected ${props.format(point.expected)}`)
-    if (point.low !== null && point.high !== null && point.high > point.low) parts.push(`likely ${props.format(point.low)} to ${props.format(point.high)}`)
+    parts.push(translate('expected', { value1: props.format(point.expected) }))
+    if (point.low !== null && point.high !== null && point.high > point.low) parts.push(translate('likelyTo', { value1: props.format(point.low), value2: props.format(point.high) }))
   }
   const named = props.payments.filter((payment) => payment.date === point.date && payment.kind !== "transfer")
   if (named.length) parts.push(named.map((payment) => `${payment.name} ${props.format(payment.amountMinor)}`).join(", "))
@@ -232,8 +232,8 @@ const describe = (point: Point) => {
 const announcement = computed(() => (current.value && focused.value ? describe(current.value) : ""))
 const summary = computed(() => {
   const end = props.days.at(-1)
-  if (!end) return `${props.label}: no data yet`
-  return `${props.label}. Today ${props.format(props.days[0]!.balanceMinor)}; expected ${props.format(end.balanceMinor)} on ${forecastDay(end.date, props.today)}, likely between ${props.format(end.lowMinor)} and ${props.format(end.highMinor)}. Lowest ${props.format(props.lowest.balanceMinor)} on ${forecastDay(props.lowest.date, props.today)}. Use the arrow keys to go day by day.`
+  if (!end) return translate('noDataYet', { value1: props.label })
+  return translate('todayExpectedOnLikelyBetweenAndLowestOnUseThe', { value1: props.label, value2: props.format(props.days[0]!.balanceMinor), value3: props.format(end.balanceMinor), value4: forecastDay(end.date, props.today), value5: props.format(end.lowMinor), value6: props.format(end.highMinor), value7: props.format(props.lowest.balanceMinor), value8: forecastDay(props.lowest.date, props.today) })
 })
 
 // Labels drawn in HTML over the SVG.
@@ -253,7 +253,7 @@ const lowestPoint = computed(() => {
     :style="{ height: `${boxHeight}px` }"
     tabindex="0"
     role="group"
-    aria-roledescription="chart"
+    :aria-roledescription="$t('chart')"
     :aria-label="summary"
     @pointermove="pointAt"
     @pointerdown="pointAt"
@@ -324,8 +324,8 @@ const lowestPoint = computed(() => {
       />
       <!-- Payments lane -->
       <g>
-        <text :x="pad.left - 8" :y="laneY.in" text-anchor="end" dominant-baseline="middle" class="fill-emerald-600 text-[10px] font-medium dark:fill-emerald-400">In</text>
-        <text :x="pad.left - 8" :y="laneY.out" text-anchor="end" dominant-baseline="middle" class="fill-rose-600 text-[10px] font-medium dark:fill-rose-400">Out</text>
+        <text :x="pad.left - 8" :y="laneY.in" text-anchor="end" dominant-baseline="middle" class="fill-emerald-600 text-[10px] font-medium dark:fill-emerald-400">{{ $t('in') }}</text>
+        <text :x="pad.left - 8" :y="laneY.out" text-anchor="end" dominant-baseline="middle" class="fill-rose-600 text-[10px] font-medium dark:fill-rose-400">{{ $t('out') }}</text>
         <template v-for="day in lanes" :key="day.date">
           <circle v-if="day.in" :cx="px(day.date)" :cy="laneY.in" :r="Math.max(2, radius(day.in))" class="fill-emerald-500/80 dark:fill-emerald-400/80" />
           <circle v-if="day.out" :cx="px(day.date)" :cy="laneY.out" :r="Math.max(2, radius(day.out))" class="fill-rose-500/75 dark:fill-rose-400/75" />
@@ -358,14 +358,13 @@ const lowestPoint = computed(() => {
     </svg>
 
     <template v-if="width">
-      <span class="pointer-events-none absolute -translate-x-1/2 text-[11px] font-medium text-muted" :style="{ left: `${px(today)}px`, top: '-2px' }">Today</span>
+      <span class="pointer-events-none absolute -translate-x-1/2 text-[11px] font-medium text-muted" :style="{ left: `${px(today)}px`, top: '-2px' }">{{ $t('today') }}</span>
       <span
         v-if="lowestPoint && !current"
         class="pointer-events-none absolute -translate-x-1/2 rounded-md px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ring ring-default"
         :class="lowest.balanceMinor < 0 ? 'bg-error/10 text-error ring-error/25' : 'bg-default text-highlighted'"
         :style="{ left: `${lowestPoint.left}px`, top: `${lowestPoint.below ? lowestPoint.top + 10 : lowestPoint.top - 28}px` }"
-      >
-        Lowest <span class="money">{{ formatAxis(lowest.balanceMinor) }}</span> · {{ forecastDay(lowest.date, today, { weekday: false }) }}
+      > {{ $t('lowest') }} <span class="money">{{ formatAxis(lowest.balanceMinor) }}</span> · {{ forecastDay(lowest.date, today, { weekday: false }) }}
       </span>
     </template>
 
@@ -380,15 +379,13 @@ const lowestPoint = computed(() => {
       </p>
       <template v-if="current.expected === null || (current.actual !== null && current.date === today)">
         <p class="money mt-1 text-base font-semibold text-highlighted">{{ format(current.actual ?? 0) }}</p>
-        <p class="text-xs text-muted">{{ current.date === today ? "Balance today" : "Actual balance" }}</p>
+        <p class="text-xs text-muted">{{ current.date === today ? $t('balanceToday') : $t('actualBalance') }}</p>
       </template>
       <template v-else>
         <p class="money mt-1 text-base font-semibold text-highlighted">{{ format(current.expected) }}</p>
-        <p class="text-xs text-muted">
-          Expected<template v-if="current.high! > current.low!">, likely <span class="money">{{ formatAxis(current.low!) }}</span> to <span class="money">{{ formatAxis(current.high!) }}</span></template>
+        <p class="text-xs text-muted"> {{ $t('expected2') }}<template v-if="current.high! > current.low!">{{ $t('likely') }} <span class="money">{{ formatAxis(current.low!) }}</span> {{ $t('to') }} <span class="money">{{ formatAxis(current.high!) }}</span></template>
         </p>
-        <p v-if="current.baseline !== null && current.baseline !== current.expected" class="mt-0.5 text-xs text-muted">
-          Without the what-if <span class="money">{{ format(current.baseline) }}</span>
+        <p v-if="current.baseline !== null && current.baseline !== current.expected" class="mt-0.5 text-xs text-muted"> {{ $t('withoutTheWhatIf') }} <span class="money">{{ format(current.baseline) }}</span>
         </p>
       </template>
       <ul v-if="currentPayments.length || (current.date > today && usualOn(current.date))" class="mt-2 flex flex-col gap-1 border-t border-default pt-2 text-xs">
@@ -397,10 +394,10 @@ const lowestPoint = computed(() => {
           <span class="min-w-0 flex-1 truncate text-default">{{ payment.name }}</span>
           <span class="money" :class="payment.amountMinor > 0 ? FLOW.income.text : 'text-default'">{{ format(payment.amountMinor) }}</span>
         </li>
-        <li v-if="currentPayments.length > 5" class="text-muted">and {{ currentPayments.length - 5 }} more</li>
+        <li v-if="currentPayments.length > 5" class="text-muted">{{ $t('andMore', { value1: currentPayments.length - 5 }) }}</li>
         <li v-if="current.date > today && usualOn(current.date)" class="flex items-center gap-2">
           <span class="size-1.5 shrink-0 rounded-full" :class="FLOW.variable.bg" />
-          <span class="min-w-0 flex-1 truncate text-muted">Usual outgoings</span>
+          <span class="min-w-0 flex-1 truncate text-muted">{{ $t('usualOutgoings') }}</span>
           <span class="money text-muted">{{ format(-usualOn(current.date)) }}</span>
         </li>
       </ul>

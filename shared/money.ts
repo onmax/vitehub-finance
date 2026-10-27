@@ -44,6 +44,7 @@ export function formatMoney(minor: number, currency = "EUR", options: FormatMone
   const value = fromMinor(minor, currency)
   const formatter = new Intl.NumberFormat(options.locale, {
     style: "currency",
+    useGrouping: "always",
     currency,
     signDisplay: options.signed ? "exceptZero" : "auto",
     maximumFractionDigits: options.compact ? 0 : undefined,

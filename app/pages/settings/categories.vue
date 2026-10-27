@@ -3,7 +3,7 @@ import type { AiCategorizeResult, Category } from "#shared/api"
 import { CategoryModal } from "#components"
 
 // The household's categories, grouped by kind, and the rules that file transactions into them.
-useHead({ title: "Categories" })
+useHead({ get title() { return translate('categories') } })
 const { categories, status, error, refresh } = useCategories()
 const confirm = useConfirm()
 const notify = useNotify()
@@ -13,9 +13,9 @@ const modal = overlay.create(CategoryModal, { destroyOnClose: true })
 const groups = computed(() =>
   (
     [
-      { kind: "expense", label: "Spending" },
-      { kind: "income", label: "Income" },
-      { kind: "transfer", label: "Transfers" },
+      { kind: "expense", get label() { return translate('spending') } },
+      { kind: "income", get label() { return translate('income') } },
+      { kind: "transfer", get label() { return translate('transfers') } },
     ] as const
   ).map((group) => ({
     ...group,
@@ -25,7 +25,7 @@ const groups = computed(() =>
 
 async function edit(category?: Category) {
   const saved = (await modal.open({ category }).result) as Category | undefined
-  if (saved) notify.success(category ? "Category saved" : "Category added")
+  if (saved) notify.success(category ? translate('categorySaved') : translate('categoryAdded'))
 }
 
 // AI categories for what the rules missed, in rounds of a few hundred (the server caps each call), until none are left.
@@ -47,20 +47,20 @@ async function categorizeWithAi() {
       remaining = result.remaining
       if (!result.remaining || !result.asked) break
     }
-    if (!asked) notify.success("Nothing to categorize", "Every transaction you can edit has a category, or AI already looked at it.")
+    if (!asked) notify.success(translate('nothingToCategorize'), translate('everyTransactionYouCanEditHasACategoryOrAi'))
     else
       notify.success(
-        `Categorized ${formatCount(categorized)} of ${formatCount(asked)}`,
+        translate('categorizedOf', { value1: formatCount(categorized), value2: formatCount(asked) }),
         [
-          categorized < asked ? "AI wasn’t sure about the rest, so they stay uncategorized." : "",
-          remaining ? `${formatCount(remaining)} left. Run it again to do more.` : "",
+          categorized < asked ? translate('aiWasnTSureAboutTheRestSoTheyStay') : "",
+          remaining ? translate('leftRunItAgainToDoMore', { value1: formatCount(remaining) }) : "",
         ]
           .filter(Boolean)
           .join(" ") || undefined,
       )
     if (categorized) void refreshStems("transactions", "overview", "budgets", "flow")
   } catch (cause) {
-    notify.error(cause, "Couldn’t categorize with AI")
+    notify.error(cause, translate('couldnTCategorizeWithAi'))
   } finally {
     categorizing.value = false
   }
@@ -68,9 +68,9 @@ async function categorizeWithAi() {
 
 async function remove(category: Category) {
   const { confirmed } = await confirm({
-    title: `Delete “${category.name}”?`,
-    description: "Its transactions become uncategorized, and its rules and budgets go with it.",
-    confirmLabel: "Delete category",
+    title: translate('delete3', { value1: category.name }),
+    get description() { return translate('itsTransactionsBecomeUncategorizedAndItsRulesAndBudgetsGo') },
+    confirmLabel: translate('deleteCategory'),
     destructive: true,
   })
   if (!confirmed) return
@@ -78,24 +78,24 @@ async function remove(category: Category) {
     await $fetch(`/api/categories/${category.id}`, { method: "DELETE" })
     await Promise.all([refreshNuxtData("categories"), refreshNuxtData("rules")])
   } catch (cause) {
-    notify.error(cause, "Couldn’t delete the category")
+    notify.error(cause, translate('couldnTDeleteTheCategory'))
   }
 }
 </script>
 
 <template>
-  <SettingsSection title="Categories" description="Every transaction gets one. Budgets and spending charts group by them." flush>
+  <SettingsSection :title="$t('categories')" :description="$t('everyTransactionGetsOneBudgetsAndSpendingChartsGroupBy')" flush>
     <template #actions>
       <UButton
         v-if="aiReady"
         color="neutral"
         variant="outline"
         icon="i-lucide-sparkles"
-        label="Categorize uncategorized with AI"
+        :label="$t('categorizeUncategorizedWithAi')"
         :loading="categorizing"
         @click="categorizeWithAi"
       />
-      <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add category" @click="edit()" />
+      <UButton color="neutral" variant="outline" icon="i-lucide-plus" :label="$t('addCategory')" @click="edit()" />
     </template>
     <div v-if="status === 'pending' && !categories.length" class="flex flex-col gap-3 py-4">
       <div v-for="index in 6" :key="index" class="flex items-center gap-3">
@@ -109,16 +109,16 @@ async function remove(category: Category) {
         <h3 class="border-b border-default pb-2 text-xs font-medium text-muted">
           {{ group.label }} <span class="tabular-nums text-dimmed">{{ group.items.length }}</span>
         </h3>
-        <p v-if="!group.items.length" class="py-3 text-sm text-muted">None yet.</p>
+        <p v-if="!group.items.length" class="py-3 text-sm text-muted">{{ $t('noneYet') }}</p>
         <ul class="grid gap-x-8 sm:grid-cols-2">
           <li v-for="category in group.items" :key="category.id" class="group flex min-h-12 items-center gap-3 border-b border-default py-1.5">
             <CategoryIcon :icon="category.icon" :color="category.color" />
             <span class="min-w-0 flex-1 truncate text-sm text-highlighted">{{ category.name }}</span>
-            <UTooltip text="Edit">
-              <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-pencil" :aria-label="`Edit ${category.name}`" @click="edit(category)" />
+            <UTooltip :text="$t('edit')">
+              <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-pencil" :aria-label="$t('edit2', { value1: category.name })" @click="edit(category)" />
             </UTooltip>
-            <UTooltip text="Delete">
-              <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-trash-2" :aria-label="`Delete ${category.name}`" @click="remove(category)" />
+            <UTooltip :text="$t('delete2')">
+              <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-trash-2" :aria-label="$t('delete4', { value1: category.name })" @click="remove(category)" />
             </UTooltip>
           </li>
         </ul>

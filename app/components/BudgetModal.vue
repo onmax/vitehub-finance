@@ -11,7 +11,7 @@ const { locale } = useMoney()
 const state = reactive({
   categoryId: (props.budget?.categoryId ?? undefined) as string | null | undefined,
   amount: props.budget
-    ? new Intl.NumberFormat(locale, { maximumFractionDigits: 2, useGrouping: false }).format(fromMinor(props.budget.amountMinor, props.currency))
+    ? new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2, useGrouping: false }).format(fromMinor(props.budget.amountMinor, props.currency))
     : "",
   personal: props.budget ? props.budget.ownerId !== null : (props.personal ?? false),
 })
@@ -20,9 +20,9 @@ const error = ref("")
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
-  if (!values.categoryId) errors.push({ name: "categoryId", message: "Pick a category." })
+  if (!values.categoryId) errors.push({ name: "categoryId", message: translate('pickACategory') })
   const amount = parseAmount(values.amount)
-  if (amount === null || amount <= 0) errors.push({ name: "amount", message: "Enter a monthly amount above zero." })
+  if (amount === null || amount <= 0) errors.push({ name: "amount", message: translate('enterAMonthlyAmountAboveZero') })
   return errors
 }
 
@@ -37,7 +37,7 @@ async function submit() {
     await refreshStems("budgets")
     emit("close", saved)
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t save the budget. Try again.")
+    error.value = errorText(cause, translate('couldnTSaveTheBudgetTryAgain'))
   } finally {
     pending.value = false
   }
@@ -46,16 +46,16 @@ async function submit() {
 
 <template>
   <UModal
-    :title="budget ? 'Edit budget' : 'Add a budget'"
-    description="A monthly spending limit for one category. It starts over each month."
+    :title="budget ? $t('editBudget') : $t('addABudget')"
+    :description="$t('aMonthlySpendingLimitForOneCategoryItStartsOver')"
     @update:open="(open) => !open && emit('close')"
   >
     <template #body>
       <UForm id="budget-form" :state="state" :validate="validate" class="flex flex-col gap-4" @submit="submit">
-        <UFormField label="Category" name="categoryId">
-          <CategorySelect v-model="state.categoryId" :allow-none="false" :kinds="['expense']" placeholder="Pick a category" class="w-full" />
+        <UFormField :label="$t('category')" name="categoryId">
+          <CategorySelect v-model="state.categoryId" :allow-none="false" :kinds="['expense']" :placeholder="$t('pickACategory2')" class="w-full" />
         </UFormField>
-        <UFormField label="Per month" name="amount">
+        <UFormField :label="$t('perMonth')" name="amount">
           <UInput v-model="state.amount" inputmode="decimal" placeholder="450" class="w-full" :ui="{ base: 'tabular-nums', trailing: 'pointer-events-none' }">
             <template #trailing><span class="text-xs text-muted">{{ currency }}</span></template>
           </UInput>
@@ -63,11 +63,11 @@ async function submit() {
         <UFormField v-if="shared" name="personal">
           <USwitch
             v-model="state.personal"
-            label="Just for me"
+            :label="$t('justForMe')"
             :description="
               state.personal
-                ? 'Counts only your own accounts. Only you see this budget.'
-                : 'Counts every shared account. Everyone in the household sees it.'
+                ? $t('countsOnlyYourOwnAccountsOnlyYouSeeThisBudget')
+                : $t('countsEverySharedAccountEveryoneInTheHouseholdSeesIt')
             "
           />
         </UFormField>
@@ -76,8 +76,8 @@ async function submit() {
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="outline" label="Cancel" @click="emit('close')" />
-        <UButton type="submit" form="budget-form" :label="budget ? 'Save' : 'Add budget'" :loading="pending" />
+        <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
+        <UButton type="submit" form="budget-form" :label="budget ? $t('save') : $t('addBudget')" :loading="pending" />
       </div>
     </template>
   </UModal>

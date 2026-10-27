@@ -22,8 +22,8 @@ const error = ref("")
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
-  if (!values.name.trim()) errors.push({ name: "name", message: "Give the account a name." })
-  if (values.balance.trim() && parseAmount(values.balance) === null) errors.push({ name: "balance", message: "Enter an amount like 1.234,56." })
+  if (!values.name.trim()) errors.push({ name: "name", message: translate('giveTheAccountAName') })
+  if (values.balance.trim() && parseAmount(values.balance) === null) errors.push({ name: "balance", message: translate('enterAnAmountLike123456') })
   return errors
 }
 
@@ -45,7 +45,7 @@ async function submit() {
     await refreshStems("accounts", "overview")
     emit("close", account)
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t add the account. Try again.")
+    error.value = errorText(cause, translate('couldnTAddTheAccountTryAgain'))
   } finally {
     pending.value = false
   }
@@ -53,32 +53,32 @@ async function submit() {
 </script>
 
 <template>
-  <UModal title="Add a manual account" description="For cash, a pension, a loan, or a bank you can’t connect. You update its balance yourself." @update:open="(open) => !open && emit('close')">
+  <UModal :title="$t('addAManualAccount')" :description="$t('forCashAPensionALoanOrABankYou')" @update:open="(open) => !open && emit('close')">
     <template #body>
       <UForm id="account-create" :state="state" :validate="validate" class="flex flex-col gap-4" @submit="submit">
-        <UFormField label="Name" name="name">
-          <UInput v-model="state.name" placeholder="Cash, Pension plan…" class="w-full" autofocus />
+        <UFormField :label="$t('name')" name="name">
+          <UInput v-model="state.name" :placeholder="$t('cashPensionPlan')" class="w-full" autofocus />
         </UFormField>
         <div class="grid grid-cols-2 gap-3">
-          <UFormField label="Kind" name="kind">
+          <UFormField :label="$t('kind')" name="kind">
             <USelect v-model="state.kind" :items="ACCOUNT_KIND_ITEMS" class="w-full" />
           </UFormField>
-          <UFormField label="Currency" name="currency">
+          <UFormField :label="$t('currency')" name="currency">
             <USelect v-model="state.currency" :items="CURRENCIES" class="w-full" />
           </UFormField>
         </div>
-        <UFormField label="Current balance" name="balance" hint="Optional" help="Negative for what you owe, like −1.200,00 on a loan.">
-          <UInput v-model="state.balance" inputmode="decimal" placeholder="0,00" class="w-full" :ui="{ base: 'tabular-nums' }" />
+        <UFormField :label="$t('currentBalance')" name="balance" hint="Optional" :help="$t('negativeForWhatYouOweLike120000On')">
+          <UInput v-model="state.balance" inputmode="decimal" :placeholder="$t('amountZeroPlaceholder')" class="w-full" :ui="{ base: 'tabular-nums' }" />
         </UFormField>
-        <UFormField label="Bank or provider" name="institution" hint="Optional">
-          <UInput v-model="state.institution" placeholder="Openbank, MyInvestor…" class="w-full" />
+        <UFormField :label="$t('bankOrProvider')" name="institution" hint="Optional">
+          <UInput v-model="state.institution" :placeholder="$t('openbankMyinvestor')" class="w-full" />
         </UFormField>
-        <UFormField v-if="shared" label="Who sees it" name="visibility">
+        <UFormField v-if="shared" :label="$t('whoSeesIt')" name="visibility">
           <URadioGroup
             v-model="state.visibility"
             :items="[
-              { value: 'household', label: 'Shared', description: 'Everyone in the household sees it and its transactions.' },
-              { value: 'private', label: 'Private', description: 'Only you see it. It stays out of the household’s totals.' },
+              { value: 'household', label: $t('shared'), description: $t('everyoneInTheHouseholdSeesItAndItsTransactions') },
+              { value: 'private', label: $t('private'), description: $t('onlyYouSeeItItStaysOutOfTheHousehold') },
             ]"
           />
         </UFormField>
@@ -87,8 +87,8 @@ async function submit() {
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="outline" label="Cancel" @click="emit('close')" />
-        <UButton type="submit" form="account-create" label="Add account" :loading="pending" />
+        <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
+        <UButton type="submit" form="account-create" :label="$t('addAccount')" :loading="pending" />
       </div>
     </template>
   </UModal>

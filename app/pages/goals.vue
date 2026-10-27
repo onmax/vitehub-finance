@@ -3,7 +3,7 @@ import type { Goal } from "#shared/api"
 import { GoalModal } from "#components"
 
 // What the household is saving for: progress, dates, and how much to put aside each month to get there.
-useHead({ title: "Goals" })
+useHead({ get title() { return translate('goals') } })
 const { data: goals, error, refresh } = useFetch<Goal[] | null>("/api/goals", {
   key: "goals",
   default: () => null,
@@ -30,23 +30,23 @@ const totals = computed(() => {
 
 async function open(goal?: Goal) {
   const saved = await modal.open({ goal, currency: currency.value, accounts: accounts.value }).result
-  if (saved) notify.success(goal ? "Goal saved" : "Goal created", saved.name)
+  if (saved) notify.success(goal ? translate('goalSaved') : translate('goalCreated'), saved.name)
 }
 
 async function remove(goal: Goal) {
   const { confirmed } = await confirm({
-    title: `Delete “${goal.name}”?`,
-    description: "The goal goes away. Your accounts and their money stay as they are.",
-    confirmLabel: "Delete goal",
+    title: translate('delete3', { value1: goal.name }),
+    get description() { return translate('theGoalGoesAwayYourAccountsAndTheirMoneyStay') },
+    confirmLabel: translate('deleteGoal'),
     destructive: true,
   })
   if (!confirmed) return
   try {
     await $fetch(`/api/goals/${goal.id}`, { method: "DELETE" })
     await refresh()
-    notify.success("Goal deleted")
+    notify.success(translate('goalDeleted'))
   } catch (cause) {
-    notify.error(cause, "Couldn’t delete the goal")
+    notify.error(cause, translate('couldnTDeleteTheGoal'))
   }
 }
 </script>
@@ -54,16 +54,16 @@ async function remove(goal: Goal) {
 <template>
   <UDashboardPanel id="goals">
     <template #header>
-      <PageNavbar title="Goals" :scoped="false">
+      <PageNavbar :title="$t('goals')" :scoped="false">
         <template v-if="goals?.length" #right>
-          <UButton icon="i-lucide-plus" label="New goal" class="hidden sm:inline-flex" @click="open()" />
-          <UButton icon="i-lucide-plus" aria-label="New goal" class="size-10 justify-center sm:hidden" @click="open()" />
+          <UButton icon="i-lucide-plus" :label="$t('newGoal')" class="hidden sm:inline-flex" @click="open()" />
+          <UButton icon="i-lucide-plus" :aria-label="$t('newGoal')" class="size-10 justify-center sm:hidden" @click="open()" />
         </template>
       </PageNavbar>
     </template>
 
     <template #body>
-      <PageError v-if="error" :error="error" title="Goals didn’t load" @retry="refresh()" />
+      <PageError v-if="error" :error="error" :title="$t('goalsDidnTLoad')" @retry="refresh()" />
 
       <div v-else-if="!goals" class="grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
         <div v-for="index in 3" :key="index" class="border-t border-default pt-4">
@@ -88,18 +88,16 @@ async function remove(goal: Goal) {
         v-else-if="goals.length === 0"
         variant="naked"
         icon="i-lucide-target"
-        title="No goals yet"
-        description="Save toward something together, like an emergency fund or a trip, and see how much to put aside each month."
-        :actions="[{ label: 'Create a goal', icon: 'i-lucide-plus', onClick: () => open() }]"
+        :title="$t('noGoalsYet')"
+        :description="$t('saveTowardSomethingTogetherLikeAnEmergencyFundOrA')"
+        :actions="[{ label: $t('createAGoal'), icon: 'i-lucide-plus', onClick: () => open() }]"
       />
 
       <template v-else>
         <p class="text-sm text-muted">
-          <Money :minor="totals.saved" :currency="currency" class="font-medium text-highlighted" /> saved of
-          <Money :minor="totals.target" :currency="currency" compact />
+          <Money :minor="totals.saved" :currency="currency" class="font-medium text-highlighted" /> {{ $t('savedOf') }} <Money :minor="totals.target" :currency="currency" compact />
           <template v-if="totals.monthly > 0">
-            · <Money :minor="totals.monthly" :currency="currency" class="font-medium text-highlighted" /> a month keeps every goal on time
-          </template>
+            · <Money :minor="totals.monthly" :currency="currency" class="font-medium text-highlighted" /> {{ $t('aMonthKeepsEveryGoalOnTime') }} </template>
         </p>
         <div class="grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
           <GoalCard

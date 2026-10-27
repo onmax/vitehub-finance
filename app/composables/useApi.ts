@@ -47,7 +47,7 @@ const request = $fetch as unknown as <R>(url: string, options?: { query?: Record
  * through to the SPA. Without this the page would treat a string as its data.
  */
 export function expectJson<T>(value: T): T {
-  if (typeof value === "string") throw new Error("This server doesn’t have this feature yet. Reload the page, or ask whoever runs it to update.")
+  if (typeof value === "string") throw new Error(translate('thisServerDoesnTHaveThisFeatureYetReloadThe'))
   return value
 }
 
@@ -62,7 +62,7 @@ export function refreshStems(...stems: string[]) {
 export function useNotify() {
   const toast = useToast()
   return {
-    error: (error: unknown, title = "That didn’t work") => {
+    error: (error: unknown, title = translate('thatDidnTWork')) => {
       reportClientError("toast", error, { title })
       return toast.add({ title, description: errorText(error), color: "error", icon: "i-lucide-circle-alert" })
     },

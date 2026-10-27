@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useHead({ title: "Security" })
+useHead({ get title() { return translate('security') } })
 </script>
 
 <template>

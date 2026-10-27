@@ -12,10 +12,10 @@ const demo = useDemo()
 
 <template>
   <slot v-if="!demo" :locked="false" />
-  <UTooltip v-else :text="DEMO_LOCKED">
+  <UTooltip v-else :text="demoLocked()">
     <span v-bind="$attrs" tabindex="0" class="rounded-md focus-visible:outline-2 focus-visible:outline-primary" :class="props.block ? 'flex w-full' : 'inline-flex'">
       <slot :locked="true" />
-      <span class="sr-only">{{ DEMO_LOCKED }}</span>
+      <span class="sr-only">{{ demoLocked() }}</span>
     </span>
   </UTooltip>
 </template>

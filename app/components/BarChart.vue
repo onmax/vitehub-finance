@@ -82,10 +82,10 @@ function onKey(event: KeyboardEvent) {
 const current = computed(() => (active.value === null ? null : props.bars[active.value]))
 const summary = computed(
   () =>
-    `${props.label}. ` +
+    translate("chartSummary", { label: props.label, details:
     props.bars
-      .map((bar) => `${bar.label}: ${bar.segments.map((segment) => `${segment.name} ${props.format(segment.value)}`).join(", ")}`)
-      .join("; "),
+      .map((bar) => translate("chartBarSummary", { label: bar.label, details: bar.segments.map((segment) => translate("namedAmount", { name: segment.name, amount: props.format(segment.value) })).join(", ") }))
+      .join("; ") }),
 )
 const tooltipLeft = computed(() =>
   active.value === null ? 0 : Math.min(Math.max(barX(active.value) + barWidth.value / 2, 90), Math.max(90, width.value - 90)),
@@ -165,7 +165,7 @@ const tooltipLeft = computed(() =>
         </p>
       </div>
     </div>
-    <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Legend">
+    <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" :aria-label="$t('legend')">
       <li v-for="item in legend" :key="item.name" class="flex items-center gap-1.5">
         <span class="size-2 rounded-xs" :style="{ background: item.color }" aria-hidden="true" />{{ item.name }}
       </li>

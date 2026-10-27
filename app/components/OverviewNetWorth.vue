@@ -32,7 +32,7 @@ const parts = computed(() => {
   const list = [...totals].map(([id, part]) => ({ id, ...part })).sort((a, b) => b.value - a.value)
   const shown = list.slice(0, 4)
   const rest = list.slice(4).reduce((sum, part) => sum + part.value, 0)
-  if (list.length > 4) shown.push({ id: "rest", label: "Other", value: rest })
+  if (list.length > 4) shown.push({ id: "rest", get label() { return translate('other') }, value: rest })
   const positive = shown.reduce((sum, part) => sum + Math.max(0, part.value), 0)
   return shown.map((part, index) => ({
     ...part,
@@ -44,7 +44,7 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
 </script>
 
 <template>
-  <SectionCard title="Net worth" to="/accounts" link-label="Accounts">
+  <SectionCard :title="$t('netWorth')" to="/accounts" :link-label="$t('accounts')">
     <p class="money text-3xl font-semibold tracking-[-0.02em] text-highlighted">
       {{ format(overview.netWorthMinor, overview.currency) }}
     </p>
@@ -52,22 +52,22 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
       <UIcon :name="change.delta >= 0 ? 'i-lucide-trending-up' : 'i-lucide-trending-down'" class="size-4" aria-hidden="true" />
       <span class="money" :class="change.delta > 0 && 'money-in'">{{ format(change.delta, overview.currency, { signed: true }) }}</span>
       <span v-if="change.share !== null" class="money">({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span>
-      <span>since {{ formatDay(change.since, { relative: false }) }}</span>
+      <span>{{ $t('since', { value1: formatDay(change.since, { relative: false }) }) }}</span>
     </p>
-    <p v-else class="mt-1 text-sm text-muted">Balances update every day. The chart fills in from tomorrow.</p>
+    <p v-else class="mt-1 text-sm text-muted">{{ $t('balancesUpdateEveryDayTheChartFillsInFromTomorrow') }}</p>
     <AreaChart
       v-if="points.length >= 2"
       class="mt-4"
       :points="points"
       :format="axis"
-      label="Net worth, last 90 days"
+      :label="$t('netWorthLast90Days')"
       :height="200"
     />
     <div v-if="parts.length > 1" class="mt-auto pt-5">
       <div class="flex h-2 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
         <span v-for="group in parts.filter((item) => item.share > 0)" :key="group.id" class="h-full" :style="{ width: `${group.share * 100}%`, background: group.color }" />
       </div>
-      <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm" aria-label="What net worth is made of">
+      <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm" :aria-label="$t('whatNetWorthIsMadeOf')">
         <li v-for="group in parts" :key="group.id" class="flex items-center gap-1.5">
           <span class="size-2 rounded-xs" :style="{ background: group.color }" aria-hidden="true" />
           <span class="text-muted">{{ group.label }}</span>

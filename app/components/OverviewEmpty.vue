@@ -11,9 +11,9 @@ const sample = Array.from({ length: 60 }, (_, index) => ({
   value: 1000 + index * 12 + Math.sin(index / 5) * 60 + Math.cos(index / 2.3) * 25,
 }))
 const options = [
-  { label: "Add a crypto wallet", description: "Bitcoin, Ethereum, Solana, XRP, or Nimiq, by address", icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
-  { label: "Add a manual account", description: "Cash, a pension, a loan", icon: "i-lucide-plus", action: () => addAccount.open() },
-  { label: "Import a CSV", description: "Any bank’s export", icon: "i-lucide-file-up", to: "/connect/banks#import" },
+  { get label() { return translate('addACryptoWallet') }, get description() { return translate('bitcoinEthereumSolanaXrpOrNimiqByAddress') }, icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
+  { get label() { return translate('addAManualAccount') }, get description() { return translate('cashAPensionALoan') }, icon: "i-lucide-plus", action: () => addAccount.open() },
+  { get label() { return translate('importACsv') }, get description() { return translate('anyBankSExport') }, icon: "i-lucide-file-up", to: "/connect/banks#import" },
 ]
 </script>
 
@@ -21,25 +21,23 @@ const options = [
   <div class="flex flex-col gap-10">
     <section class="relative overflow-hidden border-t border-default">
       <div class="pt-4" aria-hidden="true">
-        <p class="text-sm font-medium text-muted">Net worth</p>
+        <p class="text-sm font-medium text-muted">{{ $t('netWorth') }}</p>
         <p class="money mt-1 text-3xl font-semibold tracking-[-0.02em] text-dimmed">—</p>
-        <AreaChart class="mt-4" :points="sample" :format="() => ''" label="Sample chart" :height="220" dimmed bare />
+        <AreaChart class="mt-4" :points="sample" :format="() => ''" :label="$t('sampleChart')" :height="220" dimmed bare />
       </div>
       <div class="absolute inset-0 grid place-items-center bg-default/40 p-4">
         <div class="flex max-w-sm flex-col items-center rounded-xl bg-default/90 p-6 text-center">
           <span class="grid size-10 place-items-center rounded-lg bg-primary/10">
             <UIcon name="i-lucide-landmark" class="size-5 text-primary" />
           </span>
-          <h2 class="mt-4 text-base font-semibold text-highlighted">Connect your bank</h2>
-          <p class="mt-1 text-sm text-muted">
-            Balances and transactions come in through your bank’s own open-banking access. It’s read only and can’t move money.
-          </p>
-          <UButton class="mt-5" to="/connect/banks#bank" label="Connect a bank" icon="i-lucide-plug" />
+          <h2 class="mt-4 text-base font-semibold text-highlighted">{{ $t('connectYourBank') }}</h2>
+          <p class="mt-1 text-sm text-muted"> {{ $t('balancesAndTransactionsComeInThroughYourBankSOwn') }} </p>
+          <UButton class="mt-5" to="/connect/banks#bank" :label="$t('connectABank')" icon="i-lucide-plug" />
         </div>
       </div>
     </section>
     <div>
-      <h2 class="border-b border-default pb-2 text-sm font-medium text-highlighted">Or start another way</h2>
+      <h2 class="border-b border-default pb-2 text-sm font-medium text-highlighted">{{ $t('orStartAnotherWay') }}</h2>
       <ul class="mt-2 grid gap-x-4 sm:grid-cols-3">
         <li v-for="option in options" :key="option.label">
           <component

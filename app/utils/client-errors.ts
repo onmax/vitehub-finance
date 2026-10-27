@@ -21,7 +21,7 @@ const MAX_PER_PAGE_LOAD = 10
 export function reportClientError(kind: ClientErrorKind, error: unknown, context: ClientErrorContext = {}) {
   if (!import.meta.client) return
   try {
-    const failure = error instanceof Error ? error : new Error(typeof error === "string" ? error : errorText(error, "Unknown error"))
+    const failure = error instanceof Error ? error : new Error(typeof error === "string" ? error : errorText(error, translate('unknownError')))
     // Navigating away aborts requests; that's not a failure.
     if (failure.name === "AbortError") return
     const status = errorStatus(error)

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentFormatLocale } from "~/lib/i18n"
 import { useLocalStorage } from "@vueuse/core"
 import type { Bank, ProviderInfo } from "#shared/api"
 import { bankMark } from "#shared/banks"
@@ -11,8 +12,8 @@ const emit = defineEmits<{ dismissError: [] }>()
 const demo = useDemo()
 
 const COUNTRIES = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "GB"]
-const names = new Intl.DisplayNames(typeof navigator === "undefined" ? undefined : navigator.language, { type: "region" })
-const countryItems = COUNTRIES.map((code) => ({ value: code, label: names.of(code) ?? code })).sort((a, b) => a.label.localeCompare(b.label))
+const names = computed(() => new Intl.DisplayNames(currentFormatLocale(), { type: "region" }))
+const countryItems = computed(() => COUNTRIES.map((code) => ({ value: code, label: names.value.of(code) ?? code })).sort((a, b) => a.label.localeCompare(b.label, currentFormatLocale())))
 const country = useLocalStorage("finance:bank-country", "ES")
 
 const { data: providers, status: providersStatus } = useScopedFetch<ProviderInfo[]>("/api/connect/providers", {
@@ -49,8 +50,8 @@ const rest = computed(() => (popular.value.length ? filtered.value.filter((bank)
 const LIMIT = 24
 const shown = computed(() => (showAll.value || search.value ? rest.value : rest.value.slice(0, LIMIT)))
 const lists = computed(() => [
-  { id: "popular", label: `Popular in ${names.of(country.value)}`, banks: popular.value },
-  { id: "all", label: popular.value.length ? "All banks" : "", banks: shown.value },
+  { id: "popular", label: translate('popularIn', { value1: names.value.of(country.value) }), banks: popular.value },
+  { id: "all", label: popular.value.length ? translate('allBanks') : "", banks: shown.value },
 ])
 watch(country, () => ((search.value = ""), (showAll.value = false)))
 
@@ -63,7 +64,7 @@ async function connect(bank: Bank) {
     const { url } = await $fetch<{ url: string }>("/api/connect/bank", { method: "POST", body: { name: bank.name, country: bank.country } })
     window.location.href = url
   } catch (cause) {
-    connectError.value = errorText(cause, `Couldn’t start connecting ${bank.name}. Try again.`)
+    connectError.value = errorText(cause, translate('couldnTStartConnectingTryAgain', { value1: bank.name }))
     connecting.value = null
   }
 }
@@ -77,7 +78,7 @@ const shownError = computed(() => connectError.value || props.error || "")
       color="error"
       variant="subtle"
       icon="i-lucide-circle-alert"
-      title="The bank didn’t connect"
+      :title="$t('theBankDidnTConnect')"
       :description="shownError"
       close
       @update:open="(open) => !open && ((connectError = ''), emit('dismissError'))"
@@ -86,12 +87,8 @@ const shownError = computed(() => connectError.value || props.error || "")
     <div v-if="demo" class="flex items-start gap-3 rounded-lg bg-muted p-4">
       <UIcon name="i-lucide-lock" class="mt-0.5 size-4 shrink-0 text-muted" />
       <div>
-        <p class="text-sm font-medium text-highlighted">{{ DEMO_LOCKED }}</p>
-        <p class="mt-1 text-sm text-muted">
-          The demo household’s banks are fictional. Outside the demo, you pick your bank here and sign in on its page through
-          <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>.
-          Try a CSV import or a manual account instead.
-        </p>
+        <p class="text-sm font-medium text-highlighted">{{ demoLocked() }}</p>
+        <p class="mt-1 text-sm text-muted"> {{ $t('theDemoHouseholdSBanksAreFictionalOutsideTheDemo') }} <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>{{ $t('tryACsvImportOrAManualAccountInstead') }} </p>
       </div>
     </div>
 
@@ -101,12 +98,8 @@ const shownError = computed(() => connectError.value || props.error || "")
     </div>
 
     <div v-else-if="!configured" class="rounded-lg bg-muted p-4">
-      <p class="text-sm font-medium text-highlighted">Bank connections aren’t set up on this server</p>
-      <p class="mt-1.5 text-sm text-muted">
-        Banks connect through <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>,
-        which is free for your own accounts. Create an app there, set <code class="font-mono text-xs">ENABLE_BANKING_APP_ID</code> and
-        <code class="font-mono text-xs">ENABLE_BANKING_PRIVATE_KEY</code> on the server, and restart it. Until then, import a CSV from your bank.
-      </p>
+      <p class="text-sm font-medium text-highlighted">{{ $t('bankConnectionsArenTSetUpOnThisServer') }}</p>
+      <p class="mt-1.5 text-sm text-muted"> {{ $t('banksConnectThrough') }} <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>{{ $t('whichIsFreeForYourOwnAccountsCreateAnApp') }} <code class="font-mono text-xs">ENABLE_BANKING_APP_ID</code> {{ $t('and') }} <code class="font-mono text-xs">ENABLE_BANKING_PRIVATE_KEY</code> {{ $t('onTheServerAndRestartItUntilThenImportA') }} </p>
     </div>
 
     <template v-else>
@@ -115,41 +108,41 @@ const shownError = computed(() => connectError.value || props.error || "")
           v-model="country"
           :items="countryItems"
           value-key="value"
-          aria-label="Country"
+          :aria-label="$t('country')"
           icon="i-lucide-globe"
-          :search-input="{ placeholder: 'Search countries…' }"
+          :search-input="{ placeholder: $t('searchCountries') }"
           class="sm:w-52"
         />
-        <UInput v-model="search" icon="i-lucide-search" placeholder="Search banks…" aria-label="Search banks" class="flex-1" />
+        <UInput v-model="search" icon="i-lucide-search" :placeholder="$t('searchBanks')" :aria-label="$t('searchBanks2')" class="flex-1" />
       </div>
 
-      <PageError v-if="banksError" :error="banksError" title="Couldn’t load the banks" @retry="refresh()" />
+      <PageError v-if="banksError" :error="banksError" :title="$t('couldnTLoadTheBanks')" @retry="refresh()" />
       <div v-else-if="status === 'pending'" class="grid gap-2 sm:grid-cols-2">
         <USkeleton v-for="row in 6" :key="row" class="h-14 w-full rounded-lg" />
       </div>
       <p v-else-if="filtered.length === 0" class="rounded-lg bg-muted p-4 text-sm text-muted">
-        {{ search ? `No bank matches “${search}” in ${names.of(country)}.` : `Enable Banking lists no banks in ${names.of(country)}.` }}
+        {{ search ? $t('noBankMatchesIn', { value1: search, value2: names.of(country) }) : $t('enableBankingListsNoBanksIn', { value1: names.of(country) }) }}
       </p>
       <template v-else>
         <template v-for="list in lists" :key="list.id">
           <div v-if="list.banks.length" class="flex flex-col gap-1">
             <h4 v-if="list.label" class="text-xs font-medium text-muted">{{ list.label }}</h4>
-            <ul class="grid gap-x-4 sm:grid-cols-2" :aria-label="list.label || 'Banks'">
+            <ul class="grid gap-x-4 sm:grid-cols-2" :aria-label="list.label || $t('banks')">
               <li v-for="bank in list.banks" :key="bank.name">
                 <button
                   type="button"
                   class="group -mx-2 flex h-14 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 text-left transition-colors duration-150 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait"
                   :disabled="connecting !== null"
-                  :aria-label="`Connect ${bank.name}`"
+                  :aria-label="$t('connect', { value1: bank.name })"
                   @click="connect(bank)"
                 >
                   <InstitutionMark provider="enable_banking" :name="bank.name" :logo="bank.logo" />
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-sm font-medium text-highlighted" :title="bank.name">{{ bank.name }}</span>
-                    <span v-if="bank.maxConsentDays" class="block text-xs text-muted">Reconnect every <span class="tabular-nums">{{ bank.maxConsentDays }}</span> days</span>
+                    <span v-if="bank.maxConsentDays" class="block text-xs text-muted">{{ $t('reconnectEvery') }} <span class="tabular-nums">{{ bank.maxConsentDays }}</span> {{ $t('days') }}</span>
                   </span>
                   <UIcon v-if="connecting === bank.name" name="i-lucide-loader-circle" class="size-4 shrink-0 animate-spin text-muted" />
-                  <span v-else class="shrink-0 text-sm font-medium text-muted transition-colors duration-150 group-hover:text-primary">Connect</span>
+                  <span v-else class="shrink-0 text-sm font-medium text-muted transition-colors duration-150 group-hover:text-primary">{{ $t('connect2') }}</span>
                 </button>
               </li>
             </ul>
@@ -160,13 +153,11 @@ const shownError = computed(() => connectError.value || props.error || "")
           color="neutral"
           variant="outline"
           class="self-center"
-          :label="`Show all ${rest.length} banks`"
+          :label="$t('showAllBanks', { value1: rest.length })"
           @click="showAll = true"
         />
       </template>
-      <p class="text-xs text-muted">
-        You sign in at your bank, which shares read-only access for up to 180 days. Your password never leaves the bank, and the access can’t move money.
-      </p>
+      <p class="text-xs text-muted"> {{ $t('youSignInAtYourBankWhichSharesReadOnly') }} </p>
     </template>
   </div>
 </template>

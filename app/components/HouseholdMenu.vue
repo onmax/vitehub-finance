@@ -6,16 +6,16 @@ import type { DropdownMenuItem } from "@nuxt/ui"
 defineProps<{ collapsed?: boolean }>()
 const { data: me } = useMe()
 const items = computed<DropdownMenuItem[][]>(() => [
-  [{ type: "label", label: me.value?.household.name ?? "Household" }],
+  [{ type: "label", label: me.value?.household.name ?? translate('household') }],
   [
-    { label: "Members and invitations", icon: "i-lucide-users", to: "/household" },
-    { label: "Invite someone", icon: "i-lucide-user-plus", to: "/household?invite=1" },
+    { get label() { return translate('membersAndInvitations') }, icon: "i-lucide-users", to: "/household" },
+    { get label() { return translate('inviteSomeone') }, icon: "i-lucide-user-plus", to: "/household?invite=1" },
   ],
-  [{ label: "Connect an account", icon: "i-lucide-plug", to: "/connect/banks" }],
+  [{ get label() { return translate('connectAnAccount') }, icon: "i-lucide-plug", to: "/connect/banks" }],
 ])
 const subtitle = computed(() => {
   const count = me.value?.members.length ?? 1
-  return count === 1 ? "Just you" : `${count} people`
+  return count === 1 ? translate('justYou') : translate('people', { value1: count })
 })
 </script>
 
@@ -25,7 +25,7 @@ const subtitle = computed(() => {
       type="button"
       class="flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-accented/60 focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:bg-accented"
       :class="collapsed && 'justify-center'"
-      :aria-label="`${me?.household.name ?? 'Household'} menu`"
+      :aria-label="$t('menu', { value1: me?.household.name ?? $t('household') })"
     >
       <AppLogo mark-only />
       <span v-if="!collapsed" class="min-w-0 flex-1 leading-tight">

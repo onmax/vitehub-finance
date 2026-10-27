@@ -5,7 +5,7 @@
  * provider resumes the authorization by itself. Signed in: allow or deny the agent, then go back to it.
  */
 definePageMeta({ layout: "auth" })
-useSeoMeta({ title: "Connect an agent" })
+useSeoMeta({ title: () => translate('connectAnAgent') })
 
 const route = useRoute()
 const { $auth } = useNuxtApp()
@@ -24,12 +24,12 @@ const { data: client } = useAsyncData(
   async () => {
     if (!loggedIn.value || !valid.value) return null
     const { data, error } = await $auth.oauth2.publicClient({ query: { client_id: clientId.value } })
-    if (error) throw new Error(error.message || "Couldn’t load this agent. Start the connection again.")
+    if (error) throw Object.assign(new Error(error.message || translate('couldnTLoadThisAgentStartTheConnectionAgain')), { code: error.code })
     return data as { client_name?: string } | null
   },
   { server: false, watch: [loggedIn], default: () => null },
 )
-const agentName = computed(() => client.value?.client_name || "this agent")
+const agentName = computed(() => client.value?.client_name || translate('thisAgent'))
 
 // Where Allow sends the agent's access. Anyone can register an agent under any name, so the name proves nothing; the
 // redirect is part of this signed link, so it is where the code really goes.
@@ -37,8 +37,8 @@ const destination = computed(() => {
   const uri = text(route.query.redirect_uri) ?? ""
   if (!URL.canParse(uri)) return null
   const url = new URL(uri)
-  if (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) return { local: true, label: "an app on this computer" }
-  if (!["http:", "https:"].includes(url.protocol)) return { local: true, label: `the app that opens ${url.protocol} links` }
+  if (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) return { local: true, get label() { return translate('anAppOnThisComputer') } }
+  if (!["http:", "https:"].includes(url.protocol)) return { local: true, label: translate('theAppThatOpensLinks', { value1: url.protocol }) }
   return { local: false, label: url.host }
 })
 
@@ -50,8 +50,8 @@ async function answer(accept: boolean) {
   error.value = ""
   try {
     const { data, error: failure } = await $auth.oauth2.consent({ accept })
-    if (failure) throw new Error(failure.message || "This authorization link is invalid or has expired. Start again from your agent.")
-    if (!(data as { url?: string } | null)?.url) throw new Error("The agent didn’t get an answer. Start again from your agent.")
+    if (failure) throw Object.assign(new Error(failure.message || translate('thisAuthorizationLinkIsInvalidOrHasExpiredStartAgain')), { code: failure.code })
+    if (!(data as { url?: string } | null)?.url) throw new Error(translate('theAgentDidnTGetAnAnswerStartAgainFrom'))
   } catch (cause) {
     error.value = errorText(cause)
     pending.value = null
@@ -59,17 +59,17 @@ async function answer(accept: boolean) {
 }
 
 const can = [
-  "Read the accounts, balances, and transactions you can see",
-  "Read recurring payments, budgets, goals, and the forecast",
-  "Categorize transactions and add notes where you may edit",
+  translate('readTheAccountsBalancesAndTransactionsYouCanSee'),
+  translate('readRecurringPaymentsBudgetsGoalsAndTheForecast'),
+  translate('categorizeTransactionsAndAddNotesWhereYouMayEdit'),
 ]
 </script>
 
 <template>
   <div>
     <template v-if="!valid">
-      <h1 class="text-lg font-semibold text-highlighted">This link has expired</h1>
-      <p class="mt-2 text-sm text-muted">Start the connection again from your agent. It opens a fresh link.</p>
+      <h1 class="text-lg font-semibold text-highlighted">{{ $t('thisLinkHasExpired') }}</h1>
+      <p class="mt-2 text-sm text-muted">{{ $t('startTheConnectionAgainFromYourAgentItOpensA') }}</p>
     </template>
 
     <template v-else-if="!ready">
@@ -79,8 +79,8 @@ const can = [
     </template>
 
     <template v-else-if="!loggedIn">
-      <h1 class="text-lg font-semibold text-highlighted">Connect an agent to ViteHub Finance</h1>
-      <p class="mt-2 mb-5 text-sm text-muted">Sign in to choose whether it can read your household’s finances.</p>
+      <h1 class="text-lg font-semibold text-highlighted">{{ $t('connectAnAgentToVitehubFinance') }}</h1>
+      <p class="mt-2 mb-5 text-sm text-muted">{{ $t('signInToChooseWhetherItCanReadYourHousehold') }}</p>
       <InviteAuthForm :allow-sign-up="false" />
     </template>
 
@@ -89,18 +89,17 @@ const can = [
         <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-elevated">
           <UIcon name="i-lucide-bot" class="size-5 text-toned" />
         </span>
-        <h1 class="text-lg leading-snug font-semibold text-highlighted">Allow {{ agentName }} to read your household’s finances?</h1>
+        <h1 class="text-lg leading-snug font-semibold text-highlighted">{{ $t('allowToReadYourHouseholdSFinances', { value1: agentName }) }}</h1>
       </div>
-      <p class="mt-4 text-sm text-muted">It acts as {{ user?.email ?? "you" }} and can:</p>
+      <p class="mt-4 text-sm text-muted">{{ $t('itActsAsAndCan', { value1: user?.email ?? "you" }) }}</p>
       <ul class="mt-2 flex flex-col gap-1.5 text-sm">
         <li v-for="item in can" :key="item" class="flex gap-2">
           <UIcon name="i-lucide-check" class="mt-0.5 size-4 shrink-0 text-muted" />{{ item }}
         </li>
         <li class="flex gap-2">
-          <UIcon name="i-lucide-x" class="mt-0.5 size-4 shrink-0 text-muted" />Never manage people or household settings
-        </li>
+          <UIcon name="i-lucide-x" class="mt-0.5 size-4 shrink-0 text-muted" />{{ $t('neverManagePeopleOrHouseholdSettings') }} </li>
       </ul>
-      <p v-if="destination?.local" class="mt-4 text-xs text-muted">Allow returns to {{ destination.label }}.</p>
+      <p v-if="destination?.local" class="mt-4 text-xs text-muted">{{ $t('allowReturnsTo', { value1: destination.label }) }}</p>
       <UAlert
         v-else-if="destination"
         class="mt-4"
@@ -109,15 +108,12 @@ const can = [
         icon="i-lucide-triangle-alert"
         :ui="{ description: 'text-xs text-default', icon: 'text-warning' }"
       >
-        <template #description>
-          Allow gives this access to <span class="font-mono font-medium">{{ destination.label }}</span>. Only allow it if you started
-          this connection from an agent that runs there.
-        </template>
+        <template #description> {{ $t('allowGivesThisAccessTo') }} <span class="font-mono font-medium">{{ destination.label }}</span>{{ $t('onlyAllowItIfYouStartedThisConnectionFromAn') }} </template>
       </UAlert>
-      <p class="mt-4 text-xs text-muted">It can’t see other members’ private accounts. Disconnect it any time in Settings › Agents.</p>
+      <p class="mt-4 text-xs text-muted">{{ $t('itCanTSeeOtherMembersPrivateAccountsDisconnectIt') }}</p>
       <div class="mt-6 grid grid-cols-2 gap-2">
-        <UButton block color="neutral" variant="outline" label="Deny" :disabled="pending !== null" :loading="pending === 'deny'" @click="answer(false)" />
-        <UButton block label="Allow" :disabled="pending !== null" :loading="pending === 'allow'" @click="answer(true)" />
+        <UButton block color="neutral" variant="outline" :label="$t('deny')" :disabled="pending !== null" :loading="pending === 'deny'" @click="answer(false)" />
+        <UButton block :label="$t('allow')" :disabled="pending !== null" :loading="pending === 'allow'" @click="answer(true)" />
       </div>
     </template>
 

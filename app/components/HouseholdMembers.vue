@@ -17,9 +17,9 @@ const canLeave = computed(() => (me.value?.members.length ?? 1) > 1 && !(isOwner
 async function remove(person: Person) {
   if (demo) return
   const { confirmed } = await confirm({
-    title: `Remove ${person.name}?`,
-    description: `${person.name} loses access to the household’s shared accounts. Their own accounts, connections, and history go with them into a household of their own.`,
-    confirmLabel: "Remove",
+    title: translate('remove', { value1: person.name }),
+    description: translate('losesAccessToTheHouseholdSSharedAccountsTheirOwn', { value1: person.name }),
+    confirmLabel: translate('remove2'),
     destructive: true,
   })
   if (!confirmed) return
@@ -28,9 +28,9 @@ async function remove(person: Person) {
     await $fetch(`/api/household/members/${person.userId}`, { method: "DELETE" })
     await refresh()
     await refreshStems("accounts", "overview", "transactions", "connections")
-    notify.success(`${person.name} removed`)
+    notify.success(translate('removed', { value1: person.name }))
   } catch (error) {
-    notify.error(error, `Couldn’t remove ${person.name}`)
+    notify.error(error, translate('couldnTRemove', { value1: person.name }))
   } finally {
     pending.value = null
   }
@@ -39,10 +39,9 @@ async function remove(person: Person) {
 async function leave() {
   if (demo) return
   const { confirmed } = await confirm({
-    title: `Leave ${me.value?.household.name ?? "the household"}?`,
-    description:
-      "You stop seeing the accounts others share. Your own accounts, connections, and history come with you into a household of your own.",
-    confirmLabel: "Leave household",
+    title: translate('leave', { value1: me.value?.household.name ?? translate('theHousehold') }),
+    get description() { return translate('youStopSeeingTheAccountsOthersShareYourOwnAccounts') },
+    confirmLabel: translate('leaveHousehold'),
     destructive: true,
   })
   if (!confirmed) return
@@ -52,39 +51,39 @@ async function leave() {
     await useAuthSession().refresh()
     clearNuxtData()
     await navigateTo("/")
-    notify.success("You left the household", "Your accounts are in a household of your own now.")
+    notify.success(translate('youLeftTheHousehold'), translate('yourAccountsAreInAHouseholdOfYourOwnNow'))
   } catch (error) {
-    notify.error(error, "Couldn’t leave the household")
+    notify.error(error, translate('couldnTLeaveTheHousehold'))
     pending.value = null
   }
 }
 </script>
 
 <template>
-  <SettingsSection title="Members" :description="`${me?.members.length ?? 1} ${me?.members.length === 1 ? 'person' : 'people'}`" flush>
+  <SettingsSection :title="$t('members')" :description="$t('peopleCount', { count: formatCount(me?.members.length ?? 1) }, me?.members.length ?? 1)" flush>
     <ul v-if="me" class="divide-y divide-default">
       <li v-for="person in me.members" :key="person.userId" class="flex min-h-16 items-center gap-3 py-3">
         <UAvatar :alt="person.name" :src="person.image ?? undefined" size="md" />
         <div class="min-w-0 flex-1">
           <p class="flex items-center gap-2 text-sm font-medium text-highlighted">
             <span class="truncate">{{ person.name }}</span>
-            <span v-if="person.userId === me.user.id" class="shrink-0 text-xs font-normal text-muted">You</span>
+            <span v-if="person.userId === me.user.id" class="shrink-0 text-xs font-normal text-muted">{{ $t('you') }}</span>
           </p>
           <p class="truncate text-sm text-muted">{{ person.email }}</p>
         </div>
         <UBadge
           color="neutral"
           :variant="person.role === 'owner' ? 'subtle' : 'outline'"
-          :label="person.role === 'owner' ? 'Owner' : 'Member'"
+          :label="person.role === 'owner' ? $t('owner') : $t('member')"
           class="shrink-0"
         />
         <DemoLock v-if="isOwner && person.userId !== me.user.id" v-slot="{ locked }">
-          <UTooltip :text="`Remove ${person.name}`" :disabled="locked">
+          <UTooltip :text="$t('remove4', { value1: person.name })" :disabled="locked">
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-lucide-user-minus"
-              :aria-label="`Remove ${person.name}`"
+              :aria-label="$t('remove4', { value1: person.name })"
               :loading="pending === person.userId"
               :disabled="locked"
               class="size-10 justify-center"
@@ -101,13 +100,13 @@ async function leave() {
       </div>
     </div>
     <template v-if="me && me.members.length > 1" #footer>
-      <p v-if="!canLeave" class="mr-auto text-sm text-muted">You’re the only owner, so you can’t leave.</p>
+      <p v-if="!canLeave" class="mr-auto text-sm text-muted">{{ $t('youReTheOnlyOwnerSoYouCanTLeave') }}</p>
       <DemoLock v-else v-slot="{ locked }">
         <UButton
           color="error"
           variant="outline"
           icon="i-lucide-log-out"
-          label="Leave household"
+          :label="$t('leaveHousehold')"
           :loading="pending === 'leave'"
           :disabled="locked"
           @click="leave"

@@ -13,7 +13,7 @@ export function useCategories() {
   const find = (id: string | null | undefined) => (id ? byId.value.get(id) : undefined)
   /** Items for a USelectMenu: expense, income, and transfer categories, with Uncategorized first. */
   const items = computed(() => [
-    { id: null as string | null, name: "Uncategorized", icon: "i-lucide-circle-help", color: "neutral", kind: "expense" as const },
+    { id: null as string | null, get name() { return translate('uncategorized') }, icon: "i-lucide-circle-help", color: "neutral", kind: "expense" as const },
     ...[...request.data.value].sort((a, b) => kindOrder(a.kind) - kindOrder(b.kind) || a.name.localeCompare(b.name)),
   ])
   return { ...request, categories: request.data, byId, find, items }

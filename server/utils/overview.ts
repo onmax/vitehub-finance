@@ -47,6 +47,7 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
     netWorthMinor,
     netWorthSeries,
     month: {
+      month,
       label: monthLabel(month, "long"),
       inMinor: thisMonth.inMinor,
       outMinor: thisMonth.outMinor,

@@ -4,7 +4,7 @@ import type { Transaction, TransactionPage } from "#shared/api"
 // Every transaction the caller may see, filtered by the URL's query (so a filtered view can be shared or reloaded):
 // `view` (all, mine, in, out), `q`, `account`, `category` (an id or "none"), `from`, `to`. Pages load by cursor as
 // you scroll. Changing a category shows at once and offers to apply it to similar transactions.
-useHead({ title: "Transactions" })
+useHead({ get title() { return translate('transactions') } })
 type View = "all" | "mine" | "in" | "out"
 
 const route = useRoute()
@@ -89,7 +89,7 @@ async function loadMore() {
     more.value.push(...next.items)
     cursor.value = next.nextCursor
   } catch (cause) {
-    moreError.value = errorText(cause, "Couldn’t load more transactions.")
+    moreError.value = errorText(cause, translate('couldnTLoadMoreTransactions'))
   } finally {
     loadingMore.value = false
   }
@@ -114,17 +114,17 @@ async function changeCategory(row: Transaction, categoryId: string | null) {
     const name = find(categoryId)?.name
     const who = row.counterparty || row.description
     toast.add({
-      title: name ? `Moved to ${name}` : "Category removed",
-      description: name ? `Use ${name} for other transactions from ${who} too?` : undefined,
+      title: name ? translate('movedTo', { value1: name }) : translate('categoryRemoved'),
+      description: name ? translate('useForOtherTransactionsFromToo', { value1: name, value2: who }) : undefined,
       icon: "i-lucide-circle-check",
       duration: 8000,
       actions: name
-        ? [{ label: "Apply to similar", color: "neutral", variant: "outline", size: "sm", onClick: () => void applyToSimilar(row, categoryId!) }]
+        ? [{ get label() { return translate('applyToSimilar') }, color: "neutral", variant: "outline", size: "sm", onClick: () => void applyToSimilar(row, categoryId!) }]
         : undefined,
     })
   } catch (cause) {
     edits.value.set(row.id, row)
-    notify.error(cause, "Couldn’t change the category")
+    notify.error(cause, translate('couldnTChangeTheCategory'))
   }
 }
 
@@ -133,9 +133,9 @@ async function applyToSimilar(row: Transaction, categoryId: string) {
     await $fetch(`/api/transactions/${row.id}`, { method: "PATCH", body: { categoryId, applyToSimilar: true } })
     await refresh()
     void refreshStems("overview", "budgets")
-    notify.success(`Applied to similar transactions`, `New transactions like this one get ${find(categoryId)?.name ?? "it"} too.`)
+    notify.success(translate('appliedToSimilarTransactions'), translate('newTransactionsLikeThisOneGetToo', { value1: find(categoryId)?.name ?? "it" }))
   } catch (cause) {
-    notify.error(cause, "Couldn’t apply it to similar transactions")
+    notify.error(cause, translate('couldnTApplyItToSimilarTransactions'))
   }
 }
 
@@ -156,7 +156,7 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
 <template>
   <UDashboardPanel id="transactions">
     <template #header>
-      <PageNavbar title="Transactions" />
+      <PageNavbar :title="$t('transactions')" />
       <UDashboardToolbar :ui="{ root: 'py-2 overflow-visible', left: 'w-full min-w-0' }">
         <template #left>
           <TransactionsFilters
@@ -170,18 +170,18 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
           />
         </template>
       </UDashboardToolbar>
-      <div class="flex min-h-10 items-center gap-x-5 gap-y-1 border-b border-default px-4 py-2 text-sm sm:px-6" aria-live="polite">
+      <div class="flex min-h-10 flex-wrap items-center gap-x-5 gap-y-1 border-b border-default px-4 py-2 text-sm sm:px-6" aria-live="polite">
         <template v-if="loading && !page?.items.length">
           <USkeleton class="h-4 w-64" />
         </template>
         <template v-else>
-          <span class="money text-muted">{{ formatCount(totals.count) }} {{ totals.count === 1 ? "transaction" : "transactions" }}</span>
+          <span class="money text-muted">{{ $t('transactionsCount', { count: formatCount(totals.count) }, totals.count) }}</span>
           <span class="flex items-center gap-1.5">
-            <span class="text-muted">In</span>
+            <span class="text-muted">{{ $t('in') }}</span>
             <Money :minor="totals.inMinor" tone="in" class="font-medium" />
           </span>
           <span class="flex items-center gap-1.5">
-            <span class="text-muted">Out</span>
+            <span class="text-muted">{{ $t('out') }}</span>
             <Money :minor="totals.outMinor ? -totals.outMinor : 0" class="font-medium text-highlighted" />
           </span>
         </template>
@@ -191,25 +191,25 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
     <template #body>
       <div ref="body" class="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
         <div v-if="error" class="p-4 sm:p-6">
-          <PageError :error="error" title="Transactions didn’t load" @retry="refresh()" />
+          <PageError :error="error" :title="$t('transactionsDidnTLoad')" @retry="refresh()" />
         </div>
         <UEmpty
           v-else-if="!loading && rows.length === 0 && filtered"
           icon="i-lucide-search"
-          title="No transactions match"
-          description="Try other words, another account, or a wider date range."
-          :actions="[{ label: 'Clear filters', color: 'neutral', variant: 'outline', onClick: () => router.replace({ query: {} }) }]"
+          :title="$t('noTransactionsMatch')"
+          :description="$t('tryOtherWordsAnotherAccountOrAWiderDateRange')"
+          :actions="[{ label: $t('clearFilters'), color: 'neutral', variant: 'outline', onClick: () => router.replace({ query: {} }) }]"
           variant="naked"
           class="py-16"
         />
         <UEmpty
           v-else-if="!loading && rows.length === 0"
           icon="i-lucide-arrow-left-right"
-          title="No transactions yet"
-          description="Connect a bank to bring in at least the last 90 days and keep them up to date. You can also import a CSV."
+          :title="$t('noTransactionsYet2')"
+          :description="$t('connectABankToBringInAtLeastTheLast')"
           :actions="[
-            { label: 'Connect a bank', to: '/connect/banks' },
-            { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
+            { label: $t('connectABank'), to: '/connect/banks' },
+            { label: $t('importACsv'), color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
           ]"
           variant="naked"
           class="py-16"
@@ -221,12 +221,12 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
             <UButton
               color="neutral"
               variant="outline"
-              :label="moreError ? 'Try again' : 'Load more'"
+              :label="moreError ? $t('tryAgain') : $t('loadMore')"
               :loading="loadingMore"
               @click="(moreError = ''), loadMore()"
             />
           </div>
-          <p v-else-if="rows.length > 20" class="border-t border-default p-4 text-center text-xs text-muted">That’s everything.</p>
+          <p v-else-if="rows.length > 20" class="border-t border-default p-4 text-center text-xs text-muted">{{ $t('thatSEverything') }}</p>
         </template>
       </div>
 

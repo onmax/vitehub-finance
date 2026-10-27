@@ -2,7 +2,7 @@
 // Sign in: email and password, a passkey (also offered by the browser's autofill on the email field), a magic link when
 // this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code.
 definePageMeta({ layout: "auth" })
-useHead({ title: "Sign in" })
+useHead({ get title() { return translate('signIn') } })
 
 const route = useRoute()
 const { $auth } = useNuxtApp()
@@ -43,7 +43,7 @@ async function exploreDemo() {
     await session.refresh()
     await navigateTo("/")
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t open the demo. Try again.")
+    error.value = errorText(cause, translate('couldnTOpenTheDemoTryAgain'))
   } finally {
     pending.value = null
   }
@@ -54,7 +54,7 @@ async function signIn() {
   error.value = ""
   try {
     const { data, error: failure } = await $auth.signIn.email({ email: state.email.trim(), password: state.password })
-    if (failure) throw new Error(failure.status === 401 ? "That email and password don’t match." : failure.message)
+    if (failure) throw Object.assign(new Error(failure.status === 401 ? translate('thatEmailAndPasswordDonTMatch') : failure.message), { code: failure.code })
     // With two-factor on, the plugin sends us to ?step=2fa (plugins/auth.ts); keep where we were headed.
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
       await navigateTo({ path: "/login", query: { step: "2fa", redirect: route.query.redirect } })
@@ -62,7 +62,7 @@ async function signIn() {
     }
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t sign in. Try again.")
+    error.value = errorText(cause, translate('couldnTSignInTryAgain'))
   } finally {
     pending.value = null
   }
@@ -73,10 +73,10 @@ async function signInWithPasskey() {
   error.value = ""
   try {
     const result = await $auth.signIn.passkey()
-    if (result?.error) throw new Error(result.error.message || "The passkey didn’t work.")
+    if (result?.error) throw Object.assign(new Error(result.error.message || translate('thePasskeyDidnTWork')), { code: "code" in result.error ? result.error.code : "PASSKEY_AUTH_FAILED" })
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "The passkey didn’t work. Try your password.")
+    error.value = errorText(cause, translate('thePasskeyDidnTWorkTryYourPassword'))
   } finally {
     pending.value = null
   }
@@ -84,17 +84,17 @@ async function signInWithPasskey() {
 
 async function sendMagicLink() {
   if (!state.email.trim()) {
-    error.value = "Enter your email first, then ask for a link."
+    error.value = translate('enterYourEmailFirstThenAskForALink')
     return
   }
   pending.value = "magic"
   error.value = ""
   try {
     const { error: failure } = await $auth.signIn.magicLink({ email: state.email.trim(), callbackURL: redirect.value })
-    if (failure) throw new Error(failure.message)
+    if (failure) throw Object.assign(new Error(failure.message), { code: failure.code })
     magicSent.value = true
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t send the link. Try again.")
+    error.value = errorText(cause, translate('couldnTSendTheLinkTryAgain'))
   } finally {
     pending.value = null
   }
@@ -108,10 +108,10 @@ async function verify() {
     const { error: failure } = backup.value
       ? await $auth.twoFactor.verifyBackupCode({ code, trustDevice: state.trust })
       : await $auth.twoFactor.verifyTotp({ code, trustDevice: state.trust })
-    if (failure) throw new Error(backup.value ? "That backup code didn’t work." : "That code didn’t work. Codes change every 30 seconds.")
+    if (failure) throw new Error(backup.value ? translate('thatBackupCodeDidnTWork') : translate('thatCodeDidnTWorkCodesChangeEvery30Seconds'))
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "That code didn’t work.")
+    error.value = errorText(cause, translate('thatCodeDidnTWork'))
   } finally {
     pending.value = null
   }
@@ -126,12 +126,12 @@ watch(step, () => {
 <template>
   <div>
     <template v-if="step === '2fa'">
-      <h1 class="text-lg font-semibold text-highlighted">Two-factor check</h1>
+      <h1 class="text-lg font-semibold text-highlighted">{{ $t('twoFactorCheck') }}</h1>
       <p class="mt-1 text-sm text-muted">
-        {{ backup ? "Enter one of the backup codes you saved when you turned on two-factor." : "Enter the 6-digit code from your authenticator app." }}
+        {{ backup ? $t('enterOneOfTheBackupCodesYouSavedWhenYou') : $t('enterThe6DigitCodeFromYourAuthenticatorApp') }}
       </p>
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="verify">
-        <UFormField :label="backup ? 'Backup code' : 'Code'" name="code">
+        <UFormField :label="backup ? $t('backupCode') : $t('code')" name="code">
           <UInput
             v-model="state.code"
             :inputmode="backup ? 'text' : 'numeric'"
@@ -143,28 +143,26 @@ watch(step, () => {
             required
           />
         </UFormField>
-        <UCheckbox v-model="state.trust" label="Trust this device for 30 days" />
-        <UButton type="submit" block label="Verify" :loading="pending === 'code'" />
+        <UCheckbox v-model="state.trust" :label="$t('trustThisDeviceFor30Days')" />
+        <UButton type="submit" block :label="$t('verify')" :loading="pending === 'code'" />
       </UForm>
       <p v-if="error" class="mt-3 text-sm text-error" role="alert">{{ error }}</p>
       <div class="mt-4 flex items-center justify-between gap-2 text-sm">
-        <UButton variant="link" color="neutral" class="px-0" :label="backup ? 'Use your authenticator' : 'Use a backup code'" @click="backup = !backup" />
-        <UButton variant="link" color="neutral" class="px-0 text-muted" label="Start over" to="/login" />
+        <UButton variant="link" color="neutral" class="px-0" :label="backup ? $t('useYourAuthenticator') : $t('useABackupCode')" @click="backup = !backup" />
+        <UButton variant="link" color="neutral" class="px-0 text-muted" :label="$t('startOver')" to="/login" />
       </div>
     </template>
 
     <template v-else-if="magicSent">
       <UIcon name="i-lucide-mail-check" class="size-6 text-muted" />
-      <h1 class="mt-3 text-lg font-semibold text-highlighted">Check your email</h1>
-      <p class="mt-1 text-sm text-muted">
-        Open the sign-in link sent to <span class="font-medium text-highlighted">{{ state.email }}</span>. It works for 5 minutes.
-      </p>
-      <UButton class="mt-6" block color="neutral" variant="outline" label="Back to sign in" @click="magicSent = false" />
+      <h1 class="mt-3 text-lg font-semibold text-highlighted">{{ $t('checkYourEmail') }}</h1>
+      <p class="mt-1 text-sm text-muted"> {{ $t('openTheSignInLinkSentTo') }} <span class="font-medium text-highlighted">{{ state.email }}</span>{{ $t('itWorksFor5Minutes') }} </p>
+      <UButton class="mt-6" block color="neutral" variant="outline" :label="$t('backToSignIn')" @click="magicSent = false" />
     </template>
 
     <template v-else>
-      <h1 class="text-lg font-semibold text-highlighted">Sign in to ViteHub Finance</h1>
-      <p class="mt-1 text-sm text-muted">Your household’s money, in one place.</p>
+      <h1 class="text-lg font-semibold text-highlighted">{{ $t('signInToVitehubFinance') }}</h1>
+      <p class="mt-1 text-sm text-muted">{{ $t('yourHouseholdSMoneyInOnePlace') }}</p>
 
       <template v-if="demo">
         <UButton
@@ -173,28 +171,28 @@ watch(step, () => {
           size="lg"
           icon="i-lucide-arrow-right"
           trailing
-          label="Explore the demo"
+          :label="$t('exploreTheDemo')"
           :loading="pending === 'demo'"
           :disabled="pending !== null && pending !== 'demo'"
           @click="exploreDemo"
         />
-        <p class="mt-2 text-center text-xs text-muted">A fictional household in Madrid. Its data resets every night.</p>
-        <USeparator label="or sign in" class="mt-5" :ui="{ label: 'text-xs text-muted' }" />
+        <p class="mt-2 text-center text-xs text-muted">{{ $t('aFictionalHouseholdInMadridItsDataResetsEveryNight') }}</p>
+        <USeparator :label="$t('orSignIn')" class="mt-5" :ui="{ label: 'text-xs text-muted' }" />
       </template>
 
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="signIn">
-        <UFormField label="Email" name="email" :hint="lastUsed === 'email' ? 'Last used' : undefined">
+        <UFormField :label="$t('email')" name="email" :hint="lastUsed === 'email' ? $t('lastUsed') : undefined">
           <UInput
             v-model="state.email"
             type="email"
             autocomplete="username webauthn"
-            placeholder="you@example.com"
+            :placeholder="$t('youExampleCom')"
             class="w-full"
             required
             :autofocus="!demo"
           />
         </UFormField>
-        <UFormField label="Password" name="password">
+        <UFormField :label="$t('password')" name="password">
           <UInput
             v-model="state.password"
             :type="reveal ? 'text' : 'password'"
@@ -204,13 +202,13 @@ watch(step, () => {
             :ui="{ trailing: 'pe-1' }"
           >
             <template #trailing>
-              <UTooltip :text="reveal ? 'Hide password' : 'Show password'">
+              <UTooltip :text="reveal ? $t('hidePassword') : $t('showPassword')">
                 <UButton
                   color="neutral"
                   variant="link"
                   size="sm"
                   :icon="reveal ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                  :aria-label="reveal ? 'Hide password' : 'Show password'"
+                  :aria-label="reveal ? $t('hidePassword') : $t('showPassword')"
                   :aria-pressed="reveal"
                   @click="reveal = !reveal"
                 />
@@ -218,10 +216,10 @@ watch(step, () => {
             </template>
           </UInput>
         </UFormField>
-        <UButton type="submit" block label="Sign in" :loading="pending === 'password'" :disabled="pending !== null && pending !== 'password'" />
+        <UButton type="submit" block :label="$t('signIn')" :loading="pending === 'password'" :disabled="pending !== null && pending !== 'password'" />
       </UForm>
 
-      <USeparator label="or" class="my-5" :ui="{ label: 'text-xs text-muted' }" />
+      <USeparator :label="$t('or')" class="my-5" :ui="{ label: 'text-xs text-muted' }" />
 
       <div class="flex flex-col gap-2">
         <UButton
@@ -232,9 +230,7 @@ watch(step, () => {
           :loading="pending === 'passkey'"
           :disabled="pending !== null && pending !== 'passkey'"
           @click="signInWithPasskey"
-        >
-          Sign in with a passkey
-          <UBadge v-if="lastUsed === 'passkey'" label="Last used" size="sm" color="neutral" variant="subtle" class="ms-1" />
+        > {{ $t('signInWithAPasskey') }} <UBadge v-if="lastUsed === 'passkey'" :label="$t('lastUsed')" size="sm" color="neutral" variant="subtle" class="ms-1" />
         </UButton>
         <UButton
           v-if="emailWorks"
@@ -245,18 +241,14 @@ watch(step, () => {
           :loading="pending === 'magic'"
           :disabled="pending !== null && pending !== 'magic'"
           @click="sendMagicLink"
-        >
-          Email me a sign-in link
-          <UBadge v-if="lastUsed === 'magic-link'" label="Last used" size="sm" color="neutral" variant="subtle" class="ms-1" />
+        > {{ $t('emailMeASignInLink') }} <UBadge v-if="lastUsed === 'magic-link'" :label="$t('lastUsed')" size="sm" color="neutral" variant="subtle" class="ms-1" />
         </UButton>
       </div>
 
       <p v-if="error" class="mt-4 text-sm text-error" role="alert">{{ error }}</p>
     </template>
   </div>
-  <p v-if="step !== '2fa' && !demo" class="mt-6 text-center text-sm text-muted">
-    New here?
-    <ULink :to="{ path: '/signup', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">Create an account</ULink>
+  <p v-if="step !== '2fa' && !demo" class="mt-6 text-center text-sm text-muted"> {{ $t('newHere') }} <ULink :to="{ path: '/signup', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">{{ $t('createAnAccount') }}</ULink>
   </p>
   <LegalLinks :class="demo && step !== '2fa' ? 'mt-6' : 'mt-4'" />
 </template>

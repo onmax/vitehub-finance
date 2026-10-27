@@ -22,40 +22,37 @@ const lowTone = computed(() => (props.lowest.balanceMinor < 0 ? "text-error" : p
 <template>
   <dl class="grid grid-cols-2 gap-y-6 lg:grid-cols-4">
     <div class="flex min-w-0 flex-col pe-3 sm:pe-6">
-      <dt class="text-xs text-muted sm:text-sm">Cash today</dt>
+      <dt class="text-xs text-muted sm:text-sm">{{ $t('cashToday') }}</dt>
       <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ money(forecast.startMinor) }}</dd>
       <dd class="mt-1 text-xs text-muted">
-        {{ forecast.accounts.length }} {{ forecast.accounts.length === 1 ? "account" : "accounts" }} you can spend from
-      </dd>
+        {{ $t('youCanSpendFrom', { count: formatCount(forecast.accounts.length) }, forecast.accounts.length) }} </dd>
     </div>
     <div class="flex min-w-0 flex-col border-l border-default ps-3 sm:px-6">
-      <dt class="text-xs text-muted sm:text-sm">Next 30 days</dt>
+      <dt class="text-xs text-muted sm:text-sm">{{ $t('next30Days') }}</dt>
       <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="net30 >= 0 ? FLOW.income.text : 'text-highlighted'">
         {{ money(net30, { signed: true }) }}
       </dd>
       <dd class="mt-1 flex flex-wrap gap-x-2 text-xs text-muted tabular-nums">
-        <span><span :class="FLOW.income.text">{{ money(next30.inMinor, { signed: true }) }}</span> in</span>
-        <span>{{ money(-next30.outMinor, { signed: true }) }} out</span>
-        <span v-if="baseline && delta(net30, baseline.next30)" class="text-primary">{{ delta(net30, baseline.next30) }} what-if</span>
+        <span><span :class="FLOW.income.text">{{ money(next30.inMinor, { signed: true }) }}</span> {{ $t('in2') }}</span>
+        <span>{{ $t('out2', { value1: money(-next30.outMinor, { signed: true }) }) }}</span>
+        <span v-if="baseline && delta(net30, baseline.next30)" class="text-primary">{{ $t('whatIf', { value1: delta(net30, baseline.next30) }) }}</span>
       </dd>
     </div>
     <div class="flex min-w-0 flex-col pe-3 sm:pe-6 lg:border-l lg:border-default lg:ps-6">
-      <dt class="text-xs text-muted sm:text-sm">Lowest point</dt>
+      <dt class="text-xs text-muted sm:text-sm">{{ $t('lowestPoint') }}</dt>
       <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="lowTone">{{ money(lowest.balanceMinor) }}</dd>
       <dd class="mt-1 text-xs text-muted">
         {{ forecastDay(lowest.date, forecast.today, { weekday: false }) }}
-        <template v-if="lowest.balanceMinor < 0"> · below zero</template>
-        <template v-else-if="riskDate"> · may dip below zero from {{ forecastDay(riskDate, forecast.today, { weekday: false }) }}</template>
-        <template v-else-if="lowest.lowMinor < lowest.balanceMinor"> · could be {{ money(lowest.lowMinor) }}</template>
-        <span v-if="baseline && delta(lowest.balanceMinor, baseline.lowest)" class="text-primary"> · {{ delta(lowest.balanceMinor, baseline.lowest) }} what-if</span>
+        <template v-if="lowest.balanceMinor < 0"> {{ $t('belowZero2') }}</template>
+        <template v-else-if="riskDate"> {{ $t('mayDipBelowZeroFrom', { value1: forecastDay(riskDate, forecast.today, { weekday: false }) }) }}</template>
+        <template v-else-if="lowest.lowMinor < lowest.balanceMinor"> {{ $t('couldBe', { value1: money(lowest.lowMinor) }) }}</template>
+        <span v-if="baseline && delta(lowest.balanceMinor, baseline.lowest)" class="text-primary"> {{ $t('whatIf2', { value1: delta(lowest.balanceMinor, baseline.lowest) }) }}</span>
       </dd>
     </div>
     <div class="flex min-w-0 flex-col border-l border-default ps-3 sm:ps-6">
-      <dt class="text-xs text-muted sm:text-sm">By {{ forecastDay(end.date, forecast.today, { weekday: false }) }}</dt>
+      <dt class="text-xs text-muted sm:text-sm">{{ $t('by', { value1: forecastDay(end.date, forecast.today, { weekday: false }) }) }}</dt>
       <dd class="money mt-1 text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ money(end.balanceMinor) }}</dd>
-      <dd class="mt-1 text-xs text-muted tabular-nums">
-        Likely {{ money(end.lowMinor) }} to {{ money(end.highMinor) }}
-        <span v-if="baseline && delta(end.balanceMinor, baseline.end)" class="text-primary"> · {{ delta(end.balanceMinor, baseline.end) }} what-if</span>
+      <dd class="mt-1 text-xs text-muted tabular-nums"> {{ $t('likelyTo2', { value1: money(end.lowMinor), value2: money(end.highMinor) }) }} <span v-if="baseline && delta(end.balanceMinor, baseline.end)" class="text-primary"> {{ $t('whatIf2', { value1: delta(end.balanceMinor, baseline.end) }) }}</span>
       </dd>
     </div>
   </dl>

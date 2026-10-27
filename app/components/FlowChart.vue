@@ -32,7 +32,7 @@ const rows = computed(() => Math.max(props.flow.sources.length, props.flow.uses.
 const height = computed(() => Math.max(240, TOP + rows.value * (GAP + 16)))
 
 const hubTotal = computed(() => Math.max(props.flow.inMinor, props.flow.outMinor))
-const hubLabel = computed(() => (props.flow.uses.some((node) => node.kind === "kept") || !props.flow.outMinor ? "Money in" : "Money out"))
+const hubLabel = computed(() => (props.flow.uses.some((node) => node.kind === "kept") || !props.flow.outMinor ? translate('moneyIn') : translate('moneyOut')))
 
 const layout = computed(() => {
   if (!width.value || !hubTotal.value) return null
@@ -80,22 +80,22 @@ const fit = (text: string) => {
   const room = Math.floor((gutter.value - 14) / (narrow.value ? 6.2 : 6.6))
   return text.length > room ? `${text.slice(0, Math.max(1, room - 1))}…` : text
 }
-const share = (minor: number) => `${Math.round((minor / Math.max(1, hubTotal.value)) * 100)}%`
+const share = (minor: number) => formatPercent(minor / Math.max(1, hubTotal.value))
 const opens = (node: LaidNode) => node.node !== null && node.node.kind !== "savings" && node.node.kind !== "kept"
 
 const detail = computed(() => {
   const node = layout.value?.nodes.find((entry) => entry.key === active.value)
   if (!node?.node) return null
-  const side = node.side === "source" ? "of money in" : "of money out"
-  return `${node.node.name}: ${format(node.node.amountMinor, props.flow.currency)}, ${share(node.node.amountMinor)} ${side}`
+  const side = node.side === "source" ? translate('ofMoneyIn') : translate('ofMoneyOut')
+  return translate('flowDetail', { name: node.node.name, amount: format(node.node.amountMinor, props.flow.currency), share: share(node.node.amountMinor), side })
 })
 
 const summary = computed(() => {
   const top = props.flow.uses
     .filter((node) => node.kind === "expense")
     .slice(0, 3)
-    .map((node) => `${node.name} ${format(node.amountMinor, props.flow.currency)}`)
-  return `Money flow: ${format(props.flow.inMinor, props.flow.currency)} in, ${format(props.flow.outMinor, props.flow.currency)} out. Largest: ${top.join(", ") || "none"}.`
+    .map((node) => translate('namedAmount', { name: node.name, amount: format(node.amountMinor, props.flow.currency) }))
+  return translate('moneyFlowInOutLargest', { value1: format(props.flow.inMinor, props.flow.currency), value2: format(props.flow.outMinor, props.flow.currency), value3: top.join(", ") || translate('noFlow') })
 })
 
 function open(node: LaidNode) {
@@ -108,8 +108,8 @@ function open(node: LaidNode) {
     <p class="flex h-5 items-center text-xs text-muted tabular-nums" aria-hidden="true">
       <span v-if="detail" class="truncate">{{ detail }}</span>
       <span v-else class="truncate">
-        <span class="hidden [@media(hover:hover)]:inline">Hover a flow to trace it. Click a category to see its transactions.</span>
-        <span class="[@media(hover:hover)]:hidden">Tap a category to see its transactions.</span>
+        <span class="hidden [@media(hover:hover)]:inline">{{ $t('hoverAFlowToTraceItClickACategoryTo') }}</span>
+        <span class="[@media(hover:hover)]:hidden">{{ $t('tapACategoryToSeeItsTransactions') }}</span>
       </span>
     </p>
     <svg v-if="layout" :width="width" :height="height" :viewBox="`0 0 ${width} ${height}`" role="img" :aria-label="summary" class="block overflow-visible">
@@ -129,7 +129,7 @@ function open(node: LaidNode) {
         :key="node.key"
         :tabindex="opens(node) ? 0 : -1"
         :role="opens(node) ? 'link' : undefined"
-        :aria-label="node.node ? `${node.node.name}, ${format(node.node.amountMinor, flow.currency)}${opens(node) ? '. Show transactions' : ''}` : undefined"
+        :aria-label="node.node ? $t('flowNodeLabel', { name: node.node.name, amount: format(node.node.amountMinor, flow.currency), action: opens(node) ? $t('showTransactions') : '' }) : undefined"
         class="outline-none"
         :class="opens(node) && 'cursor-pointer'"
         @pointerenter="active = node.key"

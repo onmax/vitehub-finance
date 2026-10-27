@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-x-8 gap-y-10 lg:grid-cols-3" aria-busy="true" aria-label="Loading the overview">
+  <div class="grid gap-x-8 gap-y-10 lg:grid-cols-3" aria-busy="true" :aria-label="$t('loadingTheOverview')">
     <div class="border-t border-default pt-4 lg:col-span-2">
       <USkeleton class="h-4 w-24" />
       <USkeleton class="mt-3 h-8 w-48" />

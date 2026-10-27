@@ -143,6 +143,7 @@ export interface Overview {
   /** Daily net worth for the last 90 days, oldest first. */
   netWorthSeries: Array<{ date: string; valueMinor: number }>
   month: {
+    month: string
     label: string
     inMinor: number
     outMinor: number
@@ -186,7 +187,13 @@ export interface RecurringResponse {
   insights: Insight[]
 }
 
+export type InsightTranslation =
+  | { kind: "price_increase"; name: string; percent: number; latest: number; previous: number; currency: string; base: string; cadence: Cadence; account: string }
+  | { kind: "duplicate"; name: string; owners: string[]; monthly: number[]; currency: string; count: number }
+  | { kind: "large_subscription"; name: string; monthly: number; yearly: number; currency: string; account: string }
+
 export interface Insight {
+  translation?: InsightTranslation
   kind: "price_increase" | "duplicate" | "unused" | "large_subscription"
   title: string
   detail: string
@@ -361,6 +368,7 @@ export interface ConnectionSummary {
   consentExpiresAt: string | null
   lastSyncedAt: string | null
   lastError: string | null
+  lastErrorCode?: string | null
   accountCount: number
   canManage: boolean
 }
@@ -371,6 +379,7 @@ export interface SyncRun {
   status: "running" | "succeeded" | "failed"
   added: number
   error: string | null
+  errorCode?: string | null
   startedAt: string
   finishedAt: string | null
 }

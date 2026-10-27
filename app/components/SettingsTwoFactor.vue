@@ -38,25 +38,25 @@ function start(next: typeof mode.value) {
 }
 
 async function confirmPassword() {
-  if (!password.value) return (error.value = "Enter your password.")
+  if (!password.value) return (error.value = translate('enterYourPassword'))
   pending.value = true
   error.value = ""
   try {
     if (mode.value === "enable") {
       const { data, error: failure } = await $auth.twoFactor.enable({ password: password.value })
-      if (failure || !data || !("totpURI" in data)) throw new Error(failure?.message || "Couldn’t start two-factor setup.")
+      if (failure || !data || !("totpURI" in data)) throw Object.assign(new Error(failure?.message || translate('couldnTStartTwoFactorSetup')), { code: failure?.code })
       totpURI.value = data.totpURI
       backupCodes.value = data.backupCodes
       step.value = "scan"
     } else if (mode.value === "disable") {
       const { error: failure } = await $auth.twoFactor.disable({ password: password.value })
-      if (failure) throw new Error(failure.message || "Couldn’t turn off two-factor.")
+      if (failure) throw Object.assign(new Error(failure.message || translate('couldnTTurnOffTwoFactor')), { code: failure.code })
       await session.refresh()
       open.value = false
-      notify.success("Two-factor is off", "You sign in with your password or a passkey only.")
+      notify.success(translate('twoFactorIsOff'), translate('youSignInWithYourPasswordOrAPasskeyOnly'))
     } else {
       const { data, error: failure } = await $auth.twoFactor.generateBackupCodes({ password: password.value })
-      if (failure || !data) throw new Error(failure?.message || "Couldn’t make new backup codes.")
+      if (failure || !data) throw Object.assign(new Error(failure?.message || translate('couldnTMakeNewBackupCodes')), { code: failure?.code })
       backupCodes.value = data.backupCodes
       step.value = "codes"
     }
@@ -69,12 +69,12 @@ async function confirmPassword() {
 
 async function verify() {
   const digits = code.value.replace(/\s/g, "")
-  if (!/^\d{6}$/.test(digits)) return (error.value = "Enter the six digits your app shows.")
+  if (!/^\d{6}$/.test(digits)) return (error.value = translate('enterTheSixDigitsYourAppShows'))
   pending.value = true
   error.value = ""
   try {
     const { error: failure } = await $auth.twoFactor.verifyTotp({ code: digits })
-    if (failure) throw new Error(failure.message || "That code didn’t match. Check your phone’s clock and try the next one.")
+    if (failure) throw Object.assign(new Error(failure.message || translate('thatCodeDidnTMatchCheckYourPhoneSClock')), { code: failure.code })
     await session.refresh()
     step.value = "codes"
   } catch (cause) {
@@ -86,7 +86,7 @@ async function verify() {
 
 const { copy, copied } = useClipboard({ copiedDuring: 1500, legacy: true })
 function download() {
-  const blob = new Blob([`ViteHub Finance backup codes\nEach works once, instead of a code from your app.\n\n${backupCodes.value.join("\n")}\n`], { type: "text/plain" })
+  const blob = new Blob([translate('vitehubFinanceBackupCodesEachWorksOnceInsteadOfA', { value1: backupCodes.value.join("\n") })], { type: "text/plain" })
   const link = document.createElement("a")
   link.href = URL.createObjectURL(blob)
   link.download = "finance-backup-codes.txt"
@@ -95,27 +95,27 @@ function download() {
 }
 
 const title = computed(() =>
-  mode.value === "disable" ? "Turn off two-factor" : mode.value === "regenerate" ? "New backup codes" : "Turn on two-factor",
+  mode.value === "disable" ? translate('turnOffTwoFactor') : mode.value === "regenerate" ? translate('newBackupCodes') : translate('turnOnTwoFactor'),
 )
 </script>
 
 <template>
-  <SettingsSection title="Two-factor authentication" description="After your password, you enter a code from an authenticator app.">
+  <SettingsSection :title="$t('twoFactorAuthentication')" :description="$t('afterYourPasswordYouEnterACodeFromAnAuthenticator')">
     <template #badge>
-      <UBadge v-if="enabled" color="success" variant="subtle" icon="i-lucide-shield-check" size="sm" label="On" />
-      <UBadge v-else color="neutral" variant="outline" size="sm" label="Off" />
+      <UBadge v-if="enabled" color="success" variant="subtle" icon="i-lucide-shield-check" size="sm" :label="$t('on')" />
+      <UBadge v-else color="neutral" variant="outline" size="sm" :label="$t('off')" />
     </template>
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-sm text-muted">
-        {{ enabled ? "Signing in with a password needs a code too. Passkeys don’t." : "Use 1Password, Google Authenticator, or any app that shows six-digit codes." }}
+        {{ enabled ? $t('signingInWithAPasswordNeedsACodeTooPasskeys') : $t('use1passwordGoogleAuthenticatorOrAnyAppThatShowsSix') }}
       </p>
       <DemoLock v-slot="{ locked }">
         <div class="flex shrink-0 gap-2">
           <template v-if="enabled">
-            <UButton color="neutral" variant="outline" label="New backup codes" :disabled="locked" @click="start('regenerate')" />
-            <UButton color="neutral" variant="outline" label="Turn off" :disabled="locked" @click="start('disable')" />
+            <UButton color="neutral" variant="outline" :label="$t('newBackupCodes')" :disabled="locked" @click="start('regenerate')" />
+            <UButton color="neutral" variant="outline" :label="$t('turnOff')" :disabled="locked" @click="start('disable')" />
           </template>
-          <UButton v-else label="Turn on" :disabled="locked" @click="start('enable')" />
+          <UButton v-else :label="$t('turnOn')" :disabled="locked" @click="start('enable')" />
         </div>
       </DemoLock>
     </div>
@@ -123,30 +123,30 @@ const title = computed(() =>
 
   <UModal v-model:open="open" :title="title" :dismissible="step !== 'codes'" :ui="{ content: 'max-w-md' }">
     <template #description>
-      <span v-if="step === 'password'">Confirm your password to continue.</span>
-      <span v-else-if="step === 'scan'">Scan the code with your authenticator app, then enter the code it shows.</span>
-      <span v-else>Each code signs you in once if you lose your phone. They won’t be shown again.</span>
+      <span v-if="step === 'password'">{{ $t('confirmYourPasswordToContinue') }}</span>
+      <span v-else-if="step === 'scan'">{{ $t('scanTheCodeWithYourAuthenticatorAppThenEnterThe') }}</span>
+      <span v-else>{{ $t('eachCodeSignsYouInOnceIfYouLoseYour') }}</span>
     </template>
     <template #body>
       <form v-if="step === 'password'" id="two-factor-password" class="flex flex-col gap-4" @submit.prevent="confirmPassword">
-        <UFormField label="Password" :error="error || undefined">
+        <UFormField :label="$t('password')" :error="error || undefined">
           <UInput v-model="password" type="password" autocomplete="current-password" autofocus class="w-full" />
         </UFormField>
       </form>
 
       <form v-else-if="step === 'scan'" id="two-factor-verify" class="flex flex-col gap-4" @submit.prevent="verify">
         <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <QrCode :value="totpURI" label="QR code for your authenticator app" class="size-40 shrink-0 border border-default p-1" />
+          <QrCode :value="totpURI" :label="$t('qrCodeForYourAuthenticatorApp')" class="size-40 shrink-0 border border-default p-1" />
           <div class="flex min-w-0 flex-1 flex-col gap-2 self-stretch">
-            <p class="text-sm text-muted">Can’t scan? Enter this key in the app:</p>
-            <CodeSnippet :code="groupedSecret" label="setup key" wrap />
+            <p class="text-sm text-muted">{{ $t('canTScanEnterThisKeyInTheApp') }}</p>
+            <CodeSnippet :code="groupedSecret" :label="$t('setupKey')" wrap />
             <details class="text-sm text-muted">
-              <summary class="cursor-pointer rounded-sm py-1 focus-visible:outline-2 focus-visible:outline-primary">Or paste the full link</summary>
-              <div class="mt-2"><CodeSnippet :code="totpURI" label="setup link" wrap /></div>
+              <summary class="cursor-pointer rounded-sm py-1 focus-visible:outline-2 focus-visible:outline-primary">{{ $t('orPasteTheFullLink') }}</summary>
+              <div class="mt-2"><CodeSnippet :code="totpURI" :label="$t('setupLink')" wrap /></div>
             </details>
           </div>
         </div>
-        <UFormField label="Code from the app" :error="error || undefined">
+        <UFormField :label="$t('codeFromTheApp')" :error="error || undefined">
           <UInput
             v-model="code"
             inputmode="numeric"
@@ -161,7 +161,7 @@ const title = computed(() =>
       </form>
 
       <div v-else class="flex flex-col gap-3">
-        <ul class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-muted p-3 font-mono text-sm text-highlighted" aria-label="Backup codes">
+        <ul class="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-muted p-3 font-mono text-sm text-highlighted" :aria-label="$t('backupCodes')">
           <li v-for="item in backupCodes" :key="item" class="tabular-nums">{{ item }}</li>
         </ul>
         <div class="flex gap-2">
@@ -169,30 +169,30 @@ const title = computed(() =>
             color="neutral"
             variant="outline"
             :icon="copied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-            :label="copied ? 'Copied' : 'Copy'"
+            :label="copied ? $t('copied') : $t('copy2')"
             @click="copy(backupCodes.join('\n'))"
           />
-          <UButton color="neutral" variant="outline" icon="i-lucide-download" label="Download" @click="download" />
+          <UButton color="neutral" variant="outline" icon="i-lucide-download" :label="$t('download')" @click="download" />
         </div>
       </div>
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
         <template v-if="step === 'password'">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="open = false" />
+          <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="open = false" />
           <UButton
             type="submit"
             form="two-factor-password"
             :color="mode === 'disable' ? 'error' : 'primary'"
-            :label="mode === 'disable' ? 'Turn off' : 'Continue'"
+            :label="mode === 'disable' ? $t('turnOff') : $t('continue')"
             :loading="pending"
           />
         </template>
         <template v-else-if="step === 'scan'">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="open = false" />
-          <UButton type="submit" form="two-factor-verify" label="Verify and turn on" :loading="pending" />
+          <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="open = false" />
+          <UButton type="submit" form="two-factor-verify" :label="$t('verifyAndTurnOn')" :loading="pending" />
         </template>
-        <UButton v-else label="I’ve saved them" @click="open = false" />
+        <UButton v-else :label="$t('iVeSavedThem')" @click="open = false" />
       </div>
     </template>
   </UModal>

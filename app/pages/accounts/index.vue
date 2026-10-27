@@ -4,7 +4,7 @@ import type { AccountSummary } from "#shared/api"
 
 // Every account the caller sees, grouped by kind with each group's total, and a line of totals on top: what you have,
 // what you owe, and the net. Manual accounts are added here (also from ⌘K through `?new=1`).
-useHead({ title: "Accounts" })
+useHead({ get title() { return translate('accounts') } })
 
 const route = useRoute()
 const router = useRouter()
@@ -41,19 +41,19 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
 <template>
   <UDashboardPanel id="accounts">
     <template #header>
-      <PageNavbar title="Accounts">
+      <PageNavbar :title="$t('accounts')">
         <template #right>
           <UButton
             color="neutral"
             variant="outline"
             icon="i-lucide-upload"
-            label="Import CSV"
+            :label="$t('importCsv')"
             class="hidden sm:inline-flex"
             @click="importModal.open()"
           />
-          <UButton icon="i-lucide-plus" label="Add account" class="hidden sm:inline-flex" @click="addAccount" />
-          <UTooltip text="Add account">
-            <UButton icon="i-lucide-plus" aria-label="Add account" class="sm:hidden" @click="addAccount" />
+          <UButton icon="i-lucide-plus" :label="$t('addAccount')" class="hidden sm:inline-flex" @click="addAccount" />
+          <UTooltip :text="$t('addAccount')">
+            <UButton icon="i-lucide-plus" :aria-label="$t('addAccount')" class="sm:hidden" @click="addAccount" />
           </UTooltip>
         </template>
       </PageNavbar>
@@ -61,7 +61,7 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
 
     <template #body>
       <div class="mx-auto flex w-full max-w-4xl flex-col gap-8">
-        <PageError v-if="error" :error="error" title="Your accounts didn’t load" @retry="refresh()" />
+        <PageError v-if="error" :error="error" :title="$t('yourAccountsDidnTLoad')" @retry="refresh()" />
 
         <template v-else-if="loading">
           <div class="grid grid-cols-3 divide-x divide-default">
@@ -90,11 +90,11 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
           v-else-if="accounts.length === 0 && !showArchived"
           variant="naked"
           icon="i-lucide-landmark"
-          title="No accounts yet"
-          description="Connect your bank to keep balances and transactions up to date. For cash, or a bank you can’t connect here, add an account by hand."
+          :title="$t('noAccountsYet')"
+          :description="$t('connectYourBankToKeepBalancesAndTransactionsUpTo')"
           :actions="[
-            { label: 'Connect a bank', icon: 'i-lucide-plug', to: '/connect/banks' },
-            { label: 'Add a manual account', color: 'neutral', variant: 'ghost', onClick: addAccount },
+            { label: $t('connectABank'), icon: 'i-lucide-plug', to: '/connect/banks' },
+            { label: $t('addAManualAccount'), color: 'neutral', variant: 'ghost', onClick: addAccount },
           ]"
           class="py-16"
         />
@@ -102,28 +102,28 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
         <template v-else>
           <dl class="grid grid-cols-3 divide-x divide-default">
             <div class="px-4 first:ps-0 sm:px-6">
-              <dt class="text-xs text-muted sm:text-sm">Net worth</dt>
+              <dt class="text-xs text-muted sm:text-sm">{{ $t('netWorth') }}</dt>
               <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets + debts" compact /></dd>
             </div>
             <div class="px-4 first:ps-0 sm:px-6">
-              <dt class="text-xs text-muted sm:text-sm">Assets</dt>
+              <dt class="text-xs text-muted sm:text-sm">{{ $t('assets') }}</dt>
               <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets" compact /></dd>
             </div>
             <div class="px-4 first:ps-0 sm:px-6">
-              <dt class="text-xs text-muted sm:text-sm">Debts</dt>
+              <dt class="text-xs text-muted sm:text-sm">{{ $t('debts') }}</dt>
               <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="Math.abs(debts)" compact /></dd>
             </div>
           </dl>
 
           <div class="flex items-center justify-between gap-3">
             <p class="text-sm text-muted">
-              {{ formatCount(accounts.length) }} account{{ accounts.length === 1 ? "" : "s" }}
+              {{ $t('account2', { count: formatCount(accounts.length) }, accounts.length) }}
             </p>
-            <USwitch v-model="showArchived" label="Show archived" size="sm" />
+            <USwitch v-model="showArchived" :label="$t('showArchived')" size="sm" />
           </div>
 
           <AccountGroup v-for="group in groups" :key="group.id" :label="group.label" :accounts="group.accounts" />
-          <p v-if="groups.length === 0" class="py-8 text-center text-sm text-muted">No archived accounts.</p>
+          <p v-if="groups.length === 0" class="py-8 text-center text-sm text-muted">{{ $t('noArchivedAccounts') }}</p>
         </template>
       </div>
     </template>

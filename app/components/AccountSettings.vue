@@ -36,7 +36,7 @@ async function save(field: string, body: Record<string, unknown>, done?: string)
     if (done) notify.success(done)
     return true
   } catch (cause) {
-    errors[field] = errorText(cause, "Couldn’t save. Try again.")
+    errors[field] = errorText(cause, translate('couldnTSaveTryAgain'))
     return false
   } finally {
     pending.value = null
@@ -46,10 +46,10 @@ async function save(field: string, body: Record<string, unknown>, done?: string)
 function saveName() {
   const value = name.value.trim()
   if (!value) {
-    errors.name = "Give the account a name."
+    errors.name = translate('giveTheAccountAName')
     return
   }
-  if (value !== props.account.name) void save("name", { name: value }, "Renamed")
+  if (value !== props.account.name) void save("name", { name: value }, translate('renamed'))
 }
 
 watch(kind, (value) => value !== props.account.kind && void save("kind", { kind: value }))
@@ -57,10 +57,10 @@ watch(kind, (value) => value !== props.account.kind && void save("kind", { kind:
 async function saveBalance() {
   const amount = parseAmount(balance.value)
   if (amount === null) {
-    errors.balance = "Enter an amount like 1.234,56."
+    errors.balance = translate('enterAnAmountLike123456')
     return
   }
-  if (await save("balance", { balanceMinor: toMinor(amount, props.account.currency) }, "Balance updated")) balance.value = ""
+  if (await save("balance", { balanceMinor: toMinor(amount, props.account.currency) }, translate('balanceUpdated'))) balance.value = ""
 }
 
 const visibility = computed({
@@ -80,21 +80,21 @@ async function toggleArchive() {
   const archiving = !props.account.archived
   if (archiving) {
     const { confirmed } = await confirm({
-      title: `Archive ${props.account.name}?`,
-      description: "It leaves your lists and totals but keeps its transactions. You can bring it back from Accounts › Show archived.",
-      confirmLabel: "Archive",
+      title: translate('archive', { value1: props.account.name }),
+      get description() { return translate('itLeavesYourListsAndTotalsButKeepsItsTransactions') },
+      confirmLabel: translate('archive2'),
     })
     if (!confirmed) return
   }
-  await save("archive", { archived: archiving }, archiving ? "Account archived" : "Account restored")
+  await save("archive", { archived: archiving }, archiving ? translate('accountArchived') : translate('accountRestored'))
 }
 
 const deleting = ref(false)
 async function remove() {
   const { confirmed } = await confirm({
-    title: `Delete ${props.account.name}?`,
-    description: `Its balance history and every transaction in it are deleted for everyone in the household. This can’t be undone.${props.account.connectionId ? " The connection stays; remove it on Connect to stop syncing." : ""}`,
-    confirmLabel: "Delete account",
+    title: translate('delete', { value1: props.account.name }),
+    description: translate('itsBalanceHistoryAndEveryTransactionInItAreDeleted', { value1: props.account.connectionId ? translate('connectionStays') : "" }),
+    confirmLabel: translate('deleteAccount'),
     destructive: true,
   })
   if (!confirmed) return
@@ -102,53 +102,53 @@ async function remove() {
   try {
     await $fetch(`/api/accounts/${props.account.id}`, { method: "DELETE" })
     await refreshStems("accounts", "overview", "transactions", "recurring", "forecast")
-    notify.success("Account deleted")
+    notify.success(translate('accountDeleted'))
     await navigateTo("/accounts")
   } catch (cause) {
-    errors.delete = errorText(cause, "Couldn’t delete the account.")
+    errors.delete = errorText(cause, translate('couldnTDeleteTheAccount'))
   } finally {
     deleting.value = false
   }
 }
 
 const visibilityOptions = [
-  { value: "household" as const, label: "Shared", icon: "i-lucide-users" },
-  { value: "private" as const, label: "Private", icon: "i-lucide-lock" },
+  { value: "household" as const, get label() { return translate('shared') }, icon: "i-lucide-users" },
+  { value: "private" as const, get label() { return translate('private') }, icon: "i-lucide-lock" },
 ]
 const permissionOptions = [
-  { value: "view" as const, label: "View" },
-  { value: "edit" as const, label: "Edit" },
+  { value: "view" as const, get label() { return translate('view') } },
+  { value: "edit" as const, get label() { return translate('edit') } },
 ]
 </script>
 
 <template>
   <section class="border-t border-default" aria-labelledby="account-settings">
-    <h2 id="account-settings" class="flex h-12 items-center text-sm font-medium text-highlighted">Settings</h2>
+    <h2 id="account-settings" class="flex h-12 items-center text-sm font-medium text-highlighted">{{ $t('settings') }}</h2>
 
     <div class="flex flex-col gap-5 pt-1">
       <template v-if="account.canEdit">
-        <UFormField label="Name" name="name" :error="errors.name || undefined">
+        <UFormField :label="$t('name')" name="name" :error="errors.name || undefined">
           <div class="flex gap-2">
             <UInput v-model="name" class="min-w-0 flex-1" @keydown.enter="saveName" />
             <UButton
               color="neutral"
               variant="outline"
-              label="Save"
+              :label="$t('save')"
               :loading="pending === 'name'"
               :disabled="name.trim() === account.name"
               @click="saveName"
             />
           </div>
         </UFormField>
-        <UFormField label="Kind" name="kind" :error="errors.kind || undefined">
+        <UFormField :label="$t('kind')" name="kind" :error="errors.kind || undefined">
           <USelect v-model="kind" :items="ACCOUNT_KIND_ITEMS" class="w-full" :loading="pending === 'kind'" />
         </UFormField>
         <UFormField
           v-if="manual"
-          label="Update balance"
+          :label="$t('updateBalance')"
           name="balance"
           :error="errors.balance || undefined"
-          :help="`Now ${format(account.balanceMinor, account.currency)}. It’s saved as today’s balance in the history.`"
+          :help="$t('nowItSSavedAsTodaySBalanceInThe', { value1: format(account.balanceMinor, account.currency) })"
         >
           <div class="flex gap-2">
             <UInput
@@ -159,7 +159,7 @@ const permissionOptions = [
               :ui="{ base: 'tabular-nums' }"
               @keydown.enter="saveBalance"
             />
-            <UButton color="neutral" variant="outline" label="Update" :loading="pending === 'balance'" :disabled="!balance.trim()" @click="saveBalance" />
+            <UButton color="neutral" variant="outline" :label="$t('update')" :loading="pending === 'balance'" :disabled="!balance.trim()" @click="saveBalance" />
           </div>
         </UFormField>
       </template>
@@ -167,26 +167,26 @@ const permissionOptions = [
       <div v-if="shared || account.canManage" class="flex flex-col gap-3">
         <template v-if="account.canManage">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-sm font-medium text-highlighted">Who sees it</p>
-            <SegmentedControl v-model="visibility" :options="visibilityOptions" label="Who sees this account" size="sm" />
+            <p class="text-sm font-medium text-highlighted">{{ $t('whoSeesIt') }}</p>
+            <SegmentedControl v-model="visibility" :options="visibilityOptions" :label="$t('whoSeesThisAccount')" size="sm" />
           </div>
           <p class="text-sm text-muted">
             {{
               account.visibility === "household"
-                ? "Everyone in the household sees this account, its balance, and its transactions."
-                : "Only you see this account. It stays out of the household’s lists and totals."
+                ? $t('everyoneInTheHouseholdSeesThisAccountItsBalanceAnd')
+                : $t('onlyYouSeeThisAccountItStaysOutOfThe')
             }}
           </p>
           <template v-if="account.visibility === 'household'">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="text-sm font-medium text-highlighted">What others can do</p>
-              <SegmentedControl v-model="permission" :options="permissionOptions" label="What others in the household can do" size="sm" />
+              <p class="text-sm font-medium text-highlighted">{{ $t('whatOthersCanDo') }}</p>
+              <SegmentedControl v-model="permission" :options="permissionOptions" :label="$t('whatOthersInTheHouseholdCanDo')" size="sm" />
             </div>
             <p class="text-sm text-muted">
               {{
                 account.householdPermission === "edit"
-                  ? "They can also categorize transactions, add notes, and rename it. Only you change who sees it or delete it."
-                  : "They see it but can’t change categories, notes, or its name."
+                  ? $t('theyCanAlsoCategorizeTransactionsAddNotesAndRenameIt')
+                  : $t('theySeeItButCanTChangeCategoriesNotesOr')
               }}
             </p>
           </template>
@@ -195,17 +195,15 @@ const permissionOptions = [
           </p>
         </template>
         <p v-else class="flex items-start gap-2 text-sm text-muted">
-          <UIcon name="i-lucide-users" class="mt-0.5 size-4 shrink-0" />
-          {{ account.ownerName }} shares this account with the household.
-          {{ account.canEdit ? "You can categorize, add notes, and rename it." : "You can see it but not change it." }}
+          <UIcon name="i-lucide-users" class="mt-0.5 size-4 shrink-0" /> {{ $t('sharesThisAccountWithTheHousehold', { value1: account.ownerName, value2: account.canEdit ? $t('accountEditable') : $t('accountViewOnly') }) }}
         </p>
       </div>
 
       <USwitch
         v-if="account.canEdit"
         v-model="includeInNetWorth"
-        label="Count toward net worth"
-        description="Turn off for accounts you hold for someone else, or that would count money twice."
+        :label="$t('countTowardNetWorth')"
+        :description="$t('turnOffForAccountsYouHoldForSomeoneElseOr')"
         :loading="pending === 'networth'"
       />
       <p v-if="errors.networth" class="text-sm text-error" role="alert">{{ errors.networth }}</p>
@@ -214,16 +212,16 @@ const permissionOptions = [
     <div v-if="account.canEdit" class="mt-6 flex flex-col gap-4 border-t border-default pt-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-highlighted">{{ account.archived ? "Restore account" : "Archive account" }}</p>
+          <p class="text-sm font-medium text-highlighted">{{ account.archived ? $t('restoreAccount') : $t('archiveAccount') }}</p>
           <p class="text-sm text-muted">
-            {{ account.archived ? "Bring it back into your lists and totals." : "Hide it from lists and totals, keep its history." }}
+            {{ account.archived ? $t('bringItBackIntoYourListsAndTotals') : $t('hideItFromListsAndTotalsKeepItsHistory') }}
           </p>
         </div>
         <UButton
           color="neutral"
           variant="outline"
           :icon="account.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
-          :label="account.archived ? 'Restore' : 'Archive'"
+          :label="account.archived ? $t('restore') : $t('archive2')"
           :loading="pending === 'archive'"
           @click="toggleArchive"
         />
@@ -231,11 +229,11 @@ const permissionOptions = [
       <p v-if="errors.archive" class="text-sm text-error" role="alert">{{ errors.archive }}</p>
       <div v-if="account.canManage" class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-highlighted">Delete account</p>
-          <p class="text-sm text-muted">Removes it and its transactions for everyone.</p>
+          <p class="text-sm font-medium text-highlighted">{{ $t('deleteAccount') }}</p>
+          <p class="text-sm text-muted">{{ $t('removesItAndItsTransactionsForEveryone') }}</p>
         </div>
         <DemoLock v-slot="{ locked }">
-          <UButton color="error" variant="outline" icon="i-lucide-trash-2" label="Delete" :loading="deleting" :disabled="locked" @click="remove" />
+          <UButton color="error" variant="outline" icon="i-lucide-trash-2" :label="$t('delete2')" :loading="deleting" :disabled="locked" @click="remove" />
         </DemoLock>
       </div>
       <p v-if="errors.delete" class="text-sm text-error" role="alert">{{ errors.delete }}</p>

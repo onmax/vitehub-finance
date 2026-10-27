@@ -12,8 +12,8 @@ const reached = computed(() => props.goal.progressMinor >= props.goal.targetMino
 const late = computed(() => !reached.value && props.goal.targetDate !== null && daysFromToday(props.goal.targetDate) < 0)
 const items = [
   [
-    { label: "Edit goal", icon: "i-lucide-pencil", onSelect: () => emit("edit") },
-    { label: "Delete goal", icon: "i-lucide-trash-2", color: "error" as const, onSelect: () => emit("remove") },
+    { get label() { return translate('editGoal') }, icon: "i-lucide-pencil", onSelect: () => emit("edit") },
+    { get label() { return translate('deleteGoal') }, icon: "i-lucide-trash-2", color: "error" as const, onSelect: () => emit("remove") },
   ],
 ]
 </script>
@@ -31,8 +31,8 @@ const items = [
           </button>
         </h3>
         <p class="mt-0.5 text-xs text-muted">
-          <template v-if="goal.targetDate">By {{ formatDate(goal.targetDate) }}</template>
-          <template v-else>No date</template>
+          <template v-if="goal.targetDate">{{ $t('by', { value1: formatDate(goal.targetDate) }) }}</template>
+          <template v-else>{{ $t('noDate') }}</template>
         </p>
       </div>
       <UBadge
@@ -41,7 +41,7 @@ const items = [
         variant="outline"
         size="sm"
         :icon="goal.ownerId ? 'i-lucide-lock' : 'i-lucide-users'"
-        :label="goal.ownerId ? 'Personal' : 'Shared'"
+        :label="goal.ownerId ? $t('personal') : $t('shared')"
       />
       <UDropdownMenu :items="items" :content="{ align: 'end' }">
         <UButton
@@ -50,41 +50,41 @@ const items = [
           variant="ghost"
           size="sm"
           class="-mt-1 -mr-2 size-10 justify-center sm:size-8"
-          :aria-label="`Actions for ${goal.name}`"
+          :aria-label="$t('actionsFor', { value1: goal.name })"
         />
       </UDropdownMenu>
     </header>
 
     <div class="flex items-center gap-4 py-5">
-      <GoalRing :value="share" :label="`${formatPercent(share)} saved`" />
+      <GoalRing :value="share" :label="$t('saved', { value1: formatPercent(share) })" />
       <div class="min-w-0">
         <p class="text-xl font-semibold text-highlighted">
           <Money :minor="goal.progressMinor" :currency="currency" compact />
         </p>
-        <p class="text-sm text-muted">of <Money :minor="goal.targetMinor" :currency="currency" compact /></p>
+        <p class="text-sm text-muted">{{ $t('of') }} <Money :minor="goal.targetMinor" :currency="currency" compact /></p>
       </div>
     </div>
 
     <dl class="mt-auto grid gap-1.5 border-t border-default pt-3 text-xs">
       <div class="flex items-center justify-between gap-3">
-        <dt class="text-muted">Each month</dt>
+        <dt class="text-muted">{{ $t('eachMonth') }}</dt>
         <dd class="flex items-center gap-1 text-right">
           <template v-if="reached">
             <UIcon name="i-lucide-circle-check" class="size-3.5 text-success" />
-            <span class="text-highlighted">Reached</span>
+            <span class="text-highlighted">{{ $t('reached') }}</span>
           </template>
           <template v-else-if="late">
             <UIcon name="i-lucide-triangle-alert" class="size-3.5 text-warning" />
-            <span class="text-highlighted">Date passed</span>
+            <span class="text-highlighted">{{ $t('datePassed') }}</span>
           </template>
           <span v-else-if="goal.monthlyNeededMinor !== null" class="money text-highlighted">{{ format(goal.monthlyNeededMinor, currency) }}</span>
-          <span v-else class="text-muted">Set a date to see it</span>
+          <span v-else class="text-muted">{{ $t('setADateToSeeIt') }}</span>
         </dd>
       </div>
       <div class="flex items-center justify-between gap-3">
-        <dt class="text-muted">Progress from</dt>
+        <dt class="text-muted">{{ $t('progressFrom') }}</dt>
         <dd class="min-w-0 truncate text-right text-default" :title="account?.name">
-          {{ goal.accountId ? (account?.name ?? "A linked account") : "Updated by hand" }}
+          {{ goal.accountId ? (account?.name ?? $t('aLinkedAccount')) : $t('updatedByHand') }}
         </dd>
       </div>
     </dl>

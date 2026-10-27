@@ -32,7 +32,7 @@ export function useConnectPage(page: "/connect/banks" | "/connect/crypto") {
   async function connected(connection: ConnectionSummary) {
     await refresh()
     await refreshStems("accounts", "overview", "transactions")
-    notify.success(`${connection.name} connected`, connection.status === "error" ? (connection.lastError ?? undefined) : "Its balance is in your accounts now.")
+    notify.success(translate('connected3', { value1: connection.name }), connection.status === "error" ? (connection.lastError ? providerErrorText(connection.lastError, connection.lastErrorCode) : undefined) : translate('itsBalanceIsInYourAccountsNow'))
     flash(connection.id)
     scrollTo(`#connection-${connection.id}`)
   }

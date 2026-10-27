@@ -6,7 +6,7 @@ withDefaults(defineProps<{ title: string; scoped?: boolean }>(), { scoped: true 
 <template>
   <UDashboardNavbar :title="title" :ui="{ right: 'gap-2', title: 'text-sm font-semibold text-highlighted' }">
     <template #leading>
-      <UDashboardSidebarCollapse class="hidden lg:inline-flex" aria-label="Toggle sidebar" />
+      <UDashboardSidebarCollapse class="hidden lg:inline-flex" :aria-label="$t('toggleSidebar')" />
       <slot name="leading" />
     </template>
     <template #right>

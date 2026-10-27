@@ -24,11 +24,11 @@ const current = computed(() => props.today.startsWith(props.month.month))
 const steps = computed(() => {
   const month = props.month
   const list = [
-    { key: "income" as const, label: "Income", change: month.incomeMinor, items: inMonth.value.filter((payment) => payment.series.kind === "income") },
-    { key: "bills" as const, label: "Bills", change: -month.billsMinor, items: inMonth.value.filter((payment) => payment.series.kind === "bill") },
-    { key: "variable" as const, label: current.value ? "Usual spending, rest of month" : "Usual spending", change: -month.variableOutMinor, items: [] },
-    { key: "moved" as const, label: month.movedOutMinor >= 0 ? "Moved out" : "Moved in", change: -month.movedOutMinor, items: [] },
-    { key: "oneOff" as const, label: "One-off what-if", change: -month.oneOffMinor, items: [] },
+    { key: "income" as const, get label() { return translate('income') }, change: month.incomeMinor, items: inMonth.value.filter((payment) => payment.series.kind === "income") },
+    { key: "bills" as const, get label() { return translate('bills') }, change: -month.billsMinor, items: inMonth.value.filter((payment) => payment.series.kind === "bill") },
+    { key: "variable" as const, label: current.value ? translate('usualSpendingRestOfMonth') : translate('usualSpending'), change: -month.variableOutMinor, items: [] },
+    { key: "moved" as const, label: month.movedOutMinor >= 0 ? translate('movedOut') : translate('movedIn'), change: -month.movedOutMinor, items: [] },
+    { key: "oneOff" as const, get label() { return translate('oneOffWhatIf') }, change: -month.oneOffMinor, items: [] },
   ].filter((step) => step.change !== 0 || step.key === "income" || step.key === "bills")
   let running = month.startMinor
   return list.map((step) => {
@@ -59,12 +59,12 @@ watch(
       <p class="text-sm font-medium text-highlighted">{{ formatMonth(month.month) }}</p>
       <p class="text-xs text-muted">
         <span :class="month.netMinor >= 0 ? FLOW.income.text : 'text-error'" class="money font-medium">{{ money(month.netMinor, true) }}</span>
-        {{ month.netMinor >= 0 ? "left over" : "more out than in" }}
+        {{ month.netMinor >= 0 ? $t('leftOver') : $t('moreOutThanIn') }}
       </p>
     </div>
     <ol class="flex flex-col gap-2 text-sm">
       <li class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1">
-        <span class="text-muted">{{ current ? "Today" : "Starts with" }}</span>
+        <span class="text-muted">{{ current ? $t('today') : $t('startsWith') }}</span>
         <span class="money text-highlighted">{{ money(month.startMinor) }}</span>
         <span class="relative col-span-2 h-1.5 rounded-full bg-elevated" aria-hidden="true">
           <span class="absolute inset-y-0 rounded-full bg-(--chart-line)" :style="bar(domain.min, month.startMinor)" />
@@ -95,9 +95,9 @@ watch(
         </ul>
       </li>
       <li class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-t border-default pt-2">
-        <span class="font-medium text-highlighted">Ends with</span>
+        <span class="font-medium text-highlighted">{{ $t('endsWith') }}</span>
         <span class="money font-semibold text-highlighted">{{ money(month.balanceMinor) }}</span>
-        <span class="col-span-2 text-xs text-muted tabular-nums">Likely {{ money(month.lowMinor) }} to {{ money(month.highMinor) }}</span>
+        <span class="col-span-2 text-xs text-muted tabular-nums">{{ $t('likelyTo2', { value1: money(month.lowMinor), value2: money(month.highMinor) }) }}</span>
       </li>
     </ol>
   </div>

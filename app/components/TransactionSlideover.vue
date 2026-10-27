@@ -42,7 +42,7 @@ async function saveNote() {
     savingNote.value = "saved"
   } catch (error) {
     savingNote.value = "idle"
-    noteError.value = errorText(error, "Couldn’t save the note. Try again.")
+    noteError.value = errorText(error, translate('couldnTSaveTheNoteTryAgain'))
   }
 }
 const saveNoteSoon = useDebounceFn(saveNote, 800)
@@ -54,7 +54,7 @@ async function setExcluded(value: boolean) {
     await patch({ excluded: value })
     await refreshStems("overview", "budgets", "recurring", "forecast")
   } catch (error) {
-    notify.error(error, "Couldn’t change that")
+    notify.error(error, translate('couldnTChangeThat'))
   } finally {
     excluding.value = false
   }
@@ -67,13 +67,13 @@ async function setHidden(value: boolean) {
     await patch({ hidden: value })
     await refreshStems("overview", "budgets", "recurring", "forecast")
   } catch (error) {
-    notify.error(error, "Couldn’t change that")
+    notify.error(error, translate('couldnTChangeThat'))
   } finally {
     hiding.value = false
   }
 }
 
-const title = computed(() => props.transaction?.counterparty || props.transaction?.description || "Transaction")
+const title = computed(() => props.transaction?.counterparty || props.transaction?.description || translate('transaction'))
 const category = computed(() => find(props.transaction?.categoryId))
 </script>
 
@@ -83,19 +83,16 @@ const category = computed(() => find(props.transaction?.categoryId))
       <div class="flex items-center gap-3">
         <Monogram :name="title" />
         <Money :minor="transaction.amountMinor" :currency="transaction.currency" tone="in" class="text-2xl font-semibold tracking-[-0.02em] text-highlighted" :class="transaction.excluded && 'line-through'" />
-        <UBadge v-if="transaction.status === 'pending'" color="neutral" variant="outline" label="Pending" />
-        <UBadge v-if="transaction.hidden" color="neutral" variant="outline" icon="i-lucide-lock" label="Only you" />
+        <UBadge v-if="transaction.status === 'pending'" color="neutral" variant="outline" :label="$t('pending')" />
+        <UBadge v-if="transaction.hidden" color="neutral" variant="outline" icon="i-lucide-lock" :label="$t('onlyYou')" />
       </div>
 
       <p v-if="transaction.transferWith" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-pretty text-muted">
         <UIcon name="i-lucide-arrow-left-right" class="mt-0.5 size-4 shrink-0" />
-        <span>
-          Moved {{ transaction.amountMinor < 0 ? "to" : "from" }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>, so it
-          isn’t spending or income. Pick another category if it isn’t a move between your accounts.
-        </span>
+        <span> {{ $t('moved', { value1: transaction.amountMinor < 0 ? "to" : "from" }) }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>{{ $t('soItIsnTSpendingOrIncomePickAnotherCategory') }} </span>
       </p>
 
-      <UFormField label="Category">
+      <UFormField :label="$t('category')">
         <CategorySelect
           v-if="transaction.canEdit"
           :model-value="transaction.categoryId"
@@ -103,19 +100,18 @@ const category = computed(() => find(props.transaction?.categoryId))
           @update:model-value="(value) => emit('category', transaction!, value ?? null)"
         />
         <p v-else class="flex items-center gap-2 text-sm">
-          <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ category?.name ?? "Uncategorized" }}
+          <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ category?.name ?? $t('uncategorized') }}
         </p>
         <p v-if="transaction.categorySource === 'ai'" class="mt-2 flex items-center gap-1.5 text-xs text-muted">
-          <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" />
-          Suggested by AI from the description. {{ transaction.canEdit ? "Pick another if it’s wrong." : "" }}
+          <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" /> {{ $t('suggestedByAiFromTheDescription', { value1: transaction.canEdit ? $t('pickAnotherIfWrong') : "" }) }}
         </p>
       </UFormField>
 
-      <UFormField label="Note" :error="noteError || undefined" :hint="savingNote === 'saving' ? 'Saving…' : savingNote === 'saved' ? 'Saved' : undefined">
+      <UFormField :label="$t('note')" :error="noteError || undefined" :hint="savingNote === 'saving' ? $t('saving') : savingNote === 'saved' ? $t('saved2') : undefined">
         <UTextarea
           v-model="note"
           :disabled="!transaction.canEdit"
-          placeholder="Add a note: what it was for, who paid…"
+          :placeholder="$t('addANoteWhatItWasForWhoPaid')"
           :rows="3"
           autoresize
           class="w-full"
@@ -128,8 +124,8 @@ const category = computed(() => find(props.transaction?.categoryId))
         :model-value="transaction.excluded"
         :disabled="!transaction.canEdit"
         :loading="excluding"
-        label="Leave out of totals"
-        description="For duplicates the bank sent. It stays in the list, struck through. Moves between your accounts go in Transfers instead."
+        :label="$t('leaveOutOfTotals')"
+        :description="$t('forDuplicatesTheBankSentItStaysInTheList')"
         @update:model-value="setExcluded"
       />
 
@@ -137,34 +133,32 @@ const category = computed(() => find(props.transaction?.categoryId))
         v-if="transaction.canHide && shared"
         :model-value="transaction.hidden"
         :loading="hiding"
-        label="Only me"
-        :description="`Others in ${me?.household.name ?? 'your household'} won’t see it in lists, totals, or charts. The account’s balance still includes it.`"
+        :label="$t('onlyMe')"
+        :description="$t('othersInWonTSeeItInListsTotalsOr', { value1: me?.household.name ?? $t('yourHousehold') })"
         @update:model-value="setHidden"
       />
 
       <p v-if="!transaction.canEdit" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-muted">
-        <UIcon name="i-lucide-lock" class="mt-0.5 size-4 shrink-0" />
-        {{ transaction.ownerName }} shares this account view-only, so only they can change its transactions.
-      </p>
+        <UIcon name="i-lucide-lock" class="mt-0.5 size-4 shrink-0" /> {{ $t('sharesThisAccountViewOnlySoOnlyTheyCanChange', { value1: transaction.ownerName }) }} </p>
 
       <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 border-t border-default pt-4 text-sm">
-        <dt class="text-muted">Account</dt>
+        <dt class="text-muted">{{ $t('account') }}</dt>
         <dd class="min-w-0 truncate text-right">
           <NuxtLink :to="`/accounts/${transaction.accountId}`" class="text-highlighted underline-offset-2 hover:underline">{{ transaction.accountName }}</NuxtLink>
         </dd>
         <template v-if="shared">
-          <dt class="text-muted">Owner</dt>
+          <dt class="text-muted">{{ $t('owner') }}</dt>
           <dd class="flex items-center justify-end gap-2"><OwnerAvatar :name="transaction.ownerName" :user-id="transaction.ownerId" size="3xs" />{{ transaction.ownerName }}</dd>
         </template>
-        <dt class="text-muted">Date</dt>
+        <dt class="text-muted">{{ $t('date') }}</dt>
         <dd class="money text-right">{{ formatDate(transaction.date) }}</dd>
-        <dt class="text-muted">Status</dt>
-        <dd class="text-right">{{ transaction.status === "pending" ? "Pending at the bank" : "Booked" }}</dd>
+        <dt class="text-muted">{{ $t('status') }}</dt>
+        <dd class="text-right">{{ transaction.status === "pending" ? $t('pendingAtTheBank') : $t('booked') }}</dd>
         <template v-if="transaction.counterparty">
-          <dt class="text-muted">Counterparty</dt>
+          <dt class="text-muted">{{ $t('counterparty') }}</dt>
           <dd class="text-right break-words">{{ transaction.counterparty }}</dd>
         </template>
-        <dt class="text-muted">Bank description</dt>
+        <dt class="text-muted">{{ $t('bankDescription') }}</dt>
         <dd class="text-right font-mono text-xs break-all text-toned">{{ transaction.description }}</dd>
       </dl>
     </template>

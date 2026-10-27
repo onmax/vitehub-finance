@@ -5,7 +5,7 @@ const props = defineProps<{ error: unknown; title?: string }>()
 defineEmits<{ retry: [] }>()
 watch(
   () => props.error,
-  (error) => error && reportClientError("load", error, { title: props.title ?? "This didn’t load" }),
+  (error) => error && reportClientError("load", error, { title: props.title ?? translate('thisDidnTLoad') }),
   { immediate: true },
 )
 </script>
@@ -15,8 +15,8 @@ watch(
     color="error"
     variant="subtle"
     icon="i-lucide-circle-alert"
-    :title="title ?? 'This didn’t load'"
-    :description="errorText(error, 'The server didn’t answer. Try again in a moment.')"
-    :actions="[{ label: 'Try again', color: 'error', variant: 'outline', size: 'sm', onClick: () => $emit('retry') }]"
+    :title="title ?? $t('thisDidnTLoad')"
+    :description="errorText(error, $t('theServerDidnTAnswerTryAgainInAMoment'))"
+    :actions="[{ label: $t('tryAgain'), color: 'error', variant: 'outline', size: 'sm', onClick: () => $emit('retry') }]"
   />
 </template>

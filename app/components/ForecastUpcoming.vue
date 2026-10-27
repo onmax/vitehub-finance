@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentFormatLocale } from "~/lib/i18n"
 import type { ForecastPayment, ForecastSeries } from "#shared/api"
 import { addDay } from "#shared/forecast"
 
@@ -34,7 +35,7 @@ const days = computed(() =>
     }
   }),
 )
-const weekdays = computed(() => days.value.slice(0, 7).map((day) => new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone: "UTC" }).format(utcDay(day.date))))
+const weekdays = computed(() => days.value.slice(0, 7).map((day) => new Intl.DateTimeFormat(currentFormatLocale(), { weekday: "short", timeZone: "UTC" }).format(utcDay(day.date))))
 
 const selected = ref<string | null>(null)
 const visible = computed(() => (selected.value ? upcoming.value.filter((payment) => payment.date === selected.value) : upcoming.value))
@@ -46,11 +47,11 @@ const showAllOut = ref(false)
 const OUT_LIMIT = 6
 
 const dayLabel = (day: (typeof days.value)[number]) => {
-  const parts = [forecastDay(day.date, props.today)]
-  if (day.inMinor) parts.push(`${money(day.inMinor)} in`)
-  if (day.outMinor) parts.push(`${money(day.outMinor)} out`)
-  if (!day.count) parts.push("nothing expected")
-  return parts.join(", ")
+  const parts: string[] = []
+  if (day.inMinor) parts.push(translate('in3', { value1: money(day.inMinor) }))
+  if (day.outMinor) parts.push(translate('out2', { value1: money(day.outMinor) }))
+  if (!day.count) parts.push(translate('nothingExpected'))
+  return translate('forecastDaySummary', { date: forecastDay(day.date, props.today), details: parts.join(', ') })
 }
 function pick(date: string) {
   selected.value = selected.value === date ? null : date
@@ -58,20 +59,20 @@ function pick(date: string) {
 </script>
 
 <template>
-  <SectionCard title="Coming up" body-class="gap-4">
+  <SectionCard :title="$t('comingUp')" body-class="gap-4">
     <template #action>
       <p class="flex gap-3 text-sm tabular-nums">
-        <span><span class="text-muted">In</span> <span class="money font-medium" :class="FLOW.income.text">{{ money(totalIn) }}</span></span>
-        <span><span class="text-muted">Out</span> <span class="money font-medium text-highlighted">{{ money(totalOut) }}</span></span>
+        <span><span class="text-muted">{{ $t('in') }}</span> <span class="money font-medium" :class="FLOW.income.text">{{ money(totalIn) }}</span></span>
+        <span><span class="text-muted">{{ $t('out') }}</span> <span class="money font-medium text-highlighted">{{ money(totalOut) }}</span></span>
       </p>
     </template>
-    <p class="-mt-1 text-sm text-muted">Expected payments until {{ forecastDay(lastDay, today) }}. Pick a day to see only its payments.</p>
+    <p class="-mt-1 text-sm text-muted">{{ $t('expectedPaymentsUntilPickADayToSeeOnlyIts', { value1: forecastDay(lastDay, today) }) }}</p>
 
     <div>
       <div class="grid grid-cols-7 gap-1 border-b border-default pb-1.5 text-center text-[11px] font-medium text-muted" aria-hidden="true">
         <span v-for="name in weekdays" :key="name">{{ name }}</span>
       </div>
-      <div class="grid grid-cols-7 gap-1 pt-1.5" role="group" aria-label="Pick a day to see its payments">
+      <div class="grid grid-cols-7 gap-1 pt-1.5" role="group" :aria-label="$t('pickADayToSeeItsPayments')">
         <button
           v-for="day in days"
           :key="day.date"
@@ -109,18 +110,17 @@ function pick(date: string) {
 
     <div v-if="selected" class="flex items-center justify-between gap-2 text-sm">
       <p class="text-muted">
-        {{ forecastDay(selected, today) }}: {{ visible.length ? `${visible.length} ${visible.length === 1 ? "payment" : "payments"}` : "nothing expected" }}
+        {{ forecastDay(selected, today) }}: {{ visible.length ? $t('paymentsCount', { count: formatCount(visible.length) }, visible.length) : $t('nothingExpected') }}
       </p>
-      <UButton label="Show all days" color="neutral" variant="ghost" size="sm" icon="i-lucide-x" @click="selected = null" />
+      <UButton :label="$t('showAllDays')" color="neutral" variant="ghost" size="sm" icon="i-lucide-x" @click="selected = null" />
     </div>
 
     <div class="grid gap-6 md:grid-cols-2">
       <div class="min-w-0">
         <h3 class="flex items-center gap-2 text-sm font-medium text-highlighted">
-          <UIcon name="i-lucide-arrow-down-left" class="size-4" :class="FLOW.income.text" />Coming in
-        </h3>
+          <UIcon name="i-lucide-arrow-down-left" class="size-4" :class="FLOW.income.text" />{{ $t('comingIn') }} </h3>
         <p v-if="!incoming.length" class="mt-3 text-sm text-muted">
-          {{ selected ? "No income expected that day." : "No regular income expected in these weeks." }}
+          {{ selected ? $t('noIncomeExpectedThatDay') : $t('noRegularIncomeExpectedInTheseWeeks') }}
         </p>
         <ul v-else class="mt-2 divide-y divide-default">
           <ForecastPaymentRow v-for="payment in incoming" :key="`${payment.seriesId}-${payment.date}`" :payment="payment" :today="today" :currency="currency" />
@@ -128,9 +128,8 @@ function pick(date: string) {
       </div>
       <div class="min-w-0">
         <h3 class="flex items-center gap-2 text-sm font-medium text-highlighted">
-          <UIcon name="i-lucide-arrow-up-right" class="size-4" :class="FLOW.bills.text" />Going out
-        </h3>
-        <p v-if="!outgoing.length" class="mt-3 text-sm text-muted">{{ selected ? "No bills due that day." : "No bills due in these weeks." }}</p>
+          <UIcon name="i-lucide-arrow-up-right" class="size-4" :class="FLOW.bills.text" />{{ $t('goingOut') }} </h3>
+        <p v-if="!outgoing.length" class="mt-3 text-sm text-muted">{{ selected ? $t('noBillsDueThatDay') : $t('noBillsDueInTheseWeeks') }}</p>
         <ul v-else class="mt-2 divide-y divide-default">
           <ForecastPaymentRow
             v-for="payment in showAllOut || selected ? outgoing : outgoing.slice(0, OUT_LIMIT)"
@@ -142,7 +141,7 @@ function pick(date: string) {
         </ul>
         <UButton
           v-if="!selected && outgoing.length > OUT_LIMIT"
-          :label="showAllOut ? 'Show fewer' : `Show all ${outgoing.length}`"
+          :label="showAllOut ? $t('showFewer') : $t('showAll', { value1: outgoing.length })"
           color="neutral"
           variant="link"
           size="sm"

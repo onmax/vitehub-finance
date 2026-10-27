@@ -12,11 +12,11 @@ const { find } = useCategories()
 const title = (row: Transaction) => row.counterparty || row.description
 
 const columns = computed<TableColumn<Transaction>[]>(() => [
-  { accessorKey: "date", header: "Date", meta: { class: { th: "w-24", td: "w-24 money text-muted" } } },
-  { id: "description", header: "Description", meta: { class: { td: "max-w-0" } } },
-  { id: "category", header: "Category", meta: { class: { th: "w-48", td: "w-48 py-1.5" } } },
-  { id: "account", header: "Account", meta: { class: { th: "w-48 hidden xl:table-cell", td: "w-48 hidden xl:table-cell" } } },
-  { accessorKey: "amountMinor", header: "Amount", meta: { class: { th: "w-36 text-right", td: "w-36 text-right" } } },
+  { accessorKey: "date", header: translate('date'), meta: { class: { th: "w-24", td: "w-24 money text-muted" } } },
+  { id: "description", header: translate('description'), meta: { class: { td: "max-w-0" } } },
+  { id: "category", header: translate('category'), meta: { class: { th: "w-48", td: "w-48 py-1.5" } } },
+  { id: "account", header: translate('account'), meta: { class: { th: "w-48 hidden xl:table-cell", td: "w-48 hidden xl:table-cell" } } },
+  { accessorKey: "amountMinor", header: translate('amount'), meta: { class: { th: "w-36 text-right", td: "w-36 text-right" } } },
 ])
 
 const groups = computed(() => {
@@ -37,7 +37,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div>
     <template v-if="loading && rows.length === 0">
-      <div class="divide-y divide-default" aria-busy="true" aria-label="Loading transactions">
+      <div class="divide-y divide-default" aria-busy="true" :aria-label="$t('loadingTransactions')">
         <div v-for="index in 8" :key="index" class="flex h-[53px] items-center gap-3 px-4">
           <USkeleton class="hidden h-4 w-14 md:block" />
           <USkeleton class="size-8 rounded-md" />
@@ -74,19 +74,19 @@ function onKeydown(event: KeyboardEvent) {
           <div class="min-w-0">
             <p class="flex items-center gap-1.5 truncate font-medium text-highlighted" :title="title(row.original)">
               <span class="truncate">{{ title(row.original) }}</span>
-              <UIcon v-if="row.original.note" name="i-lucide-sticky-note" class="size-3.5 shrink-0 text-dimmed" aria-label="Has a note" />
+              <UIcon v-if="row.original.note" name="i-lucide-sticky-note" class="size-3.5 shrink-0 text-dimmed" :aria-label="$t('hasANote')" />
             </p>
             <p v-if="row.original.transferWith" class="flex items-center gap-1 truncate text-xs text-muted">
               <UIcon name="i-lucide-arrow-left-right" class="size-3 shrink-0" />
-              <span class="truncate">{{ row.original.amountMinor < 0 ? "To" : "From" }} {{ row.original.transferWith }}</span>
+              <span class="truncate">{{ row.original.amountMinor < 0 ? $t('to3') : $t('from') }} {{ row.original.transferWith }}</span>
             </p>
             <p v-else-if="row.original.counterparty && row.original.description !== row.original.counterparty" class="truncate text-xs text-muted" :title="row.original.description">
               {{ row.original.description }}
             </p>
           </div>
-          <UBadge v-if="row.original.status === 'pending'" color="neutral" variant="outline" size="sm" label="Pending" class="shrink-0" />
-          <UBadge v-if="row.original.excluded" color="neutral" variant="outline" size="sm" icon="i-lucide-eye-off" label="Excluded" class="shrink-0" />
-          <UBadge v-if="row.original.hidden" color="neutral" variant="outline" size="sm" icon="i-lucide-lock" label="Only you" class="shrink-0" />
+          <UBadge v-if="row.original.status === 'pending'" color="neutral" variant="outline" size="sm" :label="$t('pending')" class="shrink-0" />
+          <UBadge v-if="row.original.excluded" color="neutral" variant="outline" size="sm" icon="i-lucide-eye-off" :label="$t('excluded')" class="shrink-0" />
+          <UBadge v-if="row.original.hidden" color="neutral" variant="outline" size="sm" icon="i-lucide-lock" :label="$t('onlyYou')" class="shrink-0" />
         </div>
       </template>
       <template #category-cell="{ row }">
@@ -97,15 +97,15 @@ function onKeydown(event: KeyboardEvent) {
             variant="ghost"
             size="sm"
             class="min-w-0 flex-1"
-            :aria-label="`Category for ${title(row.original)}`"
+            :aria-label="$t('categoryFor', { value1: title(row.original) })"
             @update:model-value="(value) => emit('category', row.original, value ?? null)"
           />
-          <span v-else class="flex min-w-0 flex-1 items-center gap-2 text-sm" title="This account is shared view-only">
+          <span v-else class="flex min-w-0 flex-1 items-center gap-2 text-sm" :title="$t('thisAccountIsSharedViewOnly')">
             <CategoryIcon :icon="find(row.original.categoryId)?.icon" :color="find(row.original.categoryId)?.color" size="sm" />
-            <span class="truncate">{{ find(row.original.categoryId)?.name ?? "Uncategorized" }}</span>
+            <span class="truncate">{{ find(row.original.categoryId)?.name ?? $t('uncategorized') }}</span>
           </span>
-          <UTooltip v-if="row.original.categorySource === 'ai'" text="Suggested by AI. Change it if it’s wrong.">
-            <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0 text-dimmed" aria-label="Suggested by AI" />
+          <UTooltip v-if="row.original.categorySource === 'ai'" :text="$t('suggestedByAiChangeItIfItSWrong')">
+            <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0 text-dimmed" :aria-label="$t('suggestedByAi')" />
           </UTooltip>
         </div>
       </template>
@@ -144,16 +144,16 @@ function onKeydown(event: KeyboardEvent) {
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-1.5 text-sm font-medium text-highlighted">
                   <span class="truncate">{{ title(row) }}</span>
-                  <UIcon v-if="row.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" aria-label="Only you see this" />
+                  <UIcon v-if="row.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" :aria-label="$t('onlyYouSeeThis')" />
                 </span>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted">
                   <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
                   <span v-else class="truncate">
-                    {{ find(row.categoryId)?.name ?? "Uncategorized" }}
-                    <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" aria-label="Suggested by AI" />
+                    {{ find(row.categoryId)?.name ?? $t('uncategorized') }}
+                    <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" :aria-label="$t('suggestedByAi')" />
                     · {{ row.accountName }}
                   </span>
-                  <span v-if="row.status === 'pending'" class="shrink-0">· Pending</span>
+                  <span v-if="row.status === 'pending'" class="shrink-0">{{ $t('pending2') }}</span>
                 </span>
               </span>
               <Money :minor="row.amountMinor" :currency="row.currency" tone="in" class="text-sm font-medium" :class="row.excluded && 'line-through'" />

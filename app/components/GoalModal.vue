@@ -8,7 +8,7 @@ const emit = defineEmits<{ close: [goal?: Goal] }>()
 const shared = useShared()
 const { locale } = useMoney()
 const plain = (minor: number) =>
-  new Intl.NumberFormat(locale, { maximumFractionDigits: 2, useGrouping: false }).format(fromMinor(minor, props.currency))
+  new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2, useGrouping: false }).format(fromMinor(minor, props.currency))
 
 const state = reactive({
   name: props.goal?.name ?? "",
@@ -26,20 +26,20 @@ const accountItems = computed(() =>
   props.accounts.filter((account) => !account.archived).map((account) => ({ value: account.id, label: account.name, icon: ACCOUNT_KINDS[account.kind].icon })),
 )
 const SOURCES = [
-  { value: "account" as const, label: "Linked account" },
-  { value: "manual" as const, label: "By hand" },
+  { value: "account" as const, get label() { return translate('linkedAccount') } },
+  { value: "manual" as const, get label() { return translate('byHand') } },
 ]
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
-  if (!values.name.trim()) errors.push({ name: "name", message: "Give the goal a name." })
+  if (!values.name.trim()) errors.push({ name: "name", message: translate('giveTheGoalAName') })
   const target = parseAmount(values.target)
-  if (target === null || target <= 0) errors.push({ name: "target", message: "Enter a target above zero." })
-  if (values.source === "account" && !values.accountId) errors.push({ name: "accountId", message: "Pick the account you save in." })
+  if (target === null || target <= 0) errors.push({ name: "target", message: translate('enterATargetAboveZero') })
+  if (values.source === "account" && !values.accountId) errors.push({ name: "accountId", message: translate('pickTheAccountYouSaveIn') })
   if (values.source === "manual" && values.saved.trim() && parseAmount(values.saved) === null)
-    errors.push({ name: "saved", message: "Enter an amount like 1.500." })
+    errors.push({ name: "saved", message: translate('enterAnAmountLike1500') })
   if (values.targetDate && daysFromToday(values.targetDate) < 0 && values.targetDate !== props.goal?.targetDate)
-    errors.push({ name: "targetDate", message: "Pick a date from today on." })
+    errors.push({ name: "targetDate", message: translate('pickADateFromTodayOn') })
   return errors
 }
 
@@ -62,7 +62,7 @@ async function submit() {
     await refreshStems("goals")
     emit("close", saved)
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t save the goal. Try again.")
+    error.value = errorText(cause, translate('couldnTSaveTheGoalTryAgain'))
   } finally {
     pending.value = false
   }
@@ -70,21 +70,21 @@ async function submit() {
 </script>
 
 <template>
-  <UModal :title="goal ? 'Edit goal' : 'New goal'" description="Something you’re saving for, and by when." @update:open="(open) => !open && emit('close')">
+  <UModal :title="goal ? $t('editGoal') : $t('newGoal')" :description="$t('somethingYouReSavingForAndByWhen')" @update:open="(open) => !open && emit('close')">
     <template #body>
       <UForm id="goal-form" :state="state" :validate="validate" class="flex flex-col gap-4" @submit="submit">
-        <UFormField label="Name" name="name">
-          <UInput v-model="state.name" placeholder="Emergency fund, Japan trip…" class="w-full" autofocus />
+        <UFormField :label="$t('name')" name="name">
+          <UInput v-model="state.name" :placeholder="$t('emergencyFundJapanTrip')" class="w-full" autofocus />
         </UFormField>
-        <UFormField label="Icon" name="icon">
-          <div role="radiogroup" aria-label="Icon" class="flex flex-wrap gap-1.5">
+        <UFormField :label="$t('icon')" name="icon">
+          <div role="radiogroup" :aria-label="$t('icon')" class="flex flex-wrap gap-1.5">
             <button
               v-for="icon in GOAL_ICONS"
               :key="icon"
               type="button"
               role="radio"
               :aria-checked="state.icon === icon"
-              :aria-label="icon.replace('i-lucide-', '').replace(/-/g, ' ')"
+              :aria-label="$t(`icon_${icon.replace('i-lucide-', '')}`)"
               class="grid size-10 cursor-pointer place-items-center rounded-lg border transition-[color,background-color,border-color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
               :class="state.icon === icon ? 'border-(--ui-border-inverted) bg-elevated text-highlighted' : 'border-default text-muted hover:bg-elevated hover:text-highlighted'"
               @click="state.icon = icon"
@@ -94,34 +94,34 @@ async function submit() {
           </div>
         </UFormField>
         <div class="grid gap-3 sm:grid-cols-2">
-          <UFormField label="Target" name="target">
-            <UInput v-model="state.target" inputmode="decimal" placeholder="10.000" class="w-full" :ui="{ base: 'tabular-nums', trailing: 'pointer-events-none' }">
+          <UFormField :label="$t('target')" name="target">
+            <UInput v-model="state.target" inputmode="decimal" :placeholder="$t('amountGoalPlaceholder')" class="w-full" :ui="{ base: 'tabular-nums', trailing: 'pointer-events-none' }">
               <template #trailing><span class="text-xs text-muted">{{ currency }}</span></template>
             </UInput>
           </UFormField>
-          <UFormField label="By" name="targetDate" hint="Optional">
-            <UInput v-model="state.targetDate" type="date" :min="today()" class="w-full" :ui="{ base: 'tabular-nums' }" />
+          <UFormField :label="$t('by2')" name="targetDate" hint="Optional">
+            <DateInput v-model="state.targetDate" :min="today()" class="w-full" :ui="{ base: 'tabular-nums' }" />
           </UFormField>
         </div>
-        <UFormField label="Track progress" name="source">
-          <SegmentedControl v-model="state.source" :options="SOURCES" label="Track progress" size="sm" />
+        <UFormField :label="$t('trackProgress')" name="source">
+          <SegmentedControl v-model="state.source" :options="SOURCES" :label="$t('trackProgress')" size="sm" />
         </UFormField>
         <UFormField
           v-if="state.source === 'account'"
-          label="Account"
+          :label="$t('account')"
           name="accountId"
-          help="The goal’s progress is this account’s balance."
+          :help="$t('theGoalSProgressIsThisAccountSBalance')"
         >
           <USelectMenu
             v-model="state.accountId"
             :items="accountItems"
             value-key="value"
-            placeholder="Pick an account"
+            :placeholder="$t('pickAnAccount')"
             class="w-full"
-            :search-input="{ placeholder: 'Search accounts…' }"
+            :search-input="{ placeholder: $t('searchAccounts') }"
           />
         </UFormField>
-        <UFormField v-else label="Saved so far" name="saved" help="Update it whenever you put money aside.">
+        <UFormField v-else :label="$t('savedSoFar')" name="saved" :help="$t('updateItWheneverYouPutMoneyAside')">
           <UInput v-model="state.saved" inputmode="decimal" placeholder="0" class="w-full" :ui="{ base: 'tabular-nums', trailing: 'pointer-events-none' }">
             <template #trailing><span class="text-xs text-muted">{{ currency }}</span></template>
           </UInput>
@@ -129,8 +129,8 @@ async function submit() {
         <UFormField v-if="shared" name="personal">
           <USwitch
             v-model="state.personal"
-            label="Just for me"
-            :description="state.personal ? 'Only you see this goal.' : 'Everyone in the household sees it.'"
+            :label="$t('justForMe')"
+            :description="state.personal ? $t('onlyYouSeeThisGoal') : $t('everyoneInTheHouseholdSeesIt')"
           />
         </UFormField>
         <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
@@ -138,8 +138,8 @@ async function submit() {
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="outline" label="Cancel" @click="emit('close')" />
-        <UButton type="submit" form="goal-form" :label="goal ? 'Save' : 'Create goal'" :loading="pending" />
+        <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
+        <UButton type="submit" form="goal-form" :label="goal ? $t('save') : $t('createGoal')" :loading="pending" />
       </div>
     </template>
   </UModal>

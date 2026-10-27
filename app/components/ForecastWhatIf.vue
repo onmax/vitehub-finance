@@ -50,7 +50,7 @@ function toggle(id: string, value: boolean | "indeterminate") {
   else skip.add(id)
   scenario.value = { ...scenario.value, skip: [...skip] }
 }
-const cadenceWord = { weekly: "a week", monthly: "a month", quarterly: "a quarter", yearly: "a year" } as const
+const cadenceWord = { get weekly() { return translate('aWeek') }, get monthly() { return translate('aMonth') }, get quarterly() { return translate('aQuarter') }, get yearly() { return translate('aYear') } } as const
 
 function reset() {
   amount.value = ""
@@ -61,27 +61,27 @@ const active = computed(() => !isBaseline(scenario.value))
 const answer = computed(() => {
   if (!scenario.value.oneOff) return null
   const { lowest, riskDate } = props.result
-  if (lowest.balanceMinor < 0) return { ok: false, title: "Not without going below zero", text: `The balance would fall to ${money(lowest.balanceMinor)} on ${forecastDay(lowest.date, props.forecast.today)}. A later day, or spreading it out, may fit.` }
-  if (riskDate) return { ok: false, title: "Only just", text: `The lowest expected balance is ${money(lowest.balanceMinor)} on ${forecastDay(lowest.date, props.forecast.today)}, but a month of heavier spending could take it below zero from ${forecastDay(riskDate, props.forecast.today)}.` }
-  return { ok: true, title: "Yes, the balance stays above zero", text: `The lowest expected balance would be ${money(lowest.balanceMinor)} on ${forecastDay(lowest.date, props.forecast.today)}, and ${money(lowest.lowMinor)} in a heavier month.` }
+  if (lowest.balanceMinor < 0) return { ok: false, get title() { return translate('notWithoutGoingBelowZero') }, text: translate('theBalanceWouldFallToOnALaterDayOr', { value1: money(lowest.balanceMinor), value2: forecastDay(lowest.date, props.forecast.today) }) }
+  if (riskDate) return { ok: false, get title() { return translate('onlyJust') }, text: translate('theLowestExpectedBalanceIsOnButAMonthOf', { value1: money(lowest.balanceMinor), value2: forecastDay(lowest.date, props.forecast.today), value3: forecastDay(riskDate, props.forecast.today) }) }
+  return { ok: true, get title() { return translate('yesTheBalanceStaysAboveZero') }, text: translate('theLowestExpectedBalanceWouldBeOnAndInA', { value1: money(lowest.balanceMinor), value2: forecastDay(lowest.date, props.forecast.today), value3: money(lowest.lowMinor) }) }
 })
 </script>
 
 <template>
-  <SectionCard title="What if" body-class="gap-5">
+  <SectionCard :title="$t('whatIf3')" body-class="gap-5">
     <template #action>
-      <UButton v-if="active" label="Reset" icon="i-lucide-rotate-ccw" color="neutral" variant="link" size="sm" class="-me-1.5 text-muted" @click="reset" />
+      <UButton v-if="active" :label="$t('reset')" icon="i-lucide-rotate-ccw" color="neutral" variant="link" size="sm" class="-me-1.5 text-muted" @click="reset" />
     </template>
-    <p class="-my-1 text-sm text-muted">Try a change and the chart updates.</p>
+    <p class="-my-1 text-sm text-muted">{{ $t('tryAChangeAndTheChartUpdates') }}</p>
 
     <fieldset class="flex flex-col gap-3">
-      <legend class="mb-2 text-sm font-medium text-highlighted">Can we afford it?</legend>
+      <legend class="mb-2 text-sm font-medium text-highlighted">{{ $t('canWeAffordIt') }}</legend>
       <div class="grid grid-cols-2 gap-3">
-        <UFormField label="One-off amount" :error="invalid ? 'Enter an amount above zero, like 1.200' : undefined">
-          <UInput v-model="amount" inputmode="decimal" placeholder="1.200,00" class="w-full" :ui="{ base: 'tabular-nums' }" aria-describedby="whatif-answer" />
+        <UFormField :label="$t('oneOffAmount')" :error="invalid ? $t('enterAnAmountAboveZeroLike1200') : undefined">
+          <UInput v-model="amount" inputmode="decimal" :placeholder="$t('amountPurchasePlaceholder')" class="w-full" :ui="{ base: 'tabular-nums' }" aria-describedby="whatif-answer" />
         </UFormField>
-        <UFormField label="On">
-          <UInput v-model="date" type="date" :min="forecast.today" :max="lastDay" class="w-full" />
+        <UFormField :label="$t('on')">
+          <DateInput v-model="date" :min="forecast.today" :max="lastDay" class="w-full" />
         </UFormField>
       </div>
       <div id="whatif-answer" aria-live="polite">
@@ -104,16 +104,15 @@ const answer = computed(() => {
     </fieldset>
 
     <fieldset v-if="hasIncome" class="flex flex-col gap-2">
-      <legend class="mb-1 flex w-full items-center justify-between text-sm font-medium text-highlighted">
-        Income <span class="money text-sm font-normal text-muted">{{ income === 0 ? "as usual" : `${income > 0 ? "+" : "−"}${Math.abs(income)}%` }}</span>
+      <legend class="mb-1 flex w-full items-center justify-between text-sm font-medium text-highlighted"> {{ $t('income') }} <span class="money text-sm font-normal text-muted">{{ income === 0 ? $t('asUsual') : formatPercent(income / 100, { signed: true }) }}</span>
       </legend>
-      <USlider v-model="income" :min="-50" :max="30" :step="5" aria-label="Change every income by a percentage" />
-      <div class="flex justify-between text-[11px] text-muted tabular-nums" aria-hidden="true"><span>−50%</span><span>+30%</span></div>
+      <USlider v-model="income" :min="-50" :max="30" :step="5" :aria-label="$t('changeEveryIncomeByAPercentage')" />
+      <div class="flex justify-between text-[11px] text-muted tabular-nums" aria-hidden="true"><span>{{ formatPercent(-0.5, { signed: true }) }}</span><span>{{ formatPercent(0.3, { signed: true }) }}</span></div>
     </fieldset>
 
     <fieldset v-if="choices.length" class="flex flex-col">
-      <legend class="mb-2 text-sm font-medium text-highlighted">Counted payments</legend>
-      <p class="-mt-1 mb-2 text-xs text-muted">Untick a payment to see the forecast without it, like a subscription you cancel or an income that stops.</p>
+      <legend class="mb-2 text-sm font-medium text-highlighted">{{ $t('countedPayments') }}</legend>
+      <p class="-mt-1 mb-2 text-xs text-muted">{{ $t('untickAPaymentToSeeTheForecastWithoutItLike') }}</p>
       <ul class="flex flex-col">
         <li v-for="entry in shown" :key="entry.id" class="flex min-h-10 items-center gap-3">
           <UCheckbox
@@ -130,7 +129,7 @@ const answer = computed(() => {
       </ul>
       <UButton
         v-if="choices.length > LIMIT"
-        :label="showAll ? 'Show fewer' : `Show all ${choices.length}`"
+        :label="showAll ? $t('showFewer') : $t('showAll', { value1: choices.length })"
         color="neutral"
         variant="link"
         size="sm"

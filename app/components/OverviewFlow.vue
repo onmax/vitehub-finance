@@ -5,11 +5,16 @@ import type { FlowNode, MoneyFlow } from "#shared/api"
 
 const month = ref(currentMonth())
 const isCurrent = computed(() => month.value === currentMonth())
-const { data: flow, status, error, refresh } = useScopedFetch<MoneyFlow | null>("/api/flow", {
+const { data: rawFlow, status, error, refresh } = useScopedFetch<MoneyFlow | null>("/api/flow", {
   key: "flow",
   query: computed(() => ({ month: month.value })),
   default: () => null,
 })
+const flow = computed(() => rawFlow.value ? {
+  ...rawFlow.value,
+  sources: rawFlow.value.sources.map(localizeFlowNode),
+  uses: rawFlow.value.uses.map(localizeFlowNode),
+} : null)
 const { format } = useMoney()
 const router = useRouter()
 const { categories } = useCategories()
@@ -17,8 +22,8 @@ const { categories } = useCategories()
 const savings = computed(() => flow.value?.sources.find((node) => node.kind === "savings") ?? null)
 const kept = computed(() => flow.value?.uses.find((node) => node.kind === "kept") ?? null)
 const showTable = ref(false)
-const tables = computed(() => (flow.value ? [{ title: "Came from", nodes: flow.value.sources }, { title: "Went to", nodes: flow.value.uses }] : []))
-const share = (minor: number) => `${Math.round((minor / Math.max(1, flow.value?.inMinor ?? 0, flow.value?.outMinor ?? 0)) * 100)}%`
+const tables = computed(() => (flow.value ? [{ get title() { return translate('cameFrom') }, nodes: flow.value.sources }, { get title() { return translate('wentTo') }, nodes: flow.value.uses }] : []))
+const share = (minor: number) => formatPercent(minor / Math.max(1, flow.value?.inMinor ?? 0, flow.value?.outMinor ?? 0))
 const empty = computed(() => flow.value && !flow.value.inMinor && !flow.value.outMinor)
 
 function open(node: FlowNode) {
@@ -36,12 +41,12 @@ const transfersLink = computed(() => {
 </script>
 
 <template>
-  <SectionCard title="Money flow">
+  <SectionCard :title="$t('moneyFlow')">
     <template #action>
       <div class="-me-2 flex items-center gap-1">
-        <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" size="sm" aria-label="Previous month" @click="month = addMonths(month, -1)" />
+        <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" size="sm" :aria-label="$t('previousMonth')" @click="month = addMonths(month, -1)" />
         <span class="min-w-24 text-center text-sm font-medium text-highlighted tabular-nums">{{ formatMonth(month) }}</span>
-        <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" size="sm" aria-label="Next month" :disabled="isCurrent" @click="month = addMonths(month, 1)" />
+        <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" size="sm" :aria-label="$t('nextMonth')" :disabled="isCurrent" @click="month = addMonths(month, 1)" />
       </div>
     </template>
 
@@ -50,25 +55,24 @@ const transfersLink = computed(() => {
       <div class="flex gap-6"><USkeleton class="h-10 w-28" /><USkeleton class="h-10 w-28" /><USkeleton class="h-10 w-28" /></div>
       <USkeleton class="h-60 w-full" />
     </div>
-    <p v-else-if="empty" class="py-10 text-center text-sm text-pretty text-muted">
-      Nothing came in or went out in {{ formatMonth(month) }}<template v-if="flow.movedMinor">, besides moves between your accounts</template>.
+    <p v-else-if="empty" class="py-10 text-center text-sm text-pretty text-muted"> {{ $t('nothingCameInOrWentOutIn', { value1: formatMonth(month) }) }}<template v-if="flow.movedMinor">{{ $t('besidesMovesBetweenYourAccounts') }}</template>.
     </p>
     <div v-else class="flex flex-col gap-5 transition-opacity duration-150" :class="status === 'pending' && 'opacity-60'" :aria-busy="status === 'pending'">
       <dl class="flex flex-wrap gap-x-8 gap-y-3">
         <div>
-          <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-emerald-500" aria-hidden="true" />Money in</dt>
+          <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-emerald-500" aria-hidden="true" />{{ $t('moneyIn') }}</dt>
           <dd class="money mt-0.5 text-lg font-semibold text-highlighted">{{ format(flow.inMinor, flow.currency) }}</dd>
         </div>
         <div>
-          <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-rose-500" aria-hidden="true" />Money out</dt>
+          <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-rose-500" aria-hidden="true" />{{ $t('moneyOut') }}</dt>
           <dd class="money mt-0.5 text-lg font-semibold text-highlighted">{{ format(flow.outMinor, flow.currency) }}</dd>
         </div>
         <div v-if="kept">
-          <dt class="text-xs text-muted">Kept</dt>
+          <dt class="text-xs text-muted">{{ $t('kept') }}</dt>
           <dd class="money mt-0.5 text-lg font-semibold text-emerald-600 dark:text-emerald-400">+{{ format(kept.amountMinor, flow.currency) }}</dd>
         </div>
         <div v-else-if="savings">
-          <dt class="text-xs text-muted">From savings</dt>
+          <dt class="text-xs text-muted">{{ $t('fromSavings') }}</dt>
           <dd class="money mt-0.5 text-lg font-semibold text-amber-600 dark:text-amber-400">{{ format(savings.amountMinor, flow.currency) }}</dd>
         </div>
       </dl>
@@ -79,13 +83,11 @@ const transfersLink = computed(() => {
         <p v-if="flow.movedMinor > 0" class="flex items-center gap-1.5">
           <UIcon name="i-lucide-arrow-left-right" class="size-3.5 shrink-0" />
           <span>
-            <ULink :to="transfersLink" class="money underline decoration-dotted underline-offset-4 hover:text-highlighted">{{ format(flow.movedMinor, flow.currency) }}</ULink>
-            moved between your accounts isn’t counted.
-          </span>
+            <ULink :to="transfersLink" class="money underline decoration-dotted underline-offset-4 hover:text-highlighted">{{ format(flow.movedMinor, flow.currency) }}</ULink> {{ $t('movedBetweenYourAccountsIsnTCounted') }} </span>
         </p>
         <span v-else />
         <UButton
-          :label="showTable ? 'Hide table' : 'Show as a table'"
+          :label="showTable ? $t('hideTable') : $t('showAsATable')"
           color="neutral"
           variant="link"
           size="xs"

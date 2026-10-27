@@ -3,7 +3,7 @@ import type { Recurring, RecurringResponse } from "#shared/api"
 
 // Subscriptions, bills, and regular income ViteHub Finance found in the transactions: what they cost a month and a year, ways to
 // save, and each payment by when it's next due. Detected ones wait for a confirm or a dismiss.
-useHead({ title: "Recurring" })
+useHead({ get title() { return translate('recurring') } })
 
 const notify = useNotify()
 const shared = useShared()
@@ -35,10 +35,10 @@ async function setStatus(item: Recurring, status: Recurring["status"]) {
     edits.value.set(item.id, saved)
     void refreshStems("overview", "forecast")
     if (status === "dismissed")
-      notify.success(`${item.name} isn’t counted as recurring`, "It stays out of totals and the forecast. Restore it below.")
+      notify.success(translate('isnTCountedAsRecurring', { value1: item.name }), translate('itStaysOutOfTotalsAndTheForecastRestoreIt'))
   } catch (cause) {
     edits.value.set(item.id, item)
-    notify.error(cause, "Couldn’t update it")
+    notify.error(cause, translate('couldnTUpdateIt'))
   } finally {
     pending.value = pending.value.filter((id) => id !== item.id)
   }
@@ -65,12 +65,12 @@ async function show(ids: string[]) {
 <template>
   <UDashboardPanel id="recurring">
     <template #header>
-      <PageNavbar title="Recurring" />
+      <PageNavbar :title="$t('recurring')" />
     </template>
 
     <template #body>
       <div class="mx-auto flex w-full max-w-5xl flex-col gap-10">
-      <PageError v-if="error" :error="error" title="Recurring payments didn’t load" @retry="refresh()" />
+      <PageError v-if="error" :error="error" :title="$t('recurringPaymentsDidnTLoad')" @retry="refresh()" />
 
       <template v-else-if="loading && !data?.items.length">
         <div class="grid shrink-0 grid-cols-3 divide-x divide-default">
@@ -97,11 +97,11 @@ async function show(ids: string[]) {
       <UEmpty
         v-else-if="items.length === 0"
         icon="i-lucide-repeat"
-        title="No recurring payments yet"
-        description="Subscriptions and bills show up here once an account has two or three months of transactions. Connect a bank or import a CSV to start."
+        :title="$t('noRecurringPaymentsYet')"
+        :description="$t('subscriptionsAndBillsShowUpHereOnceAnAccountHas')"
         :actions="[
-          { label: 'Connect a bank', to: '/connect/banks' },
-          { label: 'Import a CSV', color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
+          { label: $t('connectABank'), to: '/connect/banks' },
+          { label: $t('importACsv'), color: 'neutral', variant: 'outline', to: '/connect/banks#import' },
         ]"
         variant="naked"
         class="py-16"
@@ -110,15 +110,15 @@ async function show(ids: string[]) {
       <template v-else>
         <dl class="grid shrink-0 grid-cols-3 divide-x divide-default">
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
-            <dt class="text-xs text-muted sm:text-sm">Charges a month</dt>
+            <dt class="text-xs text-muted sm:text-sm">{{ $t('chargesAMonth') }}</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.monthlyOutMinor) }}</dd>
           </div>
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
-            <dt class="text-xs text-muted sm:text-sm">Charges a year</dt>
+            <dt class="text-xs text-muted sm:text-sm">{{ $t('chargesAYear') }}</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.yearlyOutMinor, null, { compact: true }) }}</dd>
           </div>
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
-            <dt class="text-xs text-muted sm:text-sm">Income a month</dt>
+            <dt class="text-xs text-muted sm:text-sm">{{ $t('incomeAMonth') }}</dt>
             <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="data!.totals.monthlyInMinor > 0 ? 'money-in' : 'text-highlighted'">
               {{ format(data!.totals.monthlyInMinor) }}
             </dd>
@@ -130,7 +130,7 @@ async function show(ids: string[]) {
         <section aria-labelledby="upcoming-title" class="flex flex-col gap-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="upcoming-title" class="text-sm font-medium text-highlighted">
-              {{ kind === "out" ? "Upcoming charges" : "Upcoming income" }}
+              {{ kind === "out" ? $t('upcomingCharges') : $t('upcomingIncome') }}
             </h2>
             <div class="flex items-center gap-2">
               <UButton
@@ -139,24 +139,24 @@ async function show(ids: string[]) {
                 variant="ghost"
                 size="sm"
                 icon="i-lucide-check-check"
-                :label="`Confirm all ${detectedCount}`"
+                :label="$t('confirmAll', { value1: detectedCount })"
                 @click="confirmAll"
               />
               <SegmentedControl
                 v-if="hasIncome"
                 v-model="kind"
                 size="sm"
-                label="Charges or income"
+                :label="$t('chargesOrIncome')"
                 :options="[
-                  { value: 'out', label: 'Charges' },
-                  { value: 'in', label: 'Income' },
+                  { value: 'out', label: $t('charges') },
+                  { value: 'in', label: $t('income') },
                 ]"
               />
             </div>
           </div>
           <RecurringList v-if="active.length" :items="active" :highlighted="highlighted" :shared="shared" :pending="pending" @status="setStatus" />
           <p v-else class="rounded-lg bg-muted p-6 text-center text-sm text-muted">
-            {{ kind === "out" ? "No recurring charges right now." : "No regular income found yet." }}
+            {{ kind === "out" ? $t('noRecurringChargesRightNow') : $t('noRegularIncomeFoundYet') }}
           </p>
         </section>
 
@@ -167,7 +167,7 @@ async function show(ids: string[]) {
             size="sm"
             class="self-start"
             :trailing-icon="showDismissed ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-            :label="`Not recurring (${dismissed.length})`"
+            :label="$t('notRecurring2', { value1: dismissed.length })"
             :aria-expanded="showDismissed"
             @click="showDismissed = !showDismissed"
           />
@@ -175,7 +175,7 @@ async function show(ids: string[]) {
             <li v-for="item in dismissed" :key="item.id" class="flex items-center gap-3 py-2.5">
               <span class="min-w-0 flex-1 truncate text-sm text-muted">{{ item.name }}</span>
               <Money :minor="item.amountMinor" :currency="item.currency" class="text-sm text-muted" />
-              <UButton color="neutral" variant="outline" size="sm" label="Restore" :loading="pending.includes(item.id)" @click="setStatus(item, 'detected')" />
+              <UButton color="neutral" variant="outline" size="sm" :label="$t('restore')" :loading="pending.includes(item.id)" @click="setStatus(item, 'detected')" />
             </li>
           </ul>
         </section>

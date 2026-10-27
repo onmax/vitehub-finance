@@ -12,7 +12,7 @@ const id = useId()
         <UButton
           v-if="to"
           :to="to"
-          :label="linkLabel ?? 'See all'"
+          :label="linkLabel ?? $t('seeAll')"
           color="neutral"
           variant="link"
           size="sm"

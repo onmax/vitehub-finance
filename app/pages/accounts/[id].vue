@@ -11,7 +11,7 @@ const { data: account, status, error, refresh } = useScopedFetch<AccountDetail |
   unscoped: true,
   default: () => null,
 })
-useHead({ title: () => account.value?.name ?? "Account" })
+useHead({ title: () => account.value?.name ?? translate('account') })
 
 const shared = useShared()
 const notify = useNotify()
@@ -81,9 +81,9 @@ async function syncNow() {
   try {
     await $fetch(`/api/connections/${account.value.connectionId}/sync`, { method: "POST" })
     await Promise.all([refresh(), refreshStems("transactions", "accounts", "overview")])
-    notify.success("Synced")
+    notify.success(translate('synced2'))
   } catch (cause) {
-    notify.error(cause, "Sync failed")
+    notify.error(cause, translate('syncFailed'))
   } finally {
     syncing.value = false
   }
@@ -97,26 +97,26 @@ function updated(next: AccountSummary) {
 <template>
   <UDashboardPanel id="account">
     <template #header>
-      <PageNavbar :title="account?.name ?? 'Account'" :scoped="false">
+      <PageNavbar :title="account?.name ?? $t('account')" :scoped="false">
         <template #leading>
-          <UTooltip text="All accounts">
-            <UButton to="/accounts" color="neutral" variant="ghost" icon="i-lucide-arrow-left" aria-label="All accounts" class="-ml-1.5" />
+          <UTooltip :text="$t('allAccounts')">
+            <UButton to="/accounts" color="neutral" variant="ghost" icon="i-lucide-arrow-left" :aria-label="$t('allAccounts')" class="-ml-1.5" />
           </UTooltip>
         </template>
         <template #right>
           <template v-if="account">
-            <UTooltip v-if="account.connectionId && account.canEdit" text="Fetch the latest balance and transactions">
+            <UTooltip v-if="account.connectionId && account.canEdit" :text="$t('fetchTheLatestBalanceAndTransactions')">
               <UButton
                 color="neutral"
                 variant="outline"
                 icon="i-lucide-refresh-cw"
-                :label="syncing ? 'Syncing…' : 'Sync now'"
+                :label="syncing ? $t('syncing') : $t('syncNow')"
                 :loading="syncing"
                 class="hidden sm:inline-flex"
                 @click="syncNow"
               />
             </UTooltip>
-            <UButton v-if="account.canEdit && !account.connectionId" color="neutral" variant="outline" icon="i-lucide-upload" label="Import CSV" @click="importCsv" />
+            <UButton v-if="account.canEdit && !account.connectionId" color="neutral" variant="outline" icon="i-lucide-upload" :label="$t('importCsv')" @click="importCsv" />
           </template>
         </template>
       </PageNavbar>
@@ -128,12 +128,12 @@ function updated(next: AccountSummary) {
           v-if="notFound"
           variant="naked"
           icon="i-lucide-landmark"
-          title="This account isn’t here"
-          description="It was deleted, or its owner made it private."
-          :actions="[{ label: 'All accounts', to: '/accounts', icon: 'i-lucide-arrow-left' }]"
+          :title="$t('thisAccountIsnTHere')"
+          :description="$t('itWasDeletedOrItsOwnerMadeItPrivate')"
+          :actions="[{ label: $t('allAccounts'), to: '/accounts', icon: 'i-lucide-arrow-left' }]"
           class="py-16"
         />
-        <PageError v-else-if="error" :error="error" title="This account didn’t load" @retry="refresh()" />
+        <PageError v-else-if="error" :error="error" :title="$t('thisAccountDidnTLoad')" @retry="refresh()" />
 
         <template v-else-if="!account && status === 'pending'">
           <div class="flex items-center gap-3">
@@ -164,8 +164,8 @@ function updated(next: AccountSummary) {
                 </p>
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                   <VisibilityBadge :visibility="account.visibility" />
-                  <UBadge v-if="account.archived" color="neutral" variant="soft" size="sm" label="Archived" />
-                  <UBadge v-if="!account.includeInNetWorth" color="neutral" variant="soft" size="sm" label="Not in net worth" />
+                  <UBadge v-if="account.archived" color="neutral" variant="soft" size="sm" :label="$t('archived')" />
+                  <UBadge v-if="!account.includeInNetWorth" color="neutral" variant="soft" size="sm" :label="$t('notInNetWorth')" />
                   <span v-if="shared" class="flex items-center gap-1.5 text-xs text-muted">
                     <OwnerAvatar :name="account.ownerName" :user-id="account.ownerId" size="3xs" />
                     {{ account.ownerName }}
@@ -180,10 +180,7 @@ function updated(next: AccountSummary) {
               <p class="mt-1 text-sm text-muted">
                 <template v-if="change">
                   <span class="money" :class="change.delta > 0 ? 'money-in' : 'text-default'">{{ format(change.delta, account.currency, { signed: true }) }}</span>
-                  <span v-if="change.share !== null" class="money"> ({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span>
-                  in {{ range === 180 ? "6 months" : `${range} days` }} ·
-                </template>
-                Updated {{ timeAgo(account.balanceUpdatedAt) }}
+                  <span v-if="change.share !== null" class="money"> ({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span> {{ $t('in5', { value1: range === 180 ? $t('monthsCount', { count: 6 }, 6) : $t('dayCount', { count: range }, range) }) }} </template> {{ $t('updated', { value1: timeAgo(account.balanceUpdatedAt) }) }}
               </p>
             </div>
           </header>
@@ -192,23 +189,19 @@ function updated(next: AccountSummary) {
             <div class="flex min-w-0 flex-col gap-10">
               <section class="border-t border-default" aria-labelledby="balance-history">
                 <div class="flex h-12 items-center justify-between gap-3">
-                  <h2 id="balance-history" class="text-sm font-medium text-highlighted">Balance</h2>
-                  <SegmentedControl v-model="range" :options="RANGES" label="Period" size="sm" />
+                  <h2 id="balance-history" class="text-sm font-medium text-highlighted">{{ $t('balance2') }}</h2>
+                  <SegmentedControl v-model="range" :options="RANGES" :label="$t('period')" size="sm" />
                 </div>
                 <AreaChart
                   v-if="points.length > 1"
                   :points="points"
                   :format="formatAxis"
-                  :label="`${account.name} balance`"
+                  :label="$t('balance3', { value1: account.name })"
                   :height="220"
                 />
                 <p v-if="estimated && points.length > 1" class="mt-3 flex items-center gap-1.5 text-xs text-muted">
-                  <UIcon name="i-lucide-info" class="size-3.5 shrink-0" />
-                  Estimated from this account’s transactions until there are enough daily balances.
-                </p>
-                <p v-else-if="points.length <= 1" class="grid h-40 place-items-center text-center text-sm text-muted">
-                  The balance is saved once a day, so the chart fills in from tomorrow.
-                </p>
+                  <UIcon name="i-lucide-info" class="size-3.5 shrink-0" /> {{ $t('estimatedFromThisAccountSTransactionsUntilThereAreEnough') }} </p>
+                <p v-else-if="points.length <= 1" class="grid h-40 place-items-center text-center text-sm text-muted"> {{ $t('theBalanceIsSavedOnceADaySoTheChart') }} </p>
               </section>
 
               <AccountHoldings v-if="account.holdings.length" :holdings="account.holdings" :currency="account.currency" />

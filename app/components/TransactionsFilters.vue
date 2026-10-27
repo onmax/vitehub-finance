@@ -16,18 +16,18 @@ const shared = useShared()
 const { categories } = useCategories()
 const chips = computed(() =>
   [
-    { value: "all" as const, label: "All" },
-    ...(shared.value ? [{ value: "mine" as const, label: "Mine" }] : []),
-    { value: "in" as const, label: "Money in" },
-    { value: "out" as const, label: "Money out" },
+    { value: "all" as const, get label() { return translate('all') } },
+    ...(shared.value ? [{ value: "mine" as const, get label() { return translate('mine') } }] : []),
+    { value: "in" as const, get label() { return translate('moneyIn') } },
+    { value: "out" as const, get label() { return translate('moneyOut') } },
   ],
 )
 const categoryItems = computed(() => [
-  { id: "", name: "All categories", icon: "i-lucide-layers", color: "neutral" },
-  { id: "none", name: "Uncategorized", icon: "", color: "neutral" },
+  { id: "", get name() { return translate('allCategories') }, icon: "i-lucide-layers", color: "neutral" },
+  { id: "none", get name() { return translate('uncategorized') }, icon: "", color: "neutral" },
   ...[...categories.value].sort((a, b) => a.name.localeCompare(b.name)),
 ])
-const accountItems = (list: AccountSummary[]) => [{ id: "", name: "All accounts" }, ...list.map(({ id, name }) => ({ id, name }))]
+const accountItems = (list: AccountSummary[]) => [{ id: "", get name() { return translate('allAccounts') } }, ...list.map(({ id, name }) => ({ id, name }))]
 const chosenCategory = computed(() => categoryItems.value.find((item) => item.id === category.value))
 const searchInput = useTemplateRef("searchInput")
 defineShortcuts({ "/": () => searchInput.value?.inputRef?.focus() })
@@ -44,7 +44,7 @@ function clear() {
 
 <template>
   <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
-    <div role="radiogroup" aria-label="Show" class="flex shrink-0 items-center gap-1">
+    <div role="radiogroup" :aria-label="$t('show')" class="flex shrink-0 items-center gap-1">
       <button
         v-for="chip in chips"
         :key="chip.value"
@@ -66,8 +66,8 @@ function clear() {
       ref="searchInput"
       v-model="search"
       icon="i-lucide-search"
-      placeholder="Search"
-      aria-label="Search transactions"
+      :placeholder="$t('search')"
+      :aria-label="$t('searchTransactions')"
       class="w-full sm:w-56"
       :ui="{ trailing: 'pe-1' }"
     >
@@ -78,22 +78,22 @@ function clear() {
           variant="link"
           size="sm"
           icon="i-lucide-x"
-          aria-label="Clear search"
+          :aria-label="$t('clearSearch')"
           @click="search = ''"
         />
         <UKbd v-else value="/" class="hidden sm:inline-flex" />
       </template>
     </UInput>
-    <div class="flex w-full min-w-0 gap-2 overflow-x-auto sm:w-auto sm:overflow-visible">
+    <div class="flex w-full min-w-0 flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
     <USelectMenu
       v-model="account"
       :items="accountItems(accounts)"
       value-key="id"
       label-key="name"
       icon="i-lucide-landmark"
-      aria-label="Account"
-      :search-input="{ placeholder: 'Search accounts…' }"
-      class="w-44 shrink-0 sm:w-48"
+      :aria-label="$t('account')"
+      :search-input="{ placeholder: $t('searchAccounts') }"
+      class="w-full shrink-0 sm:w-60"
       :ui="{ content: 'min-w-56' }"
     />
     <USelectMenu
@@ -101,9 +101,9 @@ function clear() {
       :items="categoryItems"
       value-key="id"
       label-key="name"
-      aria-label="Category"
-      :search-input="{ placeholder: 'Search categories…' }"
-      class="w-44 shrink-0 sm:w-48"
+      :aria-label="$t('category')"
+      :search-input="{ placeholder: $t('searchCategories') }"
+      class="w-full shrink-0 sm:w-60"
       :ui="{ content: 'min-w-56' }"
     >
       <template #leading>
@@ -117,6 +117,6 @@ function clear() {
     </USelectMenu>
     <TransactionsDateRange v-model:from="from" v-model:to="to" />
     </div>
-    <UButton v-if="filtered" color="neutral" variant="ghost" label="Clear filters" @click="clear" />
+    <UButton v-if="filtered" color="neutral" variant="ghost" :label="$t('clearFilters')" @click="clear" />
   </div>
 </template>

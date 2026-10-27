@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentFormatLocale } from "~/lib/i18n"
 import type { TableColumn } from "@nuxt/ui"
 import type { Holding } from "#shared/api"
 
@@ -7,20 +8,20 @@ const props = defineProps<{ holdings: Holding[]; currency: string }>()
 const { format } = useMoney()
 const total = computed(() => props.holdings.reduce((sum, holding) => sum + holding.valueMinor, 0))
 const quantity = (value: number) =>
-  new Intl.NumberFormat(typeof navigator === "undefined" ? undefined : navigator.language, { maximumSignificantDigits: 8 }).format(value)
+  new Intl.NumberFormat(currentFormatLocale(), { maximumSignificantDigits: 8 }).format(value)
 const columns: TableColumn<Holding>[] = [
-  { accessorKey: "symbol", header: "Asset" },
-  { accessorKey: "quantity", header: "Quantity", meta: { class: { th: "text-right", td: "text-right" } } },
-  { accessorKey: "priceMinor", header: "Price", meta: { class: { th: "text-right hidden sm:table-cell", td: "text-right hidden sm:table-cell" } } },
-  { accessorKey: "valueMinor", header: "Value", meta: { class: { th: "text-right", td: "text-right" } } },
+  { accessorKey: "symbol", get header() { return translate('asset') } },
+  { accessorKey: "quantity", get header() { return translate('quantity') }, meta: { class: { th: "text-right", td: "text-right" } } },
+  { accessorKey: "priceMinor", get header() { return translate('price') }, meta: { class: { th: "text-right hidden sm:table-cell", td: "text-right hidden sm:table-cell" } } },
+  { accessorKey: "valueMinor", get header() { return translate('value') }, meta: { class: { th: "text-right", td: "text-right" } } },
 ]
 </script>
 
 <template>
   <section class="border-t border-default" aria-labelledby="holdings">
     <header class="flex h-12 items-center justify-between gap-3">
-      <h2 id="holdings" class="text-sm font-medium text-highlighted">Holdings</h2>
-      <span class="money text-sm text-muted">{{ holdings.length }} asset{{ holdings.length === 1 ? "" : "s" }}</span>
+      <h2 id="holdings" class="text-sm font-medium text-highlighted">{{ $t('holdings') }}</h2>
+      <span class="money text-sm text-muted">{{ $t('asset2', { count: formatCount(holdings.length) }, holdings.length) }}</span>
     </header>
     <UTable :data="holdings" :columns="columns" :ui="{ th: 'px-3 first:ps-0 last:pe-0', td: 'px-3 first:ps-0 last:pe-0' }">
       <template #symbol-cell="{ row }">

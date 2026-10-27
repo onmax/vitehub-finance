@@ -7,7 +7,7 @@ const props = defineProps<{ items: Recurring[]; highlighted: string[]; shared?: 
 const emit = defineEmits<{ status: [item: Recurring, status: Recurring["status"]] }>()
 const { find } = useCategories()
 
-const CADENCE = { weekly: "Weekly", monthly: "Monthly", quarterly: "Every 3 months", yearly: "Yearly" } as const
+const CADENCE = { get weekly() { return translate('weekly') }, get monthly() { return translate('monthly') }, get quarterly() { return translate('every3Months') }, get yearly() { return translate('yearly') } } as const
 
 const groups = computed(() => {
   const month = currentMonth()
@@ -18,11 +18,11 @@ const groups = computed(() => {
     const days = daysFromToday(item.nextDate)
     const label =
       days < 0
-        ? "Overdue"
+        ? translate('overdue')
         : days <= 7
-          ? "Next 7 days"
+          ? translate('next7Days')
           : item.nextDate.startsWith(month)
-            ? "Later this month"
+            ? translate('laterThisMonth')
             : formatMonth(item.nextDate.slice(0, 7))
     if (!map.has(label)) order.push(label)
     map.set(label, [...(map.get(label) ?? []), item])
@@ -32,9 +32,9 @@ const groups = computed(() => {
 
 function when(item: Recurring) {
   const days = daysFromToday(item.nextDate)
-  if (days < 0) return `Expected ${formatDay(item.nextDate)}`
+  if (days < 0) return translate('expected3', { value1: formatDay(item.nextDate) })
   if (days <= 1) return formatDay(item.nextDate)
-  if (days <= 45) return `In ${days} days`
+  if (days <= 45) return translate('inDays', { value1: days })
   return formatDay(item.nextDate)
 }
 const changed = (item: Recurring) => item.previousAmountMinor !== null && item.previousAmountMinor !== item.amountMinor
@@ -61,7 +61,7 @@ const changed = (item: Recurring) => item.previousAmountMinor !== null && item.p
           <div class="min-w-0 flex-1">
             <p class="flex items-center gap-2">
               <span class="truncate text-sm font-medium text-highlighted" :title="item.name">{{ item.name }}</span>
-              <UBadge v-if="item.status === 'detected'" color="neutral" variant="outline" size="sm" label="Detected" class="hidden shrink-0 sm:inline-flex" />
+              <UBadge v-if="item.status === 'detected'" color="neutral" variant="outline" size="sm" :label="$t('detected')" class="hidden shrink-0 sm:inline-flex" />
             </p>
             <p class="flex min-w-0 items-center gap-1.5 text-xs text-muted">
               <span class="money truncate">{{ when(item) }}</span>
@@ -79,28 +79,28 @@ const changed = (item: Recurring) => item.previousAmountMinor !== null && item.p
                 :name="Math.abs(item.amountMinor) > Math.abs(item.previousAmountMinor!) ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
                 class="size-3"
               />
-              <span><span class="max-sm:hidden">was </span><Money :minor="item.previousAmountMinor!" :currency="item.currency" class="line-through" /></span>
+              <span><span class="max-sm:hidden">{{ $t('was') }} </span><Money :minor="item.previousAmountMinor!" :currency="item.currency" class="line-through" /></span>
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-0.5">
             <template v-if="item.status === 'detected'">
-              <UTooltip text="Confirm it repeats">
+              <UTooltip :text="$t('confirmItRepeats')">
                 <UButton
                   color="neutral"
                   variant="ghost"
                   icon="i-lucide-check"
-                  :aria-label="`Confirm ${item.name} repeats`"
+                  :aria-label="$t('confirmRepeats', { value1: item.name })"
                   :loading="pending.includes(item.id)"
                   class="size-10 justify-center max-sm:size-11"
                   @click="emit('status', item, 'confirmed')"
                 />
               </UTooltip>
-              <UTooltip text="Not recurring">
+              <UTooltip :text="$t('notRecurring')">
                 <UButton
                   color="neutral"
                   variant="ghost"
                   icon="i-lucide-x"
-                  :aria-label="`${item.name} isn’t recurring`"
+                  :aria-label="$t('isnTRecurring', { value1: item.name })"
                   :disabled="pending.includes(item.id)"
                   class="size-10 justify-center max-sm:size-11"
                   @click="emit('status', item, 'dismissed')"
@@ -109,10 +109,10 @@ const changed = (item: Recurring) => item.previousAmountMinor !== null && item.p
             </template>
             <UDropdownMenu
               v-else
-              :items="[[{ label: 'Not recurring', icon: 'i-lucide-x', onSelect: () => emit('status', item, 'dismissed') }]]"
+              :items="[[{ label: $t('notRecurring'), icon: 'i-lucide-x', onSelect: () => emit('status', item, 'dismissed') }]]"
               :content="{ align: 'end' }"
             >
-              <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis" :aria-label="`More for ${item.name}`" class="size-10 justify-center max-sm:size-11" :loading="pending.includes(item.id)" />
+              <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis" :aria-label="$t('moreFor', { value1: item.name })" class="size-10 justify-center max-sm:size-11" :loading="pending.includes(item.id)" />
             </UDropdownMenu>
           </div>
         </li>

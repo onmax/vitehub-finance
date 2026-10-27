@@ -3,7 +3,7 @@ import type { ConnectionStatus } from "#shared/api"
 
 // A connection's state as a dot with its words beside it, or in a tooltip when `compact`.
 const props = defineProps<{ status: ConnectionStatus | null; compact?: boolean }>()
-const meta = computed(() => (props.status ? CONNECTION_STATUS[props.status] : { label: "Manual", color: "neutral" as const }))
+const meta = computed(() => (props.status ? CONNECTION_STATUS[props.status] : { get label() { return translate('manual') }, color: "neutral" as const }))
 const dot = computed(
   () =>
     ({

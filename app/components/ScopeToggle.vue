@@ -3,11 +3,11 @@
 const scope = useScope()
 const shared = useShared()
 const options = [
-  { value: "me" as const, label: "Me", icon: "i-lucide-user" },
-  { value: "household" as const, label: "Household", icon: "i-lucide-users" },
+  { value: "me" as const, get label() { return translate('me') }, icon: "i-lucide-user" },
+  { value: "household" as const, get label() { return translate('household') }, icon: "i-lucide-users" },
 ]
 </script>
 
 <template>
-  <SegmentedControl v-if="shared" v-model="scope" :options="options" label="Whose money to show" size="sm" />
+  <SegmentedControl v-if="shared" v-model="scope" :options="options" :label="$t('whoseMoneyToShow')" size="sm" />
 </template>

@@ -9,22 +9,22 @@ const colorMode = useColorMode()
 const items = computed<DropdownMenuItem[][]>(() => [
   [{ type: "label", slot: "account" as const }],
   [
-    { label: "Profile", icon: "i-lucide-user", to: "/settings" },
-    { label: "Security", icon: "i-lucide-shield", to: "/settings/security" },
-    { label: "Agents and API keys", icon: "i-lucide-bot", to: "/settings/agents" },
+    { get label() { return translate('profile') }, icon: "i-lucide-user", to: "/settings" },
+    { get label() { return translate('security') }, icon: "i-lucide-shield", to: "/settings/security" },
+    { get label() { return translate('agentsAndApiKeys') }, icon: "i-lucide-bot", to: "/settings/agents" },
   ],
   [
     {
-      label: "Theme",
+      get label() { return translate('theme') },
       icon: colorMode.value === "dark" ? "i-lucide-moon" : "i-lucide-sun",
       children: [
-        { label: "Light", icon: "i-lucide-sun", type: "checkbox", checked: colorMode.preference === "light", onSelect: () => (colorMode.preference = "light") },
-        { label: "Dark", icon: "i-lucide-moon", type: "checkbox", checked: colorMode.preference === "dark", onSelect: () => (colorMode.preference = "dark") },
-        { label: "System", icon: "i-lucide-monitor", type: "checkbox", checked: colorMode.preference === "system", onSelect: () => (colorMode.preference = "system") },
+        { get label() { return translate('light') }, icon: "i-lucide-sun", type: "checkbox", checked: colorMode.preference === "light", onSelect: () => (colorMode.preference = "light") },
+        { get label() { return translate('dark') }, icon: "i-lucide-moon", type: "checkbox", checked: colorMode.preference === "dark", onSelect: () => (colorMode.preference = "dark") },
+        { get label() { return translate('system') }, icon: "i-lucide-monitor", type: "checkbox", checked: colorMode.preference === "system", onSelect: () => (colorMode.preference = "system") },
       ],
     },
   ],
-  [{ label: "Sign out", icon: "i-lucide-log-out", onSelect: () => void signOut() }],
+  [{ get label() { return translate('signOut') }, icon: "i-lucide-log-out", onSelect: () => void signOut() }],
 ])
 </script>
 
@@ -38,9 +38,9 @@ const items = computed<DropdownMenuItem[][]>(() => [
       type="button"
       class="flex h-12 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-accented/60 focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:bg-accented"
       :class="collapsed && 'justify-center'"
-      aria-label="Account menu"
+      :aria-label="$t('accountMenu')"
     >
-      <UAvatar :alt="me?.user.name ?? 'You'" :src="me?.user.image ?? undefined" size="sm" class="rounded-md" />
+      <UAvatar :alt="me?.user.name ?? $t('you')" :src="me?.user.image ?? undefined" size="sm" class="rounded-md" />
       <span v-if="!collapsed" class="min-w-0 flex-1 leading-tight">
         <span class="block truncate text-sm font-medium text-highlighted">{{ me?.user.name ?? "…" }}</span>
         <span class="block truncate text-xs text-muted">{{ me?.user.email }}</span>
@@ -49,7 +49,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
     </button>
     <template #account>
       <div class="flex min-w-0 items-center gap-2.5 py-0.5">
-        <UAvatar :alt="me?.user.name ?? 'You'" :src="me?.user.image ?? undefined" size="md" class="rounded-md" />
+        <UAvatar :alt="me?.user.name ?? $t('you')" :src="me?.user.image ?? undefined" size="md" class="rounded-md" />
         <div class="min-w-0">
           <p class="truncate text-sm font-medium text-highlighted">{{ me?.user.name }}</p>
           <p class="truncate text-xs font-normal text-muted">{{ me?.user.email }}</p>

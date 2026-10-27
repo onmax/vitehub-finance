@@ -8,7 +8,7 @@ const props = withDefaults(
     destructive?: boolean
     checkbox?: { label: string; description?: string; default?: boolean }
   }>(),
-  { confirmLabel: "Confirm", destructive: false },
+  { destructive: false },
 )
 const emit = defineEmits<{ close: [result: { confirmed: boolean; checked: boolean }] }>()
 const checked = ref(props.checkbox?.default ?? false)
@@ -26,8 +26,8 @@ const done = (confirmed: boolean) => emit("close", { confirmed, checked: checked
       <UCheckbox v-model="checked" :label="checkbox.label" :description="checkbox.description" />
     </template>
     <template #footer>
-      <UButton color="neutral" variant="outline" label="Cancel" @click="done(false)" />
-      <UButton autofocus :color="destructive ? 'error' : 'primary'" :label="confirmLabel" @click="done(true)" />
+      <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="done(false)" />
+      <UButton autofocus :color="destructive ? 'error' : 'primary'" :label="confirmLabel ?? $t('confirm')" @click="done(true)" />
     </template>
   </UModal>
 </template>

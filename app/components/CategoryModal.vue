@@ -14,13 +14,13 @@ const state = reactive({
 const pending = ref(false)
 const error = ref("")
 const kinds = [
-  { value: "expense", label: "Spending" },
-  { value: "income", label: "Income" },
-  { value: "transfer", label: "Transfer" },
+  { value: "expense", get label() { return translate('spending') } },
+  { value: "income", get label() { return translate('income') } },
+  { value: "transfer", get label() { return translate('transfer') } },
 ]
 
 function validate(values: typeof state) {
-  return values.name.trim() ? [] : [{ name: "name", message: "Give the category a name." }]
+  return values.name.trim() ? [] : [{ name: "name", message: translate('giveTheCategoryAName') }]
 }
 
 async function submit() {
@@ -34,34 +34,34 @@ async function submit() {
     await refreshNuxtData("categories")
     emit("close", saved)
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t save the category. Try again.")
+    error.value = errorText(cause, translate('couldnTSaveTheCategoryTryAgain'))
   } finally {
     pending.value = false
   }
 }
 
-const iconLabel = (icon: string) => icon.replace("i-lucide-", "").replace(/-/g, " ")
+const iconLabel = (icon: string) => translate(`icon_${icon.replace("i-lucide-", "")}`)
 </script>
 
 <template>
   <UModal
-    :title="category ? 'Edit category' : 'Add a category'"
-    description="Transfers stay out of spending and income totals."
+    :title="category ? $t('editCategory') : $t('addACategory')"
+    :description="$t('transfersStayOutOfSpendingAndIncomeTotals')"
     @update:open="(open) => !open && emit('close')"
   >
     <template #body>
       <UForm id="category-form" :state="state" :validate="validate" class="flex flex-col gap-4" @submit="submit">
         <div class="flex items-end gap-3">
           <CategoryIcon :icon="state.icon" :color="state.color" size="lg" />
-          <UFormField label="Name" name="name" class="flex-1">
-            <UInput v-model="state.name" placeholder="Groceries" autofocus class="w-full" />
+          <UFormField :label="$t('name')" name="name" class="flex-1">
+            <UInput v-model="state.name" :placeholder="$t('groceries')" autofocus class="w-full" />
           </UFormField>
         </div>
-        <UFormField label="Kind" name="kind">
-          <SegmentedControl v-model="state.kind" :options="kinds" label="Kind" />
+        <UFormField :label="$t('kind')" name="kind">
+          <SegmentedControl v-model="state.kind" :options="kinds" :label="$t('kind')" />
         </UFormField>
-        <UFormField label="Icon" name="icon">
-          <div role="radiogroup" aria-label="Icon" class="flex flex-wrap gap-1.5">
+        <UFormField :label="$t('icon')" name="icon">
+          <div role="radiogroup" :aria-label="$t('icon')" class="flex flex-wrap gap-1.5">
             <button
               v-for="icon in CATEGORY_ICONS"
               :key="icon"
@@ -77,15 +77,15 @@ const iconLabel = (icon: string) => icon.replace("i-lucide-", "").replace(/-/g, 
             </button>
           </div>
         </UFormField>
-        <UFormField label="Color" name="color">
-          <div role="radiogroup" aria-label="Color" class="flex flex-wrap gap-1.5">
+        <UFormField :label="$t('color')" name="color">
+          <div role="radiogroup" :aria-label="$t('color')" class="flex flex-wrap gap-1.5">
             <button
               v-for="color in CATEGORY_COLOR_NAMES"
               :key="color"
               type="button"
               role="radio"
               :aria-checked="state.color === color"
-              :aria-label="color"
+              :aria-label="$t(`color_${color}`)"
               :title="color"
               class="grid size-8 cursor-pointer place-items-center rounded-full ring-offset-2 ring-offset-(--ui-bg) transition-shadow duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               :class="state.color === color && 'ring-2 ring-(--ui-text-highlighted)'"
@@ -100,8 +100,8 @@ const iconLabel = (icon: string) => icon.replace("i-lucide-", "").replace(/-/g, 
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="outline" label="Cancel" @click="emit('close')" />
-        <UButton type="submit" form="category-form" :label="category ? 'Save' : 'Add category'" :loading="pending" />
+        <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
+        <UButton type="submit" form="category-form" :label="category ? $t('save') : $t('addCategory')" :loading="pending" />
       </div>
     </template>
   </UModal>

@@ -12,7 +12,7 @@ const props = withDefaults(
     disabled?: boolean
     ariaLabel?: string
   }>(),
-  { placeholder: "Category", variant: "outline", size: "md", allowNone: true },
+  { variant: "outline", size: "md", allowNone: true },
 )
 const model = defineModel<string | null | undefined>()
 const { items: all, find } = useCategories()
@@ -31,16 +31,16 @@ const selected = computed(() => find(model.value))
     :variant="variant"
     :size="size"
     :disabled="disabled"
-    :placeholder="placeholder"
-    :aria-label="ariaLabel ?? placeholder"
-    :search-input="{ placeholder: 'Search categories…' }"
+    :placeholder="placeholder ?? $t('category')"
+    :aria-label="ariaLabel ?? placeholder ?? $t('category')"
+    :search-input="{ placeholder: $t('searchCategories') }"
     :ui="{ content: 'min-w-56', base: variant === 'ghost' ? 'px-1.5 -mx-1.5' : undefined }"
   >
     <template #leading>
       <CategoryIcon :icon="selected?.icon" :color="selected?.color" size="sm" />
     </template>
     <template #default>
-      <span class="truncate" :class="selected ? 'text-default' : 'text-muted'">{{ selected?.name ?? (model === null ? "Uncategorized" : placeholder) }}</span>
+      <span class="truncate" :class="selected ? 'text-default' : 'text-muted'">{{ selected?.name ?? (model === null ? $t('uncategorized') : placeholder ?? $t('category')) }}</span>
     </template>
     <template #item-leading="{ item }">
       <CategoryIcon :icon="item.id ? item.icon : null" :color="item.color" size="sm" />

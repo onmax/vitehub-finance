@@ -12,8 +12,8 @@ const link = (id: string | null) => ({ path: "/transactions", query: { category:
 </script>
 
 <template>
-  <SectionCard title="Spending by category" to="/budgets" link-label="Budgets">
-    <p v-if="shown.length === 0" class="py-6 text-center text-sm text-muted">No spending this month yet.</p>
+  <SectionCard :title="$t('spendingByCategory')" to="/budgets" :link-label="$t('budgets')">
+    <p v-if="shown.length === 0" class="py-6 text-center text-sm text-muted">{{ $t('noSpendingThisMonthYet') }}</p>
     <ul v-else class="-mx-2 flex flex-col">
       <li v-for="item in shown" :key="item.categoryId ?? 'none'">
         <NuxtLink
@@ -23,7 +23,7 @@ const link = (id: string | null) => ({ path: "/transactions", query: { category:
           <CategoryIcon :icon="item.categoryId ? item.icon : null" :color="item.color" size="sm" />
           <span class="min-w-0 flex-1">
             <span class="flex items-baseline justify-between gap-2 text-sm">
-              <span class="truncate text-default">{{ item.name }}</span>
+              <span class="truncate text-default">{{ item.categoryId ? item.name : $t('uncategorized') }}</span>
               <span class="money text-highlighted">{{ format(item.amountMinor, overview.currency) }}</span>
             </span>
             <span class="mt-1 block h-1.5 overflow-hidden rounded-full bg-elevated" aria-hidden="true">
@@ -34,8 +34,7 @@ const link = (id: string | null) => ({ path: "/transactions", query: { category:
       </li>
     </ul>
     <p v-if="shown.length" class="mt-auto pt-3 text-xs text-muted">
-      <span class="money">{{ format(total, overview.currency) }}</span> spent in {{ overview.spending.length }}
-      {{ overview.spending.length === 1 ? "category" : "categories" }}
+      <span class="money">{{ format(total, overview.currency) }}</span> {{ $t('spentIn', { count: formatCount(overview.spending.length) }, overview.spending.length) }}
     </p>
   </SectionCard>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The household: its people, invitations, and settings, with the privacy model in two sentences.
-useHead({ title: "Household" })
+useHead({ get title() { return translate('household') } })
 const route = useRoute()
 const inviting = computed(() => route.query.invite === "1")
 watch(
@@ -17,16 +17,13 @@ watch(
 <template>
   <UDashboardPanel id="household">
     <template #header>
-      <PageNavbar title="Household" :scoped="false" />
+      <PageNavbar :title="$t('household')" :scoped="false" />
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-3xl flex-col gap-8">
         <div class="flex gap-3 rounded-lg bg-primary/6 p-4 dark:bg-primary/10">
           <UIcon name="i-lucide-shield-check" class="mt-0.5 size-5 shrink-0 text-primary" />
-          <p class="text-sm text-toned">
-            Shared accounts are visible to everyone in the household, with their transactions. Private accounts are visible only
-            to their owner and stay out of everyone else’s totals.
-          </p>
+          <p class="text-sm text-toned"> {{ $t('sharedAccountsAreVisibleToEveryoneInTheHouseholdWith') }} </p>
         </div>
         <HouseholdMembers />
         <HouseholdInvite :open="inviting" />

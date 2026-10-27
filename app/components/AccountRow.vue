@@ -20,13 +20,13 @@ const foreign = computed(() => props.account.currency !== currency.value)
     <span class="min-w-0 flex-1">
       <span class="flex min-w-0 items-center gap-2">
         <span class="truncate text-sm font-medium text-highlighted" :title="account.name">{{ account.name }}</span>
-        <UBadge v-if="account.archived" color="neutral" variant="soft" size="sm" label="Archived" />
-        <UBadge v-else-if="!account.includeInNetWorth" color="neutral" variant="soft" size="sm" label="Not in net worth" class="hidden sm:inline-flex" />
+        <UBadge v-if="account.archived" color="neutral" variant="soft" size="sm" :label="$t('archived')" />
+        <UBadge v-else-if="!account.includeInNetWorth" color="neutral" variant="soft" size="sm" :label="$t('notInNetWorth')" class="hidden sm:inline-flex" />
       </span>
       <span class="flex min-w-0 items-center gap-1.5 text-xs text-muted">
         <span class="truncate">{{ account.institution ?? kind.label }}</span>
         <span aria-hidden="true" class="hidden sm:inline">·</span>
-        <span class="hidden shrink-0 whitespace-nowrap sm:inline">Updated {{ timeAgo(account.balanceUpdatedAt) }}</span>
+        <span class="hidden shrink-0 whitespace-nowrap sm:inline">{{ $t('updated', { value1: timeAgo(account.balanceUpdatedAt) }) }}</span>
       </span>
     </span>
     <span class="hidden shrink-0 items-center gap-2 sm:flex">

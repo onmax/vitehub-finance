@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { currentFormatLocale } from "~/lib/i18n"
 import type { ForecastPayment, ForecastSeries } from "#shared/api"
 
 // One expected payment: when (and how far it may move), who pays or is paid, from which account, the amount, and how
 // sure the forecast is.
 const props = defineProps<{ payment: ForecastPayment & { series: ForecastSeries }; today: string; currency: string }>()
 const date = computed(() => utcDay(props.payment.date))
-const month = computed(() => new Intl.DateTimeFormat(undefined, { month: "short", timeZone: "UTC" }).format(date.value))
+const month = computed(() => new Intl.DateTimeFormat(currentFormatLocale(), { month: "short", timeZone: "UTC" }).format(date.value))
 </script>
 
 <template>
@@ -21,7 +22,7 @@ const month = computed(() => new Intl.DateTimeFormat(undefined, { month: "short"
     <span class="min-w-0 flex-1">
       <span class="block truncate text-sm font-medium text-highlighted" :title="payment.series.name">{{ payment.series.name }}</span>
       <span class="block truncate text-xs text-muted">
-        <span class="sr-only">{{ forecastDay(payment.date, today) }}, </span>{{ forecastWhen(payment.date, today) }}<template v-if="payment.series.dayRange"> ± {{ payment.series.dayRange }}d</template>
+        <span class="sr-only">{{ forecastDay(payment.date, today) }}, </span>{{ payment.series.dayRange ? $t('whenWithRange', { when: forecastWhen(payment.date, today), range: $t('d', { value1: payment.series.dayRange }) }) : forecastWhen(payment.date, today) }}
         · {{ payment.series.ownerName.split(" ")[0] }} · {{ payment.series.accountName }}
       </span>
     </span>

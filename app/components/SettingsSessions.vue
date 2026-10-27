@@ -22,7 +22,7 @@ const { data: sessions, status, error, refresh } = useAsyncData<Session[]>(
   "settings:sessions",
   async () => {
     const { data, error: failure } = await $auth.listSessions()
-    if (failure) throw new Error(failure.message || "Couldn’t load your sessions.")
+    if (failure) throw Object.assign(new Error(failure.message || translate('couldnTLoadYourSessions')), { code: failure.code })
     return (data ?? []) as Session[]
   },
   { default: () => [], lazy: true, immediate: !demo },
@@ -40,42 +40,41 @@ async function revoke(session: Session) {
   busy.value = session.id
   const { error: failure } = await $auth.revokeSession({ token: session.token })
   busy.value = null
-  if (failure) return notify.error(failure, "Couldn’t sign out that device")
+  if (failure) return notify.error(failure, translate('couldnTSignOutThatDevice'))
   await refresh()
 }
 
 async function revokeOthers() {
   const { confirmed } = await confirm({
-    title: `Sign out ${others.value === 1 ? "1 other device" : `${others.value} other devices`}?`,
-    description: "They’ll need to sign in again. This device stays signed in.",
-    confirmLabel: "Sign out others",
+    title: translate('signOutOtherDevices', { count: formatCount(others.value) }, others.value),
+    get description() { return translate('theyLlNeedToSignInAgainThisDeviceStays') },
+    confirmLabel: translate('signOutOthers'),
     destructive: true,
   })
   if (!confirmed) return
   busy.value = "others"
   const { error: failure } = await $auth.revokeOtherSessions()
   busy.value = null
-  if (failure) return notify.error(failure, "Couldn’t sign out the other devices")
+  if (failure) return notify.error(failure, translate('couldnTSignOutTheOtherDevices'))
   await refresh()
-  notify.success("Other devices signed out")
+  notify.success(translate('otherDevicesSignedOut'))
 }
 </script>
 
 <template>
-  <SettingsSection title="Sessions" description="Devices signed in to your account." flush>
+  <SettingsSection :title="$t('sessions')" :description="$t('devicesSignedInToYourAccount')" flush>
     <template v-if="!demo" #actions>
       <UButton
         v-if="others > 0"
         color="neutral"
         variant="outline"
-        label="Sign out others"
+        :label="$t('signOutOthers')"
         :loading="busy === 'others'"
         @click="revokeOthers"
       />
     </template>
     <p v-if="demo" class="flex items-center gap-2 py-4 text-sm text-muted">
-      <UIcon name="i-lucide-lock" class="size-4 shrink-0" />{{ DEMO_LOCKED }} Every visitor shares the demo’s sign-in.
-    </p>
+      <UIcon name="i-lucide-lock" class="size-4 shrink-0" />{{ $t('everyVisitorSharesTheDemoSSignIn', { value1: demoLocked() }) }} </p>
     <div v-else-if="status === 'pending' && !sessions.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-56" />
       <USkeleton class="h-5 w-44" />
@@ -89,17 +88,17 @@ async function revokeOthers() {
         <div class="min-w-0 flex-1">
           <p class="flex items-center gap-2 text-sm font-medium text-highlighted">
             <span class="truncate" :title="session.userAgent ?? undefined">{{ describeAgent(session.userAgent) }}</span>
-            <UBadge v-if="isCurrent(session)" color="neutral" variant="subtle" size="sm" label="This device" />
+            <UBadge v-if="isCurrent(session)" color="neutral" variant="subtle" size="sm" :label="$t('thisDevice')" />
           </p>
           <p class="truncate text-xs text-muted tabular-nums">
-            <template v-if="session.ipAddress">{{ session.ipAddress }} · </template>Active {{ timeAgo(new Date(session.updatedAt)) }}
+            <template v-if="session.ipAddress">{{ session.ipAddress }} · </template>{{ $t('active2', { value1: timeAgo(new Date(session.updatedAt)) }) }}
           </p>
         </div>
         <UButton
           v-if="!isCurrent(session)"
           color="neutral"
           variant="ghost"
-          label="Sign out"
+          :label="$t('signOut')"
           :loading="busy === session.id"
           @click="revoke(session)"
         />

@@ -83,10 +83,10 @@ const current = computed(() => (active.value === null ? null : props.points[acti
 const summary = computed(() => {
   const first = props.points[0]
   const last = props.points.at(-1)
-  if (!first || !last) return `${props.label}: no data yet`
+  if (!first || !last) return translate('noDataYet', { value1: props.label })
   const low = Math.min(...values.value)
   const high = Math.max(...values.value)
-  return `${props.label}: from ${props.format(first.value)} on ${props.formatLabel(first.date)} to ${props.format(last.value)} on ${props.formatLabel(last.date)}. Lowest ${props.format(low)}, highest ${props.format(high)}.`
+  return translate('fromOnToOnLowestHighest', { value1: props.label, value2: props.format(first.value), value3: props.formatLabel(first.date), value4: props.format(last.value), value5: props.formatLabel(last.date), value6: props.format(low), value7: props.format(high) })
 })
 const tooltipLeft = computed(() => {
   if (active.value === null) return 0

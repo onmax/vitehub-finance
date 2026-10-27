@@ -8,9 +8,9 @@ const { data: agents, status, error, refresh } = useFetch<ConnectedAgent[]>("/ap
 
 async function disconnect(agent: ConnectedAgent) {
   const { confirmed } = await confirm({
-    title: `Disconnect ${agent.name}?`,
-    description: "It loses access within the hour and has to ask for your permission again to reconnect.",
-    confirmLabel: "Disconnect",
+    title: translate('disconnect', { value1: agent.name }),
+    get description() { return translate('itLosesAccessWithinTheHourAndHasToAsk') },
+    confirmLabel: translate('disconnect2'),
     destructive: true,
   })
   if (!confirmed) return
@@ -18,26 +18,24 @@ async function disconnect(agent: ConnectedAgent) {
     await $fetch(`/api/agents/${encodeURIComponent(agent.id)}`, { method: "DELETE" })
     await refresh()
   } catch (cause) {
-    notify.error(cause, "Couldn’t disconnect the agent")
+    notify.error(cause, translate('couldnTDisconnectTheAgent'))
   }
 }
 
 const activity = (agent: ConnectedAgent) => {
-  const connected = agent.connectedAt ? `Connected ${formatDate(new Date(agent.connectedAt))}` : "Connected"
-  return agent.lastSeenAt ? `${connected} · active ${timeAgo(new Date(agent.lastSeenAt))}` : connected
+  const connected = agent.connectedAt ? translate('connected', { value1: formatDate(new Date(agent.connectedAt)) }) : translate('connected2')
+  return agent.lastSeenAt ? translate('active', { value1: connected, value2: timeAgo(new Date(agent.lastSeenAt)) }) : connected
 }
 </script>
 
 <template>
-  <SettingsSection title="Connected agents" description="Agents you allowed to read your money. Each one acts as you." flush>
+  <SettingsSection :title="$t('connectedAgents')" :description="$t('agentsYouAllowedToReadYourMoneyEachOneActs')" flush>
     <div v-if="status === 'pending' && !agents.length" class="flex flex-col gap-3 py-4">
       <USkeleton class="h-5 w-48" />
       <USkeleton class="h-5 w-36" />
     </div>
     <div v-else-if="error" class="py-4"><PageError :error="error" @retry="refresh()" /></div>
-    <p v-else-if="!agents.length" class="py-4 text-sm text-pretty text-muted">
-      No agents yet. Add the server above to an agent, and it shows up here once you allow it.
-    </p>
+    <p v-else-if="!agents.length" class="py-4 text-sm text-pretty text-muted"> {{ $t('noAgentsYetAddTheServerAboveToAnAgent') }} </p>
     <ul v-else class="divide-y divide-default">
       <li v-for="agent in agents" :key="agent.id" class="flex min-h-14 items-center gap-3 py-2">
         <AgentMark :name="agent.name" />
@@ -45,7 +43,7 @@ const activity = (agent: ConnectedAgent) => {
           <p class="truncate text-sm font-medium text-highlighted">{{ agent.name }}</p>
           <p class="truncate text-xs text-muted tabular-nums">{{ activity(agent) }}</p>
         </div>
-        <UButton color="neutral" variant="outline" size="sm" label="Disconnect" :aria-label="`Disconnect ${agent.name}`" @click="disconnect(agent)" />
+        <UButton color="neutral" variant="outline" size="sm" :label="$t('disconnect2')" :aria-label="$t('disconnect3', { value1: agent.name })" @click="disconnect(agent)" />
       </li>
     </ul>
   </SettingsSection>

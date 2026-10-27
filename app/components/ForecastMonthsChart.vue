@@ -79,9 +79,9 @@ function onKey(event: KeyboardEvent) {
 }
 const summary = computed(
   () =>
-    `Income and spending by month. ${props.months
-      .map((month) => `${month.label}: in ${props.format(month.incomeMinor)}, out ${props.format(month.billsMinor + month.variableOutMinor + month.movedOutMinor + month.oneOffMinor)}, net ${props.format(month.netMinor)}`)
-      .join("; ")}. Use the arrow keys to pick a month.`,
+    translate('incomeAndSpendingByMonthUseTheArrowKeysTo', { value1: props.months
+      .map((month) => translate('forecastMonthSummary', { month: formatMonth(month.month, 'short'), income: props.format(month.incomeMinor), outgoing: props.format(month.billsMinor + month.variableOutMinor + month.movedOutMinor + month.oneOffMinor), net: props.format(month.netMinor) }))
+      .join("; ") }),
 )
 </script>
 
@@ -92,7 +92,7 @@ const summary = computed(
     :style="{ height: `${height}px` }"
     tabindex="0"
     role="group"
-    aria-roledescription="chart"
+    :aria-roledescription="$t('chart')"
     :aria-label="summary"
     @keydown="onKey"
   >

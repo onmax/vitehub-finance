@@ -14,6 +14,7 @@ const props = withDefaults(
 const emit = defineEmits<{ done: [] }>()
 
 const { $auth } = useNuxtApp()
+const { locale } = useLanguage()
 const session = useAuthSession()
 const mode = ref<"sign-in" | "sign-up" | "2fa">(props.initialMode)
 const state = reactive({ name: "", email: props.email, password: "", code: "" })
@@ -36,14 +37,14 @@ async function signIn() {
   error.value = ""
   try {
     const { data, error: failure } = await $auth.signIn.email({ email: state.email.trim(), password: state.password })
-    if (failure) throw new Error(failure.status === 401 ? "That email and password don’t match." : failure.message)
+    if (failure) throw Object.assign(new Error(failure.status === 401 ? translate('thatEmailAndPasswordDonTMatch') : failure.message), { code: failure.code })
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
       mode.value = "2fa"
       return
     }
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t sign in. Try again.")
+    error.value = errorText(cause, translate('couldnTSignInTryAgain'))
   } finally {
     pending.value = null
   }
@@ -54,10 +55,10 @@ async function signInWithPasskey() {
   error.value = ""
   try {
     const result = await $auth.signIn.passkey()
-    if (result?.error) throw new Error(result.error.message || "The passkey didn’t work.")
+    if (result?.error) throw Object.assign(new Error(result.error.message || translate('thePasskeyDidnTWork')), { code: "code" in result.error ? result.error.code : "PASSKEY_AUTH_FAILED" })
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "The passkey didn’t work. Try your password.")
+    error.value = errorText(cause, translate('thePasskeyDidnTWorkTryYourPassword'))
   } finally {
     pending.value = null
   }
@@ -67,16 +68,16 @@ async function signUp() {
   pending.value = "password"
   error.value = ""
   try {
-    const { error: failure } = await $auth.signUp.email({ name: state.name.trim(), email: state.email.trim(), password: state.password })
+    const { error: failure } = await $auth.signUp.email({ language: locale.value, name: state.name.trim(), email: state.email.trim(), password: state.password })
     if (failure) {
       // The server's user hook refuses emails outside FINANCE_ALLOWED_EMAILS that no household invited.
       if (failure.status === 422 || failure.status === 403 || /create user/i.test(failure.message ?? ""))
-        throw new Error("This email can’t sign up here. Use the email the invitation went to.")
-      throw new Error(failure.message)
+        throw new Error(translate('thisEmailCanTSignUpHereUseTheEmail'))
+      throw Object.assign(new Error(failure.message), { code: failure.code })
     }
     await finish()
   } catch (cause) {
-    error.value = errorText(cause, "Couldn’t create the account. Try again.")
+    error.value = errorText(cause, translate('couldnTCreateTheAccountTryAgain'))
   } finally {
     pending.value = null
   }
@@ -90,7 +91,7 @@ async function verify() {
     const { error: failure } = backup.value
       ? await $auth.twoFactor.verifyBackupCode({ code })
       : await $auth.twoFactor.verifyTotp({ code })
-    if (failure) throw new Error(backup.value ? "That backup code doesn’t work." : "That code doesn’t match. Codes change every 30 seconds.")
+    if (failure) throw new Error(backup.value ? translate('thatBackupCodeDoesnTWork') : translate('thatCodeDoesnTMatchCodesChangeEvery30Seconds'))
     await finish()
   } catch (cause) {
     error.value = errorText(cause)
@@ -102,13 +103,13 @@ async function verify() {
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
   if (mode.value === "2fa") {
-    if (!values.code.trim()) errors.push({ name: "code", message: backup.value ? "Enter a backup code." : "Enter the 6-digit code." })
+    if (!values.code.trim()) errors.push({ name: "code", message: backup.value ? translate('enterABackupCode') : translate('enterThe6DigitCode') })
     return errors
   }
-  if (mode.value === "sign-up" && !values.name.trim()) errors.push({ name: "name", message: "Enter your name." })
-  if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) errors.push({ name: "email", message: "Enter your email." })
-  if (mode.value === "sign-up" && values.password.length < 10) errors.push({ name: "password", message: "Use at least 10 characters." })
-  if (mode.value === "sign-in" && !values.password) errors.push({ name: "password", message: "Enter your password." })
+  if (mode.value === "sign-up" && !values.name.trim()) errors.push({ name: "name", message: translate('enterYourName') })
+  if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) errors.push({ name: "email", message: translate('enterYourEmail') })
+  if (mode.value === "sign-up" && values.password.length < 10) errors.push({ name: "password", message: translate('useAtLeast10Characters') })
+  if (mode.value === "sign-in" && !values.password) errors.push({ name: "password", message: translate('enterYourPassword') })
   return errors
 }
 
@@ -123,9 +124,9 @@ const switchMode = (next: "sign-in" | "sign-up") => {
   <UForm :state="state" :validate="validate" :validate-on="['blur']" class="flex flex-col gap-4" @submit="submit">
     <template v-if="mode === '2fa'">
       <p class="text-sm text-muted">
-        {{ backup ? "Enter one of the backup codes you saved when you turned on two-factor." : "Enter the 6-digit code from your authenticator app." }}
+        {{ backup ? $t('enterOneOfTheBackupCodesYouSavedWhenYou') : $t('enterThe6DigitCodeFromYourAuthenticatorApp') }}
       </p>
-      <UFormField :label="backup ? 'Backup code' : 'Code'" name="code">
+      <UFormField :label="backup ? $t('backupCode') : $t('code')" name="code">
         <UInput
           v-model="state.code"
           :inputmode="backup ? 'text' : 'numeric'"
@@ -136,31 +137,31 @@ const switchMode = (next: "sign-in" | "sign-up") => {
           autofocus
         />
       </UFormField>
-      <UButton type="submit" block label="Verify" :loading="pending === 'code'" />
+      <UButton type="submit" block :label="$t('verify')" :loading="pending === 'code'" />
       <UButton
         variant="link"
         color="neutral"
         class="self-center"
-        :label="backup ? 'Use the authenticator code' : 'Use a backup code'"
+        :label="backup ? $t('useTheAuthenticatorCode') : $t('useABackupCode')"
         @click="((backup = !backup), (state.code = ''))"
       />
     </template>
 
     <template v-else>
-      <UFormField v-if="mode === 'sign-up'" label="Name" name="name">
-        <UInput v-model="state.name" autocomplete="name" placeholder="Pablo García" class="w-full" />
+      <UFormField v-if="mode === 'sign-up'" :label="$t('name')" name="name">
+        <UInput v-model="state.name" autocomplete="name" :placeholder="$t('pabloGarcA')" class="w-full" />
       </UFormField>
-      <UFormField label="Email" name="email">
+      <UFormField :label="$t('email')" name="email">
         <UInput
           v-model="state.email"
           type="email"
           :autocomplete="mode === 'sign-in' ? 'username webauthn' : 'email'"
-          placeholder="you@example.com"
+          :placeholder="$t('youExampleCom')"
           :disabled="lockEmail"
           class="w-full"
         />
       </UFormField>
-      <UFormField label="Password" name="password" :help="mode === 'sign-up' ? 'At least 10 characters.' : undefined">
+      <UFormField :label="$t('password')" name="password" :help="mode === 'sign-up' ? $t('atLeast10Characters') : undefined">
         <UInput
           v-model="state.password"
           :type="reveal ? 'text' : 'password'"
@@ -169,13 +170,13 @@ const switchMode = (next: "sign-in" | "sign-up") => {
           :ui="{ trailing: 'pe-1' }"
         >
           <template #trailing>
-            <UTooltip :text="reveal ? 'Hide password' : 'Show password'">
+            <UTooltip :text="reveal ? $t('hidePassword') : $t('showPassword')">
               <UButton
                 color="neutral"
                 variant="link"
                 size="sm"
                 :icon="reveal ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                :aria-label="reveal ? 'Hide password' : 'Show password'"
+                :aria-label="reveal ? $t('hidePassword') : $t('showPassword')"
                 :aria-pressed="reveal"
                 @click="reveal = !reveal"
               />
@@ -183,28 +184,24 @@ const switchMode = (next: "sign-in" | "sign-up") => {
           </template>
         </UInput>
       </UFormField>
-      <UButton type="submit" block :label="mode === 'sign-up' ? 'Create account' : 'Sign in'" :loading="pending === 'password'" :disabled="pending !== null" />
+      <UButton type="submit" block :label="mode === 'sign-up' ? $t('createAccount') : $t('signIn')" :loading="pending === 'password'" :disabled="pending !== null" />
       <template v-if="mode === 'sign-in'">
-        <USeparator label="or" :ui="{ label: 'text-xs text-muted' }" />
+        <USeparator :label="$t('or')" :ui="{ label: 'text-xs text-muted' }" />
         <UButton
           block
           color="neutral"
           variant="outline"
           icon="i-lucide-key-round"
-          label="Sign in with a passkey"
+          :label="$t('signInWithAPasskey')"
           :loading="pending === 'passkey'"
           :disabled="pending !== null"
           @click="signInWithPasskey"
         />
       </template>
       <p v-if="allowSignUp" class="text-center text-sm text-muted">
-        <template v-if="mode === 'sign-in'">
-          New to ViteHub Finance?
-          <UButton variant="link" color="neutral" class="p-0 font-medium text-highlighted" label="Create an account" @click="switchMode('sign-up')" />
+        <template v-if="mode === 'sign-in'"> {{ $t('newToVitehubFinance') }} <UButton variant="link" color="neutral" class="p-0 font-medium text-highlighted" :label="$t('createAnAccount')" @click="switchMode('sign-up')" />
         </template>
-        <template v-else>
-          Already have an account?
-          <UButton variant="link" color="neutral" class="p-0 font-medium text-highlighted" label="Sign in" @click="switchMode('sign-in')" />
+        <template v-else> {{ $t('alreadyHaveAnAccount') }} <UButton variant="link" color="neutral" class="p-0 font-medium text-highlighted" :label="$t('signIn')" @click="switchMode('sign-in')" />
         </template>
       </p>
     </template>

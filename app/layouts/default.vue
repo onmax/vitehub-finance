@@ -27,7 +27,7 @@ const toItem = (page: { label: string; icon: string; to: string }): NavigationMe
   }
 }
 const main = computed(() => MAIN_PAGES.map(toItem))
-const connect = computed<NavigationMenuItem[]>(() => [{ label: "Connect", type: "label" }, ...CONNECT_PAGES.map(toItem)])
+const connect = computed<NavigationMenuItem[]>(() => [{ get label() { return translate('connect2') }, type: "label" }, ...CONNECT_PAGES.map(toItem)])
 const secondary = computed(() => SECONDARY_PAGES.map(toItem))
 
 // `g o`, `g t`… like GitHub and Linear.
@@ -61,7 +61,7 @@ defineShortcuts(
       <template #default="{ collapsed }">
         <UDashboardSearchButton
           :collapsed="collapsed"
-          label="Search"
+          :label="$t('search')"
           class="text-muted"
           :class="collapsed ? '' : 'w-full'"
           :kbds="['meta', 'k']"
@@ -71,7 +71,7 @@ defineShortcuts(
           :items="main"
           orientation="vertical"
           tooltip
-          aria-label="Main"
+          :aria-label="$t('main')"
           :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
         />
         <UNavigationMenu
@@ -79,7 +79,7 @@ defineShortcuts(
           :items="connect"
           orientation="vertical"
           tooltip
-          aria-label="Connect"
+          :aria-label="$t('connect2')"
           :ui="{ link: 'h-9', linkLabel: 'text-sm', label: 'px-2.5 pt-2 pb-1 text-xs font-medium text-dimmed' }"
         />
         <UNavigationMenu
@@ -88,7 +88,7 @@ defineShortcuts(
           orientation="vertical"
           tooltip
           class="mt-auto"
-          aria-label="Household and settings"
+          :aria-label="$t('householdAndSettings')"
           :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
         />
       </template>

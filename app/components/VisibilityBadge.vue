@@ -9,6 +9,6 @@ defineProps<{ visibility: "private" | "household" }>()
     variant="outline"
     size="sm"
     :icon="visibility === 'private' ? 'i-lucide-lock' : 'i-lucide-users'"
-    :label="visibility === 'private' ? 'Private' : 'Shared'"
+    :label="visibility === 'private' ? $t('private') : $t('shared')"
   />
 </template>

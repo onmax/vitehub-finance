@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentFormatLocale } from "~/lib/i18n"
 import type { Overview } from "#shared/api"
 
 // Recurring payments and income due in the next 14 days, soonest first.
@@ -10,19 +11,19 @@ const items = computed(() =>
     .slice(0, 6),
 )
 const day = (date: string) => parseDay(date)
-const monthShort = (date: string) => new Intl.DateTimeFormat(undefined, { month: "short" }).format(day(date))
+const monthShort = (date: string) => new Intl.DateTimeFormat(currentFormatLocale(), { month: "short" }).format(day(date))
 const when = (date: string) => {
   const offset = daysFromToday(date)
-  if (offset < 0) return "Due"
-  if (offset === 0) return "Today"
-  if (offset === 1) return "Tomorrow"
-  return `In ${offset} days`
+  if (offset < 0) return translate('due')
+  if (offset === 0) return translate('today')
+  if (offset === 1) return translate('tomorrow')
+  return translate('inDays', { value1: offset })
 }
 </script>
 
 <template>
-  <SectionCard title="Coming up" to="/recurring" link-label="Recurring">
-    <p v-if="items.length === 0" class="py-6 text-center text-sm text-muted">Nothing due in the next two weeks.</p>
+  <SectionCard :title="$t('comingUp')" to="/recurring" :link-label="$t('recurring')">
+    <p v-if="items.length === 0" class="py-6 text-center text-sm text-muted">{{ $t('nothingDueInTheNextTwoWeeks') }}</p>
     <ul v-else class="flex flex-col divide-y divide-default">
       <li v-for="item in items" :key="item.id" class="flex min-h-12 items-center gap-3 py-2">
         <span class="flex size-10 shrink-0 flex-col items-center justify-center rounded-md bg-elevated leading-none" aria-hidden="true">

@@ -11,7 +11,7 @@ const colorMode = useColorMode()
 const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
   {
     id: "pages",
-    label: "Pages",
+    get label() { return translate('pages') },
     items: [...MAIN_PAGES, ...CONNECT_PAGES, ...SECONDARY_PAGES].map((page) => ({
       label: page.label,
       icon: page.icon,
@@ -21,7 +21,7 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
   },
   {
     id: "accounts",
-    label: "Accounts",
+    get label() { return translate('accounts') },
     items: accounts.value.map((account) => ({
       label: account.name,
       suffix: account.institution ?? ACCOUNT_KINDS[account.kind].label,
@@ -31,36 +31,36 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
   },
   {
     id: "actions",
-    label: "Actions",
+    get label() { return translate('actions') },
     items: [
-      { label: "Connect a bank", icon: "i-lucide-landmark", to: "/connect/banks#bank" },
-      { label: "Add a crypto wallet", icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
-      { label: "Connect an exchange", icon: "i-lucide-bitcoin", to: "/connect/crypto#exchange" },
-      { label: "Connect Interactive Brokers", icon: "i-lucide-chart-candlestick", to: "/connect/crypto#broker" },
-      { label: "Add a manual account", icon: "i-lucide-plus", to: "/accounts?new=1" },
-      { label: "Import a CSV", icon: "i-lucide-upload", to: "/connect/banks#import" },
-      { label: "Invite someone to the household", icon: "i-lucide-user-plus", to: "/household?invite=1" },
-      { label: "Connect an agent (MCP)", icon: "i-lucide-bot", to: "/settings/agents" },
+      { get label() { return translate('connectABank') }, icon: "i-lucide-landmark", to: "/connect/banks#bank" },
+      { get label() { return translate('addACryptoWallet') }, icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
+      { get label() { return translate('connectAnExchange') }, icon: "i-lucide-bitcoin", to: "/connect/crypto#exchange" },
+      { get label() { return translate('connectInteractiveBrokers') }, icon: "i-lucide-chart-candlestick", to: "/connect/crypto#broker" },
+      { get label() { return translate('addAManualAccount') }, icon: "i-lucide-plus", to: "/accounts?new=1" },
+      { get label() { return translate('importACsv') }, icon: "i-lucide-upload", to: "/connect/banks#import" },
+      { get label() { return translate('inviteSomeoneToTheHousehold') }, icon: "i-lucide-user-plus", to: "/household?invite=1" },
+      { get label() { return translate('connectAnAgentMcp') }, icon: "i-lucide-bot", to: "/settings/agents" },
       ...(shared.value
         ? [
             {
-              label: scope.value === "me" ? "Show the household’s money" : "Show only my money",
+              label: scope.value === "me" ? translate('showTheHouseholdSMoney') : translate('showOnlyMyMoney'),
               icon: scope.value === "me" ? "i-lucide-users" : "i-lucide-user",
               onSelect: () => (scope.value = scope.value === "me" ? "household" : "me"),
             },
           ]
         : []),
       {
-        label: colorMode.value === "dark" ? "Switch to light theme" : "Switch to dark theme",
+        label: colorMode.value === "dark" ? translate('switchToLightTheme') : translate('switchToDarkTheme'),
         icon: colorMode.value === "dark" ? "i-lucide-sun" : "i-lucide-moon",
         onSelect: () => (colorMode.preference = colorMode.value === "dark" ? "light" : "dark"),
       },
-      { label: "Sign out", icon: "i-lucide-log-out", onSelect: () => void signOut() },
+      { get label() { return translate('signOut') }, icon: "i-lucide-log-out", onSelect: () => void signOut() },
     ],
   },
 ])
 </script>
 
 <template>
-  <UDashboardSearch :groups="groups" :color-mode="false" placeholder="Search pages, accounts, and actions…" shortcut="meta_k" />
+  <UDashboardSearch :groups="groups" :color-mode="false" :placeholder="$t('searchPagesAccountsAndActions')" shortcut="meta_k" />
 </template>
