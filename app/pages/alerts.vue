@@ -72,17 +72,16 @@ async function restore(alert: Alert) {
     </template>
 
     <template #body>
-      <div class="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-10">
         <PageError v-if="error && !data" :error="error" :title="$t('alertsDidntLoad')" @retry="refresh()" />
 
         <div v-else-if="!data" class="flex flex-col gap-8">
           <div v-for="group in 2" :key="group">
             <USkeleton class="h-3 w-40" />
             <div class="mt-3 divide-y divide-default border-t border-default">
-              <div v-for="row in 2" :key="row" class="flex items-center gap-3 py-3.5">
-                <USkeleton class="size-9 rounded-md" />
-                <div class="flex-1"><USkeleton class="h-4 w-56" /><USkeleton class="mt-1.5 h-3 w-72" /></div>
-                <USkeleton class="h-8 w-24" />
+              <div v-for="row in 2" :key="row" class="flex items-start gap-3 py-4">
+                <div class="flex-1 ps-5.5"><USkeleton class="h-4 w-56" /><USkeleton class="mt-2 h-3 w-72" /></div>
+                <USkeleton class="-my-1.5 h-8 w-24" />
               </div>
             </div>
           </div>

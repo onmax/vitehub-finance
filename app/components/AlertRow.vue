@@ -3,7 +3,8 @@ import type { Alert } from "#shared/api"
 import type { RouteLocationRaw } from "vue-router"
 
 // One alert in the Alerts inbox: what it's about with its mark, why in a sentence, the one thing to do about it, and
-// dismiss (or restore, once dismissed). Severity reads as a colored dot with its name for screen readers.
+// dismiss (or restore, once dismissed). Severity reads as a colored dot with its name for screen readers. Rows align
+// to the top, so a detail that wraps doesn't pull the mark and buttons off the title.
 const props = defineProps<{ alert: Alert }>()
 defineEmits<{ dismiss: []; restore: [] }>()
 const { format } = useMoney()
@@ -53,7 +54,6 @@ const text = computed((): { title: string; detail: string } => {
   return { title: "", detail: "" }
 })
 
-const ICONS = { low_balance: "i-lucide-trending-down", large_transaction: "i-lucide-receipt", price_increase: "i-lucide-badge-percent" } as const
 const action = computed((): { label: string; to: RouteLocationRaw } | null => {
   const alert = props.alert
   if (alert.kind === "budget") return { label: translate('alertSeeBudget'), to: "/budgets" }
@@ -65,24 +65,24 @@ const action = computed((): { label: string; to: RouteLocationRaw } | null => {
 </script>
 
 <template>
-  <li class="flex flex-wrap items-center gap-x-3 gap-y-2 py-3.5 sm:flex-nowrap">
+  <li class="flex flex-wrap items-start gap-x-3 gap-y-3 py-4 sm:flex-nowrap">
+    <!-- A bank or a category is worth a mark; the other kinds already show theirs in the group's heading. -->
     <InstitutionMark v-if="alert.kind === 'connection'" :provider="alert.connection.provider" :name="alert.connection.institution ?? alert.connection.name" :logo="alert.connection.logo" />
     <CategoryIcon v-else-if="alert.kind === 'budget'" :icon="category?.icon" :color="category?.color" />
-    <span v-else class="flex size-9 shrink-0 items-center justify-center rounded-md bg-elevated" aria-hidden="true">
-      <UIcon :name="ICONS[alert.kind]" class="size-4 text-muted" />
-    </span>
 
-    <span class="min-w-0 flex-1 basis-48">
-      <span class="flex items-center gap-2">
-        <span class="size-1.5 shrink-0 rounded-full" :class="alert.dismissedAt ? 'bg-(--ui-border-accented)' : severity.dot" aria-hidden="true" />
+    <!-- The dot sits in a column as wide as the heading's icon, so titles line up with the heading. -->
+    <div class="grid min-w-0 flex-1 basis-56 grid-cols-[0.875rem_minmax(0,1fr)] gap-x-2">
+      <span class="mt-[7px] size-1.5 justify-self-center rounded-full" :class="alert.dismissedAt ? 'bg-(--ui-border-accented)' : severity.dot" aria-hidden="true" />
+      <p class="text-sm/5 font-medium text-pretty break-words text-highlighted">
         <span class="sr-only">{{ severity.label }}:</span>
-        <span class="truncate text-sm font-medium text-highlighted">{{ text.title }}</span>
-      </span>
-      <span class="mt-0.5 block ps-3.5 text-sm text-pretty text-muted">{{ text.detail }}</span>
-      <span v-if="alert.dismissedAt" class="mt-0.5 block ps-3.5 text-xs text-dimmed">{{ $t('alertDismissedOn', { date: formatDay(alert.dismissedAt.slice(0, 10)) }) }}</span>
-    </span>
+        {{ text.title }}
+      </p>
+      <p class="col-start-2 mt-1 max-w-prose text-sm text-pretty text-muted">{{ text.detail }}</p>
+      <p v-if="alert.dismissedAt" class="col-start-2 mt-1 text-xs text-dimmed">{{ $t('alertDismissedOn', { date: formatDay(alert.dismissedAt.slice(0, 10)) }) }}</p>
+    </div>
 
-    <span class="ms-auto flex shrink-0 items-center gap-1">
+    <!-- Level with the title's first line: an 8-high button around a 5-high line. -->
+    <div class="ms-auto flex shrink-0 items-center gap-1 sm:-my-1.5">
       <template v-if="!alert.dismissedAt">
         <template v-if="alert.kind === 'connection'">
           <DemoLock v-if="alert.connection.canManage" v-slot="{ locked }">
@@ -105,6 +105,6 @@ const action = computed((): { label: string; to: RouteLocationRaw } | null => {
         </UTooltip>
       </template>
       <UButton v-else color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" :label="$t('restore')" @click="$emit('restore')" />
-    </span>
+    </div>
   </li>
 </template>
