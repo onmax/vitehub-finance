@@ -24,7 +24,7 @@ const link = (id: string | null) => ({ path: "/transactions", query: { category:
           <span class="min-w-0 flex-1">
             <span class="flex items-baseline justify-between gap-2 text-sm">
               <span class="truncate text-default">{{ item.categoryId ? item.name : $t('uncategorized') }}</span>
-              <span class="money text-highlighted">{{ format(item.amountMinor, overview.currency) }}</span>
+              <Money :minor="item.amountMinor" :currency="overview.currency" class="text-highlighted" />
             </span>
             <span class="mt-1 block h-1.5 overflow-hidden rounded-full bg-elevated" aria-hidden="true">
               <span class="block h-full rounded-full" :class="categoryColor(item.color).solid" :style="{ width: `${Math.max(2, (item.amountMinor / max) * 100)}%` }" />

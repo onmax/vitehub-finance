@@ -62,7 +62,7 @@ const items = computed(() => data.value?.items ?? [])
             </template>
           </p>
         </div>
-        <Money :minor="item.amountMinor" :currency="item.currency" signed tone="in" class="text-sm" :class="item.amountMinor <= 0 && 'text-highlighted'" />
+        <Money :minor="item.amountMinor" :currency="item.currency" signed tone="in" original="below" class="text-sm" :class="item.amountMinor <= 0 && 'text-highlighted'" />
       </li>
     </ul>
   </section>

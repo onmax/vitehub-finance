@@ -175,7 +175,7 @@ function updated(next: AccountSummary) {
             </div>
             <div class="sm:text-right">
               <p class="text-3xl font-semibold tracking-[-0.02em] text-highlighted">
-                <Money :minor="account.balanceMinor" :currency="account.currency" />
+                <Money :minor="account.balanceMinor" :currency="account.currency" original="below" align="start" class="sm:items-end sm:text-end" />
               </p>
               <p class="mt-1 text-sm text-muted">
                 <template v-if="change">

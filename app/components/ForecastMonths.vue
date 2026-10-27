@@ -68,13 +68,13 @@ const legend = computed(() => {
         <tbody class="divide-y divide-default border-t border-default">
           <tr v-for="entry in months" :key="entry.month">
             <th scope="row" class="py-2.5 pe-2 text-left font-normal whitespace-nowrap text-default">{{ formatMonth(entry.month, "short") }}</th>
-            <td class="px-2 py-2.5 text-right"><Money :minor="entry.incomeMinor" :currency="currency" tone="in" /></td>
-            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.billsMinor" :currency="currency" /></td>
-            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.variableOutMinor - entry.oneOffMinor" :currency="currency" /></td>
-            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.movedOutMinor" :currency="currency" /></td>
-            <td class="px-2 py-2.5 text-right"><Money :minor="entry.netMinor" :currency="currency" signed tone="in" /></td>
+            <td class="px-2 py-2.5 text-right"><Money :minor="entry.incomeMinor" :currency="currency" tone="in" original="below" /></td>
+            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.billsMinor" :currency="currency" original="below" /></td>
+            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.variableOutMinor - entry.oneOffMinor" :currency="currency" original="below" /></td>
+            <td class="px-2 py-2.5 text-right"><Money :minor="-entry.movedOutMinor" :currency="currency" original="below" /></td>
+            <td class="px-2 py-2.5 text-right"><Money :minor="entry.netMinor" :currency="currency" signed tone="in" original="below" /></td>
             <td class="py-2.5 ps-2 text-right">
-              <span class="block font-medium text-highlighted"><Money :minor="entry.balanceMinor" :currency="currency" /></span>
+              <span class="block font-medium text-highlighted"><Money :minor="entry.balanceMinor" :currency="currency" original="below" /></span>
               <span class="block text-xs text-muted tabular-nums">{{ $t('to2', { value1: compact(entry.lowMinor), value2: compact(entry.highMinor) }) }}</span>
             </td>
           </tr>

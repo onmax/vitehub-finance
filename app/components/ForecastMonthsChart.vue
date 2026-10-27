@@ -36,7 +36,8 @@ const y = computed(() => {
     .range([props.height - pad.value.bottom, pad.value.top])
     .nice(4)
 })
-const ticks = computed(() => y.value.ticks(narrow.value ? 3 : 5))
+const money = useMoney()
+const ticks = computed(() => money.ticks(y.value.domain() as [number, number], narrow.value ? 3 : 5))
 const bars = computed(() =>
   props.months.map((month, index) => {
     let floor = 0

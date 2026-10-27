@@ -247,7 +247,7 @@ const rangeNote = computed(() => {
                   <tbody class="divide-y divide-default border-t border-default">
                     <tr v-for="week in weeks" :key="week.date">
                       <th scope="row" class="py-2 pe-3 text-left font-normal whitespace-nowrap text-default">{{ forecastDay(week.date, forecast.today) }}</th>
-                      <td class="px-3 py-2 text-right font-medium text-highlighted"><Money :minor="week.balanceMinor" :currency="forecast.currency" /></td>
+                      <td class="px-3 py-2 text-right font-medium text-highlighted"><Money :minor="week.balanceMinor" :currency="forecast.currency" original="below" /></td>
                       <td class="money px-3 py-2 text-right text-xs text-muted">{{ $t('to2', { value1: axis(week.lowMinor), value2: axis(week.highMinor) }) }}</td>
                       <td class="py-2 ps-3 text-xs text-muted">{{ week.named.join(", ") || "—" }}</td>
                     </tr>

@@ -59,7 +59,7 @@ const items = [
       <GoalRing :value="share" :label="$t('saved', { value1: formatPercent(share) })" />
       <div class="min-w-0">
         <p class="text-xl font-semibold text-highlighted">
-          <Money :minor="goal.progressMinor" :currency="currency" compact />
+          <Money :minor="goal.progressMinor" :currency="currency" compact original="below" align="start" />
         </p>
         <p class="text-sm text-muted">{{ $t('of') }} <Money :minor="goal.targetMinor" :currency="currency" compact /></p>
       </div>

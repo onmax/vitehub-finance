@@ -87,7 +87,8 @@ const y = computed(() => {
     .range([plotBottom.value, pad.value.top])
     .nice(4)
 })
-const yTicks = computed(() => y.value.ticks(narrow.value ? 3 : 4))
+const money = useMoney()
+const yTicks = computed(() => money.ticks(y.value.domain() as [number, number], narrow.value ? 3 : 4))
 const xTicks = computed(() => {
   const ticks = x.value.ticks(Math.max(2, Math.floor(width.value / (narrow.value ? 70 : 90))))
   return ticks.map((date) => ({ at: x.value(date), label: forecastMonthTick(date.toISOString().slice(0, 10), props.today) }))

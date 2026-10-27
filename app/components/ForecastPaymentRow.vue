@@ -27,7 +27,7 @@ const month = computed(() => new Intl.DateTimeFormat(currentFormatLocale(), { mo
       </span>
     </span>
     <span class="flex shrink-0 flex-col items-end gap-0.5">
-      <Money :minor="payment.amountMinor" :currency="currency" tone="in" signed class="text-sm font-medium text-highlighted" />
+      <Money :minor="payment.amountMinor" :currency="currency" tone="in" signed original="below" class="text-sm font-medium text-highlighted" />
       <ForecastConfidence :series="payment.series" />
     </span>
   </li>

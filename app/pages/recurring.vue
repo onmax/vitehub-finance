@@ -111,16 +111,16 @@ async function show(ids: string[]) {
         <dl class="grid shrink-0 grid-cols-3 divide-x divide-default">
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">{{ $t('chargesAMonth') }}</dt>
-            <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.monthlyOutMinor) }}</dd>
+            <dd class="text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted"><Money :minor="data!.totals.monthlyOutMinor" original="below" align="start" /></dd>
           </div>
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">{{ $t('chargesAYear') }}</dt>
-            <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted">{{ format(data!.totals.yearlyOutMinor, null, { compact: true }) }}</dd>
+            <dd class="text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em] text-highlighted"><Money :minor="data!.totals.yearlyOutMinor" compact original="below" align="start" /></dd>
           </div>
           <div class="flex min-w-0 flex-col gap-1 px-3 first:ps-0 sm:px-6">
             <dt class="text-xs text-muted sm:text-sm">{{ $t('incomeAMonth') }}</dt>
-            <dd class="money text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="data!.totals.monthlyInMinor > 0 ? 'money-in' : 'text-highlighted'">
-              {{ format(data!.totals.monthlyInMinor) }}
+            <dd class="text-lg font-semibold sm:text-2xl sm:tracking-[-0.02em]" :class="data!.totals.monthlyInMinor > 0 ? 'money-in' : 'text-highlighted'">
+              <Money :minor="data!.totals.monthlyInMinor" original="below" align="start" />
             </dd>
           </div>
         </dl>
@@ -174,7 +174,7 @@ async function show(ids: string[]) {
           <ul v-if="showDismissed" class="divide-y divide-default border-t border-default">
             <li v-for="item in dismissed" :key="item.id" class="flex items-center gap-3 py-2.5">
               <span class="min-w-0 flex-1 truncate text-sm text-muted">{{ item.name }}</span>
-              <Money :minor="item.amountMinor" :currency="item.currency" class="text-sm text-muted" />
+              <Money :minor="item.amountMinor" :currency="item.currency" original="below" class="text-sm text-muted" />
               <UButton color="neutral" variant="outline" size="sm" :label="$t('restore')" :loading="pending.includes(item.id)" @click="setStatus(item, 'detected')" />
             </li>
           </ul>

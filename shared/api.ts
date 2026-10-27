@@ -28,6 +28,13 @@ export interface Person {
   role: "owner" | "member"
 }
 
+/** Units of each currency per one `currency`, from the ECB; `updatedAt` is null until the first fetch worked. */
+export interface FxRates {
+  currency: string
+  rates: Record<string, number>
+  updatedAt: string | null
+}
+
 export interface MeResponse {
   user: { id: string; name: string; email: string; image: string | null }
   household: {

@@ -61,19 +61,19 @@ const transfersLink = computed(() => {
       <dl class="flex flex-wrap gap-x-8 gap-y-3">
         <div>
           <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-emerald-500" aria-hidden="true" />{{ $t('moneyIn') }}</dt>
-          <dd class="money mt-0.5 text-lg font-semibold text-highlighted">{{ format(flow.inMinor, flow.currency) }}</dd>
+          <dd class="mt-0.5 text-lg font-semibold text-highlighted"><Money :minor="flow.inMinor" :currency="flow.currency" original="below" align="start" /></dd>
         </div>
         <div>
           <dt class="flex items-center gap-1.5 text-xs text-muted"><span class="size-2 rounded-full bg-rose-500" aria-hidden="true" />{{ $t('moneyOut') }}</dt>
-          <dd class="money mt-0.5 text-lg font-semibold text-highlighted">{{ format(flow.outMinor, flow.currency) }}</dd>
+          <dd class="mt-0.5 text-lg font-semibold text-highlighted"><Money :minor="flow.outMinor" :currency="flow.currency" original="below" align="start" /></dd>
         </div>
         <div v-if="kept">
           <dt class="text-xs text-muted">{{ $t('kept') }}</dt>
-          <dd class="money mt-0.5 text-lg font-semibold text-emerald-600 dark:text-emerald-400">+{{ format(kept.amountMinor, flow.currency) }}</dd>
+          <dd class="mt-0.5 text-lg font-semibold text-emerald-600 dark:text-emerald-400"><Money :minor="kept.amountMinor" :currency="flow.currency" signed original="below" align="start" /></dd>
         </div>
         <div v-else-if="savings">
           <dt class="text-xs text-muted">{{ $t('fromSavings') }}</dt>
-          <dd class="money mt-0.5 text-lg font-semibold text-amber-600 dark:text-amber-400">{{ format(savings.amountMinor, flow.currency) }}</dd>
+          <dd class="mt-0.5 text-lg font-semibold text-amber-600 dark:text-amber-400"><Money :minor="savings.amountMinor" :currency="flow.currency" original="below" align="start" /></dd>
         </div>
       </dl>
 

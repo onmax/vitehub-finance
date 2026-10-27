@@ -103,15 +103,15 @@ const loading = computed(() => status.value === "pending" && accounts.value.leng
           <dl class="grid grid-cols-3 divide-x divide-default">
             <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">{{ $t('netWorth') }}</dt>
-              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets + debts" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets + debts" compact original="below" align="start" /></dd>
             </div>
             <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">{{ $t('assets') }}</dt>
-              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="assets" compact original="below" align="start" /></dd>
             </div>
             <div class="px-4 first:ps-0 sm:px-6">
               <dt class="text-xs text-muted sm:text-sm">{{ $t('debts') }}</dt>
-              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="Math.abs(debts)" compact /></dd>
+              <dd class="mt-1 text-lg font-semibold text-highlighted sm:text-2xl"><Money :minor="Math.abs(debts)" compact original="below" align="start" /></dd>
             </div>
           </dl>
 

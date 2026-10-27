@@ -1075,6 +1075,8 @@
   "appliesToThisDeviceOnly": "S’applique uniquement à cet appareil.",
   "language": "Langue",
   "languageHelp": "Utilisée dans l’application et les e-mails.",
+  "displayCurrencyHelp": "Tous les montants s’affichent dans cette devise, au taux BCE du jour. Quand un montant était dans une autre devise, l’original s’affiche à côté. Les totaux et les budgets restent tenus dans la devise du foyer.",
+  "householdCurrencyOption": "Celle du foyer ({currency})",
   "asset2": "{count} actif | {count} actifs",
   "account2": "{count} compte | {count} comptes",
   "asManualUncheckedTheyAndTheirTransactionsAreDeleted": "{count} compte est conservé comme compte manuel. Si vous décochez, le compte et ses opérations seront supprimés. | {count} comptes sont conservés comme comptes manuels. Si vous décochez, les comptes et leurs opérations seront supprimés.",

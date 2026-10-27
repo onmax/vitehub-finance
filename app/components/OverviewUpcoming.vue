@@ -34,7 +34,7 @@ const when = (date: string) => {
           <span class="block truncate text-sm text-highlighted" :title="item.name">{{ item.name }}</span>
           <span class="block truncate text-xs text-muted">{{ when(item.nextDate) }} · {{ item.accountName }}</span>
         </span>
-        <Money :minor="item.amountMinor" :currency="item.currency" tone="in" class="text-sm text-highlighted" />
+        <Money :minor="item.amountMinor" :currency="item.currency" tone="in" original="below" class="text-sm text-highlighted" />
       </li>
     </ul>
   </SectionCard>

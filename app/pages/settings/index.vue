@@ -80,6 +80,10 @@ const theme = computed({
     <LanguagePicker />
   </SettingsSection>
 
+  <SettingsSection :title="$t('currency')" :description="$t('displayCurrencyHelp')">
+    <CurrencyPicker />
+  </SettingsSection>
+
   <SettingsSection :title="$t('theme')" :description="$t('appliesToThisDeviceOnly')">
     <URadioGroup
       v-model="theme"

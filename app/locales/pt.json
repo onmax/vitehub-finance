@@ -1075,6 +1075,8 @@
   "appliesToThisDeviceOnly": "Aplica-se apenas a este dispositivo.",
   "language": "Idioma",
   "languageHelp": "Usado na aplicação e nos e-mails.",
+  "displayCurrencyHelp": "Todos os valores aparecem nesta moeda, à taxa do BCE de hoje. Quando um valor estava noutra moeda, o original aparece ao lado. Os totais e os orçamentos continuam na moeda do agregado.",
+  "householdCurrencyOption": "A do agregado ({currency})",
   "asset2": "{count} ativo | {count} ativos",
   "account2": "{count} conta | {count} contas",
   "asManualUncheckedTheyAndTheirTransactionsAreDeleted": "{count} conta mantém-se como conta manual. Se desmarcar, a conta e as transações são eliminadas. | {count} contas mantêm-se como contas manuais. Se desmarcar, as contas e as transações são eliminadas.",

@@ -90,7 +90,7 @@ function finish() {
                 <span class="block truncate text-sm font-medium text-highlighted">{{ account.name }}</span>
                 <span class="block text-xs text-muted">{{ ACCOUNT_KINDS[account.kind].label }} · {{ account.currency }}</span>
               </span>
-              <Money :minor="account.balanceBaseMinor" class="shrink-0 text-sm text-highlighted" />
+              <Money :minor="account.balanceMinor" :currency="account.currency" original="below" class="shrink-0 text-sm text-highlighted" />
             </li>
           </ul>
         </section>

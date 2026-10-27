@@ -73,13 +73,13 @@ const changed = (item: Recurring) => item.previousAmountMinor !== null && item.p
             </p>
           </div>
           <div class="flex shrink-0 flex-col items-end">
-            <Money :minor="item.amountMinor" :currency="item.currency" tone="in" class="text-sm font-medium" :class="item.amountMinor < 0 && 'text-highlighted'" />
+            <Money :minor="item.amountMinor" :currency="item.currency" tone="in" original="below" class="text-sm font-medium" :class="item.amountMinor < 0 && 'text-highlighted'" />
             <p v-if="changed(item)" class="flex items-center gap-1 text-xs text-muted">
               <UIcon
                 :name="Math.abs(item.amountMinor) > Math.abs(item.previousAmountMinor!) ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
                 class="size-3"
               />
-              <span><span class="max-sm:hidden">{{ $t('was') }} </span><Money :minor="item.previousAmountMinor!" :currency="item.currency" class="line-through" /></span>
+              <span><span class="max-sm:hidden">{{ $t('was') }} </span><Money :minor="item.previousAmountMinor!" :currency="item.currency" original="none" class="line-through" /></span>
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-0.5">

@@ -45,8 +45,8 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
 
 <template>
   <SectionCard :title="$t('netWorth')" to="/accounts" :link-label="$t('accounts')">
-    <p class="money text-3xl font-semibold tracking-[-0.02em] text-highlighted">
-      {{ format(overview.netWorthMinor, overview.currency) }}
+    <p class="text-3xl font-semibold tracking-[-0.02em] text-highlighted">
+      <Money :minor="overview.netWorthMinor" :currency="overview.currency" original="below" align="start" />
     </p>
     <p v-if="change" class="mt-1 flex items-center gap-1 text-sm text-muted">
       <UIcon :name="change.delta >= 0 ? 'i-lucide-trending-up' : 'i-lucide-trending-down'" class="size-4" aria-hidden="true" />

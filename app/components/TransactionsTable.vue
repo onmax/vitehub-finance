@@ -121,6 +121,7 @@ function onKeydown(event: KeyboardEvent) {
           :minor="row.original.amountMinor"
           :currency="row.original.currency"
           tone="in"
+          original="below"
           class="font-medium"
           :class="row.original.excluded && 'text-dimmed line-through'"
         />
@@ -156,7 +157,7 @@ function onKeydown(event: KeyboardEvent) {
                   <span v-if="row.status === 'pending'" class="shrink-0">{{ $t('pending2') }}</span>
                 </span>
               </span>
-              <Money :minor="row.amountMinor" :currency="row.currency" tone="in" class="text-sm font-medium" :class="row.excluded && 'line-through'" />
+              <Money :minor="row.amountMinor" :currency="row.currency" tone="in" original="below" class="text-sm font-medium" :class="row.excluded && 'line-through'" />
             </button>
           </li>
         </ul>

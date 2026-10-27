@@ -1075,6 +1075,8 @@
   "appliesToThisDeviceOnly": "Gilt nur auf diesem Gerät.",
   "language": "Sprache",
   "languageHelp": "Wird in der App und in E-Mails verwendet.",
+  "displayCurrencyHelp": "Alle Beträge erscheinen in dieser Währung, zum heutigen EZB-Kurs. War ein Betrag in einer anderen Währung, steht der ursprüngliche daneben. Summen und Budgets werden weiter in der Währung des Haushalts geführt.",
+  "householdCurrencyOption": "Die des Haushalts ({currency})",
   "asset2": "{count} Vermögenswert | {count} Vermögenswerte",
   "account2": "{count} Konto | {count} Konten",
   "asManualUncheckedTheyAndTheirTransactionsAreDeleted": "{count} Konto bleibt als manuelles Konto erhalten. Ohne Häkchen werden es und seine Umsätze gelöscht. | {count} Konten bleiben als manuelle Konten erhalten. Ohne Häkchen werden sie und ihre Umsätze gelöscht.",

@@ -6,9 +6,6 @@ import type { AccountSummary } from "#shared/api"
 const props = defineProps<{ account: AccountSummary }>()
 const shared = useShared()
 const kind = computed(() => ACCOUNT_KINDS[props.account.kind])
-const { currency } = useMoney()
-/** Shown in the household's currency too when it's kept in another. */
-const foreign = computed(() => props.account.currency !== currency.value)
 </script>
 
 <template>
@@ -35,8 +32,7 @@ const foreign = computed(() => props.account.currency !== currency.value)
       <SyncDot :status="account.connectionStatus" compact />
     </span>
     <span class="flex shrink-0 flex-col items-end sm:min-w-28">
-      <Money :minor="account.balanceMinor" :currency="account.currency" class="text-sm font-medium text-highlighted" />
-      <Money v-if="foreign" :minor="account.balanceBaseMinor" class="text-xs text-muted" />
+      <Money :minor="account.balanceMinor" :currency="account.currency" original="below" class="text-sm font-medium text-highlighted" />
       <span class="mt-0.5 flex items-center gap-1.5 sm:hidden">
         <VisibilityBadge :visibility="account.visibility" />
       </span>

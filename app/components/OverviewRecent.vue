@@ -33,7 +33,7 @@ const shared = useShared()
           </span>
         </span>
         <OwnerAvatar v-if="shared" :name="item.ownerName" :user-id="item.ownerId" size="2xs" class="hidden sm:inline-flex" />
-        <Money :minor="item.amountMinor" :currency="item.currency" tone="in" class="text-sm text-highlighted" />
+        <Money :minor="item.amountMinor" :currency="item.currency" tone="in" original="below" class="text-sm text-highlighted" />
       </li>
     </ul>
   </SectionCard>

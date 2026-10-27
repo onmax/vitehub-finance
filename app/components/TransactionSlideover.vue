@@ -82,7 +82,7 @@ const category = computed(() => find(props.transaction?.categoryId))
     <template v-if="transaction" #body>
       <div class="flex items-center gap-3">
         <Monogram :name="title" />
-        <Money :minor="transaction.amountMinor" :currency="transaction.currency" tone="in" class="text-2xl font-semibold tracking-[-0.02em] text-highlighted" :class="transaction.excluded && 'line-through'" />
+        <Money :minor="transaction.amountMinor" :currency="transaction.currency" tone="in" original="below" align="start" class="text-2xl font-semibold tracking-[-0.02em] text-highlighted" :class="transaction.excluded && 'line-through'" />
         <UBadge v-if="transaction.status === 'pending'" color="neutral" variant="outline" :label="$t('pending')" />
         <UBadge v-if="transaction.hidden" color="neutral" variant="outline" icon="i-lucide-lock" :label="$t('onlyYou')" />
       </div>

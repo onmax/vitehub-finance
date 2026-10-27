@@ -1085,6 +1085,8 @@
   "appliesToThisDeviceOnly": "Applies to this device only.",
   "language": "Language",
   "languageHelp": "Used for the app and emails.",
+  "displayCurrencyHelp": "Every amount shows in this currency, at today’s ECB rate. When an amount was in another currency, the original shows next to it. Totals and budgets are still kept in the household’s currency.",
+  "householdCurrencyOption": "Household’s ({currency})",
   "errorMonthMustBeYyyyMm": "month must be YYYY-MM.",
   "errorCrossOriginReportsArenTAccepted": "Cross-origin reports aren't accepted.",
   "errorReportTooLarge": "Report too large.",

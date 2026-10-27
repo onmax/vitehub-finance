@@ -43,7 +43,7 @@ const columns: TableColumn<Holding>[] = [
       </template>
       <template #valueMinor-cell="{ row }">
         <div class="flex flex-col items-end">
-          <span class="money font-medium text-highlighted">{{ format(row.original.valueMinor, currency) }}</span>
+          <Money :minor="row.original.valueMinor" :currency="currency" original="below" class="font-medium text-highlighted" />
           <span v-if="total > 0" class="money text-xs text-muted">{{ formatPercent(row.original.valueMinor / total, { digits: 1 }) }}</span>
         </div>
       </template>

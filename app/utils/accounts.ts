@@ -2,6 +2,7 @@
 // Icons here must be in nuxt.config's `icon.clientBundle.icons`: the icon scanner reads .vue files, not .ts.
 import type { AccountKind, ConnectionStatus, ProviderId } from "#shared/api"
 import type { ConnectPage } from "./connect-catalog"
+import { CURRENCIES as SUPPORTED } from "#shared/money"
 
 export const ACCOUNT_KINDS: Record<AccountKind, { label: string; icon: string; group: AccountGroup }> = {
   checking: { get label() { return translate('checking') }, icon: "i-lucide-landmark", group: "cash" },
@@ -60,4 +61,5 @@ export const CONNECTION_STATUS: Record<ConnectionStatus, { label: string; color:
   revoked: { get label() { return translate('disconnected') }, color: "neutral" },
 }
 
-export const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "JPY"]
+/** For selects, which want a mutable list. */
+export const CURRENCIES: string[] = [...SUPPORTED]

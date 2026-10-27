@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui"
+import { CURRENCIES } from "#shared/money"
 
-// shadcn's NavUser: the account row at the bottom of the sidebar, opening upward with the theme and sign out.
+// shadcn's NavUser: the account row at the bottom of the sidebar, opening upward with the theme, the currency amounts
+// show in, and sign out.
 defineProps<{ collapsed?: boolean }>()
 const { data: me } = useMe()
 const signOut = useSignOut()
 const colorMode = useColorMode()
+const money = useDisplayCurrency()
 const items = computed<DropdownMenuItem[][]>(() => [
   [{ type: "label", slot: "account" as const }],
   [
@@ -22,6 +25,16 @@ const items = computed<DropdownMenuItem[][]>(() => [
         { get label() { return translate('dark') }, icon: "i-lucide-moon", type: "checkbox", checked: colorMode.preference === "dark", onSelect: () => (colorMode.preference = "dark") },
         { get label() { return translate('system') }, icon: "i-lucide-monitor", type: "checkbox", checked: colorMode.preference === "system", onSelect: () => (colorMode.preference = "system") },
       ],
+    },
+    {
+      label: `${translate('currency')} · ${money.currency.value}`,
+      icon: "i-lucide-coins",
+      children: CURRENCIES.map((code) => ({
+        label: code === money.household.value ? translate('householdCurrencyOption', { currency: code }) : code,
+        type: "checkbox" as const,
+        checked: money.currency.value === code,
+        onSelect: () => void money.select(code),
+      })),
     },
   ],
   [{ get label() { return translate('signOut') }, icon: "i-lucide-log-out", onSelect: () => void signOut() }],

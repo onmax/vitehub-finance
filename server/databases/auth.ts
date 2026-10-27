@@ -13,6 +13,8 @@ const updatedAt = () =>
 
 export const user = sqliteTable("user", {
   language: text("language"),
+  /** The currency this person sees amounts in; null follows the household's. */
+  displayCurrency: text("display_currency"),
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),

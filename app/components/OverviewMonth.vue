@@ -28,7 +28,7 @@ const share = (value: number) => {
         <div class="flex items-baseline justify-between gap-3">
           <dt class="text-sm text-muted">{{ row.label }}</dt>
           <dd class="money text-lg font-semibold" :class="row.tone === 'in' && row.value > 0 ? 'money-in' : 'text-highlighted'">
-            {{ format(row.value, overview.currency) }}
+            <Money :minor="row.value" :currency="overview.currency" original="below" />
           </dd>
         </div>
         <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-elevated" aria-hidden="true">
@@ -44,7 +44,7 @@ const share = (value: number) => {
       <div class="flex items-baseline justify-between gap-3 border-t border-default pt-4">
         <dt class="text-sm text-muted">{{ $t('netThisMonth') }}</dt>
         <dd class="money text-lg font-semibold" :class="net > 0 ? 'money-in' : 'text-highlighted'">
-          {{ format(net, overview.currency, { signed: true }) }}
+          <Money :minor="net" :currency="overview.currency" signed original="below" />
         </dd>
       </div>
     </dl>

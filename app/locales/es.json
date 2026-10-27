@@ -1075,6 +1075,8 @@
   "appliesToThisDeviceOnly": "Solo se aplica a este dispositivo.",
   "language": "Idioma",
   "languageHelp": "Se usa en la aplicación y en los correos.",
+  "displayCurrencyHelp": "Todos los importes se muestran en esta moneda, al tipo del BCE de hoy. Si un importe estaba en otra moneda, el original aparece al lado. Los totales y los presupuestos se siguen llevando en la moneda del hogar.",
+  "householdCurrencyOption": "La del hogar ({currency})",
   "asset2": "{count} activo | {count} activos",
   "account2": "{count} cuenta | {count} cuentas",
   "asManualUncheckedTheyAndTheirTransactionsAreDeleted": "Se conserva {count} cuenta como cuenta manual. Si lo desmarcas, se eliminan la cuenta y sus movimientos. | Se conservan {count} cuentas como cuentas manuales. Si lo desmarcas, se eliminan las cuentas y sus movimientos.",

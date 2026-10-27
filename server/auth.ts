@@ -16,6 +16,8 @@ import { erasePeople, householdsOf } from "./utils/erase"
 import { emailLanguage, requestLanguage } from "./utils/language"
 import { translator } from "./utils/translate"
 import { isLocale } from "../shared/locale"
+import { CURRENCIES } from "../shared/money"
+import * as v from "valibot"
 import { createHousehold } from "./utils/household"
 
 /**
@@ -42,7 +44,11 @@ export default defineAuth(({ env, requestOrigin }) => ({
   secret: env.auth.secret.unseal(),
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   user: {
-    additionalFields: { language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true } },
+    additionalFields: {
+      language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true },
+      // Better Auth checks neither value against its list, so the currency gets a validator; null follows the household.
+      displayCurrency: { type: [...CURRENCIES], required: false, input: true, validator: { input: v.nullable(v.picklist(CURRENCIES)) } },
+    },
     // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day.
     deleteUser: {
       enabled: true,
