@@ -30,7 +30,25 @@ const toItem = (page: { label: string; icon: string; to: string }): NavigationMe
     onSelect: () => (open.value = false),
   }
 }
-const main = computed(() => MAIN_PAGES.map(toItem))
+// Accounts lists them under it, open while you're on one of its pages; the chevron opens or closes it anywhere. The menu
+// only reads which items start open when it mounts, so it mounts again once the accounts arrive and as you enter or
+// leave Accounts.
+const { data: accounts } = useAccounts()
+const inAccounts = computed(() => isActive("/accounts"))
+const accountItems = computed<NavigationMenuItem[]>(() =>
+  accounts.value.map((account) => ({
+    label: account.name,
+    to: `/accounts/${account.id}`,
+    active: route.path === `/accounts/${account.id}`,
+    onSelect: () => (open.value = false),
+  })),
+)
+const main = computed(() =>
+  MAIN_PAGES.map((page) =>
+    page.to === "/accounts" && accountItems.value.length ? { ...toItem(page), children: accountItems.value, defaultOpen: inAccounts.value } : toItem(page),
+  ),
+)
+const mainKey = computed(() => `${accountItems.value.length > 0}-${inAccounts.value}`)
 const connect = computed<NavigationMenuItem[]>(() => [{ get label() { return translate('connect2') }, type: "label" }, ...CONNECT_PAGES.map(toItem)])
 const secondary = computed(() => SECONDARY_PAGES.map(toItem))
 
@@ -71,6 +89,7 @@ defineShortcuts(
           :kbds="['meta', 'k']"
         />
         <UNavigationMenu
+          :key="mainKey"
           :collapsed="collapsed"
           :items="main"
           orientation="vertical"
