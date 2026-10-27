@@ -31,6 +31,7 @@
     "@vitehub-finance/crypto": "workspace:*",
     "@vueuse/core": "^14.4.0",
     "@vueuse/nuxt": "^14.4.0",
+    "advocaat": "0.0.6",
     "better-auth": "1.7.10",
     "d3-sankey": "^0.12.3",
     "d3-scale": "^4.0.2",

@@ -1,0 +1,314 @@
+diff --git a/dist/agent-diagnostics-C17R3SEm.js b/dist/agent-diagnostics-C17R3SEm.js
+index f45f8774f011f4137b65f5e3e075813bf7e63121..35394c10c825eeb2baa16767f37a998501819260 100644
+--- a/dist/agent-diagnostics-C17R3SEm.js
++++ b/dist/agent-diagnostics-C17R3SEm.js
+@@ -1506,7 +1506,7 @@ const agentDiagnostics = {
+ 			AGENT_R1008: dynamicAgentError,
+ 			AGENT_R1009: {
+ 				why: ({ provider, status, env }) => `[vitehub] The ${provider} Jev provider rejected the API key with HTTP ${status}. The key is missing, expired, or not allowed to call Jev.`,
+-				fix: ({ env }) => `Set or rotate ${env} in the Server Env of this deployment.`
++				fix: ({ env }) => env ? `Set or rotate ${env} in the Server Env of this deployment.` : "Pass a valid apiKey to jev(), or rotate the key."
+ 			},
+ 			AGENT_R1010: {
+ 				why: ({ provider, status, attempts }) => `[vitehub] The ${provider} Jev provider failed${status === void 0 ? " to respond" : ` with HTTP ${status}`} after ${attempts} attempts.`,
+diff --git a/dist/agent-driver-ghtKCAbH.js b/dist/agent-driver-ghtKCAbH.js
+index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..0b42926dd950aaaa9d37c6513b3a319a4f8bc6fd 100644
+--- a/dist/agent-driver-ghtKCAbH.js
++++ b/dist/agent-driver-ghtKCAbH.js
+@@ -41,6 +41,67 @@ function optionalString(value) {
+ 	const resolved = unseal(value);
+ 	return hasRuntimeType(resolved, "string") && resolved.trim() ? resolved.trim() : void 0;
+ }
++const jevProviderNames = {
++	cloudflare: "Cloudflare AI Gateway",
++	typesafe: "TypeSafe",
++	vercel: "Vercel AI Gateway"
++};
++/** The custom provider URL of a Cloudflare AI Gateway. The TypeSafe client appends `/v1/systemone`. */
++function cloudflareJevBaseURL(gateway) {
++	const segment = (value) => encodeURIComponent(value.trim());
++	return `https://gateway.ai.cloudflare.com/v1/${segment(gateway.accountId)}/${segment(gateway.gatewayId)}/custom-${segment(gateway.slug?.trim() || "typesafe")}`;
++}
++function jevProvider(value) {
++	return value === "vercel" || value === "cloudflare" ? value : "typesafe";
++}
++/**
++* Checks one route and builds its request options. `fromEnv` selects the names in diagnostics: Server Env variables,
++* or `jev()` options.
++*/
++function jevRoute(settings, fromEnv) {
++	const provider = jevProvider(settings.provider);
++	const apiKey = optionalString(settings.apiKey);
++	const model = optionalString(settings.model);
++	const fetch = settings.fetch;
++	const shared = {
++		...fetch ? { fetch } : {},
++		...model ? { model } : {},
++		provider
++	};
++	if (provider === "vercel") {
++		if (!apiKey && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: fromEnv ? `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` : `[vitehub] jev({ provider: "vercel" }) requires apiKey, an AI Gateway API key. On Vercel, VERCEL_OIDC_TOKEN also works.` });
++		return {
++			...shared,
++			...apiKey ? { apiKey } : {},
++			...fromEnv ? { keyEnv: "AI_GATEWAY_API_KEY" } : {}
++		};
++	}
++	if (!apiKey) throw agentDiagnostics.AGENT_R0936({ message: !fromEnv ? `[vitehub] jev({ provider: "${provider}" }) requires apiKey, a TypeSafe API key.` : provider === "cloudflare" ? `[vitehub] Jev requests through Cloudflare AI Gateway require env.server.${typesafeEnvGroup}.apiKey, the TypeSafe API key that the gateway forwards. Set TYPESAFE_API_KEY.` : `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
++	if (provider === "typesafe") return {
++		...shared,
++		apiKey,
++		...fromEnv ? { keyEnv: "TYPESAFE_API_KEY" } : {}
++	};
++	const cloudflare = isRuntimeRecord(settings.cloudflare) ? settings.cloudflare : {};
++	const accountId = optionalString(cloudflare.accountId);
++	const gatewayId = optionalString(cloudflare.gatewayId);
++	if (!accountId || !gatewayId) {
++		const missing = [!accountId && (fromEnv ? "CLOUDFLARE_ACCOUNT_ID" : "cloudflare.accountId"), !gatewayId && (fromEnv ? "CLOUDFLARE_AI_GATEWAY_ID" : "cloudflare.gatewayId")].filter(Boolean).join(" and ");
++		throw agentDiagnostics.AGENT_R0936({ message: fromEnv ? `[vitehub] Jev requests through Cloudflare AI Gateway require ${missing}. Set them in the Server Env of this deployment.` : `[vitehub] jev({ provider: "cloudflare" }) requires ${missing}.` });
++	}
++	const token = optionalString(cloudflare.token);
++	return {
++		...shared,
++		apiKey,
++		baseURL: cloudflareJevBaseURL({
++			accountId,
++			gatewayId,
++			slug: optionalString(cloudflare.slug)
++		}),
++		...token ? { headers: { "cf-aig-authorization": `Bearer ${token}` } } : {},
++		...fromEnv ? { keyEnv: "TYPESAFE_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN" } : {}
++	};
++}
+ /** Reads `env.server.typesafe` through the generated Server Env module. */
+ async function typesafeOptions(context) {
+ 	let module;
+@@ -55,16 +116,30 @@ async function typesafeOptions(context) {
+ 	const env = module.useServerEnv?.(context.event);
+ 	const group = isRuntimeRecord(env) ? env[typesafeEnvGroup] : void 0;
+ 	if (!isRuntimeRecord(group)) throw agentDiagnostics.AGENT_R0935({ message: `[vitehub] TypeSafe Jev requests read the Server Env group "${typesafeEnvGroup}", but it is not declared. ${typesafeEnvHint}` });
+-	const provider = group.provider === "vercel" ? "vercel" : "typesafe";
+-	const apiKey = optionalString(group.apiKey);
+-	if (!apiKey && provider === "typesafe") throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
+-	if (!apiKey && provider === "vercel" && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` });
+-	const model = optionalString(group.model);
+-	return {
+-		...apiKey ? { apiKey } : {},
+-		...model ? { model } : {},
++	const cloudflare = isRuntimeRecord(group.cloudflare) ? group.cloudflare : {};
++	return jevRoute({
++		apiKey: optionalString(group.apiKey),
++		cloudflare: {
++			accountId: optionalString(cloudflare.accountId),
++			gatewayId: optionalString(cloudflare.gatewayId),
++			slug: optionalString(cloudflare.slug),
++			token: optionalString(cloudflare.token)
++		},
++		...context.client?.fetch ? { fetch: context.client.fetch } : {},
++		model: optionalString(context.client?.model) ?? optionalString(group.model),
++		provider: jevProvider(group.provider)
++	}, true);
++}
++/** Explicit `jev()` credentials when it has a route, else the Server Env group. */
++async function jevRequestRoute(context) {
++	const client = context.client;
++	if (!client || client.provider === void 0 && client.apiKey === void 0 && client.cloudflare === void 0) return await typesafeOptions(context);
++	const provider = jevProvider(client.provider);
++	return jevRoute({
++		...client,
++		model: optionalString(client.model) ?? (provider === "vercel" ? "typesafe-ai/jev" : "jev-latest"),
+ 		provider
+-	};
++	}, false);
+ }
+ function toEntry(value) {
+ 	const serialized = JSON.stringify(value);
+@@ -119,12 +194,18 @@ function toJevQuestion(question) {
+ * and maps the answers as `advocaat.ask()` does.
+ */
+ async function requestJev(advocaat, state, batch, options) {
+-	const { signal, ...client } = options;
++	const { headers, keyEnv: _keyEnv, provider, signal, ...client } = options;
+ 	const wire = Object.fromEntries(Object.entries(batch).map(([name, question]) => [name, toJevQuestion(question)]));
+-	const result = await advocaat.typesafe(client).systemOne({
++	const result = await advocaat.typesafe({
++		...client,
++		provider: provider === "vercel" ? "vercel" : "typesafe"
++	}).systemOne({
+ 		questions: wire,
+ 		state
+-	}, { signal });
++	}, {
++		...headers ? { headers } : {},
++		signal
++	});
+ 	const answers = Object.create(null);
+ 	for (const [name, answer] of Object.entries(result.answers)) {
+ 		const question = batch[name];
+@@ -186,7 +267,7 @@ function waitForRetry(attempt, signal) {
+ * Both keep the provider error as `cause` and expose `status`, `providerStatus`, and `requestId`.
+ */
+ async function requestJevWithRetry(advocaat, state, batch, options) {
+-	const provider = options.provider === "vercel" ? "Vercel AI Gateway" : "TypeSafe";
++	const provider = jevProviderNames[options.provider];
+ 	for (let attempt = 0;; attempt++) try {
+ 		return await requestJev(advocaat, state, batch, options);
+ 	} catch (error) {
+@@ -197,18 +278,15 @@ async function requestJevWithRetry(advocaat, state, batch, options) {
+ 			providerStatus: status,
+ 			requestId: errorRequestId(error)
+ 		};
+-		if (status === 401 || status === 403) {
+-			const env = options.provider === "vercel" ? "AI_GATEWAY_API_KEY" : "TYPESAFE_API_KEY";
+-			throw Object.assign(agentDiagnostics.AGENT_R1009({
+-				provider,
+-				status,
+-				env,
+-				cause: error
+-			}), {
+-				...details,
+-				status: 503
+-			});
+-		}
++		if (status === 401 || status === 403) throw Object.assign(agentDiagnostics.AGENT_R1009({
++			provider,
++			status,
++			env: options.keyEnv,
++			cause: error
++		}), {
++			...details,
++			status: 503
++		});
+ 		if (!(status === void 0 ? error instanceof TypeError && isRuntimeRecord(error) && "cause" in error : retryableJevStatuses.has(status))) throw error;
+ 		if (attempt + 1 >= jevAttempts) throw Object.assign(agentDiagnostics.AGENT_R1010({
+ 			provider,
+@@ -424,7 +502,7 @@ async function askJev(context, state, questions) {
+ 	const entry = toEntry(state);
+ 	const batches = jevQuestionBatches(entry, wire);
+ 	const advocaat = await loadAdvocaat();
+-	const options = await typesafeOptions(context);
++	const options = await jevRequestRoute(context);
+ 	const output = Object.create(null);
+ 	for (const [batchIndex, batch] of batches.entries()) {
+ 		context.abortSignal?.throwIfAborted();
+diff --git a/dist/gateways.d.ts b/dist/gateways.d.ts
+index 9a4baf2b8b170c8d1935a6eb07514b889780c106..63f0d199dd9a5310a456333db085b788e0ee8974 100644
+--- a/dist/gateways.d.ts
++++ b/dist/gateways.d.ts
+@@ -1,4 +1,71 @@
+-import { Hn as AgentDriverGateway, Un as AgentDriverGatewaySecret } from "./types-BY_RNjJY.js";
++import { Hn as AgentDriverGateway, Oa as AgentUsageRecord, Ou as AskQuestions, Un as AgentDriverGatewaySecret, gu as AskAnswers } from "./types-BY_RNjJY.js";
++import { TraceEvent } from "@vite-hub/runtime";
++//#region src/internal/ask-runtime.d.ts
++/** Where Jev requests go. Cloudflare AI Gateway forwards the TypeSafe API through a custom provider. */
++type JevProvider = "typesafe" | "vercel" | "cloudflare";
++/** A Cloudflare AI Gateway with a custom provider whose base URL is `https://api.typesafe.ai`. */
++interface JevCloudflareGateway {
++  /** Cloudflare account ID. */
++  accountId: string;
++  /** AI Gateway ID. */
++  gatewayId: string;
++  /** Custom provider slug. The gateway URL uses `custom-<slug>`. Default: `typesafe`. */
++  slug?: string;
++  /** Gateway token of an authenticated gateway, sent as `cf-aig-authorization`. */
++  token?: string;
++}
++//#endregion
++//#region src/jev.d.ts
++interface JevSharedOptions {
++  /** Custom fetch implementation. Default: `globalThis.fetch`. */
++  fetch?: typeof globalThis.fetch;
++  /** Model ID. Default: `TYPESAFE_DEFAULT_MODEL` with Server Env, else `jev-latest`, or `typesafe-ai/jev` through Vercel AI Gateway. */
++  model?: string;
++}
++/**
++ * Options for `jev()`. Without `provider`, the client reads the Server Env group `typesafe`, declared with
++ * `typesafeEnv()`. With `provider`, it uses only the credentials that you pass.
++ */
++type JevOptions = JevSharedOptions & ({
++  apiKey?: undefined;
++  cloudflare?: undefined;
++  provider?: undefined;
++} | {
++  apiKey: string;
++  cloudflare?: undefined;
++  provider: "typesafe";
++} | {
++  apiKey?: string;
++  cloudflare?: undefined;
++  provider: "vercel";
++} | {
++  apiKey: string;
++  cloudflare: JevCloudflareGateway;
++  provider: "cloudflare";
++});
++interface JevAskOptions {
++  /** Receives the model, provider, and token counts of each Jev request. */
++  onUsage?: (usage: AgentUsageRecord) => void;
++  /** Cancels the pending Jev requests. */
++  signal?: AbortSignal;
++}
++interface JevClient {
++  /**
++   * Answers the questions about `state`. Build the questions with `ask` from `@vite-hub/agent`. Large question sets are
++   * sent in sequential bounded requests; transient provider failures are retried.
++   */
++  ask: <const Q extends AskQuestions>(state: unknown, questions: Q, options?: JevAskOptions) => Promise<AskAnswers<Q>>;
++}
++/**
++ * A TypeSafe Jev client. The same questions and answers work through the TypeSafe API, Vercel AI Gateway, and
++ * Cloudflare AI Gateway. Use explicit options for credentials that the application stores, such as one key per tenant.
++ *
++ * ```ts
++ * const answers = await jev({ provider: "vercel", apiKey }).ask(email, { spam: ask.if("Is it spam?") })
++ * ```
++ */
++export declare function jev(options?: JevOptions): JevClient;
++//#endregion
+ //#region src/gateways.d.ts
+ /** Options shared by every gateway preset. */
+ export interface AgentGatewayPresetOptions {
+@@ -41,4 +108,4 @@ export declare function openai(options?: AgentGatewayPresetOptions): AgentDriver
+ /** The Anthropic API with an API key. Serves Claude Code. Reads `ANTHROPIC_API_KEY`. */
+ export declare function anthropic(options?: AgentGatewayPresetOptions): AgentDriverGateway;
+ //#endregion
+-export type { AgentDriverGateway, AgentDriverGatewaySecret };
+\ No newline at end of file
++export type { AgentDriverGateway, AgentDriverGatewaySecret, JevAskOptions, JevClient, JevCloudflareGateway, JevOptions, JevProvider };
+\ No newline at end of file
+diff --git a/dist/gateways.js b/dist/gateways.js
+index 4f5768c0cce8a75a51c1314dcaac5dcdc5c492c8..8bd3eebf46bf875ad0af4ef281504c146c12a914 100644
+--- a/dist/gateways.js
++++ b/dist/gateways.js
+@@ -1,7 +1,25 @@
+ import { t as agentDiagnostics } from "./agent-diagnostics-C17R3SEm.js";
+ import { a as isRuntimeRecord, n as hasRuntimeType } from "./runtime-type-VTnJJ_sX.js";
+ import { n as normalizeAgentDriverGateway } from "./agent-gateway-BgOKEyQn.js";
++import { r as askJev } from "./agent-driver-ghtKCAbH.js";
+ import { n as gatewayEnvNames, r as gatewayEnvValue } from "./gateway-env-Cccy3H-K.js";
++//#region src/jev.ts
++/**
++* A TypeSafe Jev client. The same questions and answers work through the TypeSafe API, Vercel AI Gateway, and
++* Cloudflare AI Gateway. Use explicit options for credentials that the application stores, such as one key per tenant.
++*
++* ```ts
++* const answers = await jev({ provider: "vercel", apiKey }).ask(email, { spam: ask.if("Is it spam?") })
++* ```
++*/
++function jev(options = {}) {
++	return { ask: async (state, questions, { onUsage, signal } = {}) => await askJev({
++		...signal ? { abortSignal: signal } : {},
++		client: options,
++		...onUsage ? { recordUsage: onUsage } : {}
++	}, state, questions) };
++}
++//#endregion
+ //#region src/gateways.ts
+ function origin(url, label) {
+ 	if (!hasRuntimeType(url, "string") || !url.trim()) throw agentDiagnostics.AGENT_R0975({ message: `[vitehub] ${label}({ url }) must be a non-empty URL.` });
+@@ -136,4 +154,4 @@ function anthropic(options) {
+ 	}, options);
+ }
+ //#endregion
+-export { anthropic, cliproxy, cloudflareAccess, defineGateway, litellm, ollama, openai, openrouter, vercel };
++export { anthropic, cliproxy, cloudflareAccess, defineGateway, jev, litellm, ollama, openai, openrouter, vercel };
