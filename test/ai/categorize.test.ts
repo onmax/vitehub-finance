@@ -1,19 +1,18 @@
+import { jev } from "vite-hub/agent/gateways"
 import { describe, expect, it, vi } from "vitest"
 import { DEFAULT_CATEGORIES } from "../../shared/categories"
 import {
   BATCH_SIZE,
   buildBatches,
   classify,
-  JevError,
   MIN_CONFIDENCE,
   MIN_FITS,
   readAnswers,
   roughAmount,
   scrub,
-  TYPESAFE_URL,
   type AiCategory,
   type AiRow,
-  type JevRequest,
+  type JevState,
 } from "../../server/utils/ai-categorize-core"
 
 const CATEGORIES: AiCategory[] = DEFAULT_CATEGORIES.map((entry, index) => ({
@@ -36,12 +35,16 @@ const row = (description: string, amountMinor: number, extra: Partial<AiRow> = {
 })
 
 /**
- * A stand-in for Jev: picks the option whose name appears in a lookup for the row's description, sure of it, and says
- * the row fits; anything it doesn't know gets an even split and a "no".
+ * A stand-in for TypeSafe's API (what ViteHub's `jev()` client sends and reads): picks the option whose name appears in a
+ * lookup for the row's description, sure of it, and says the row fits; anything it doesn't know gets an even split and a
+ * "no".
  */
 function fakeJev(known: Record<string, string>) {
   return vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-    const body = JSON.parse(String(init!.body)) as JevRequest
+    const body = JSON.parse(String(init!.body)) as {
+      state: JevState
+      questions: Record<string, { type: "noul" } | { type: "choice"; criteria: Record<string, string> }>
+    }
     const answers: Record<string, unknown> = {}
     for (const [id, question] of Object.entries(body.questions)) {
       const index = Number(id.split("_")[1])
@@ -78,8 +81,7 @@ describe("what a request sends", () => {
       row("Hetzner refund", 400),
     ]
     const [batch] = buildBatches(rows, CATEGORIES, { names: ["Maxi Garcia"] })
-    const body = batch!.body
-    expect(body.model).toBe("jev-latest")
+    const body = batch!
     expect(body.state.transactions).toEqual([
       { direction: "money out", amount: "about 19 EUR", description: "Five Guys Jv Ltd", counterparty: "FIVE GUYS", account: "credit" },
       { direction: "money in", amount: "about 4 EUR", description: "Hetzner refund", account: "checking" },
@@ -94,15 +96,15 @@ describe("what a request sends", () => {
     expect(Object.keys(out.criteria)).not.toContain("Transfers")
     expect(Object.keys(income.criteria).sort()).toEqual(["Other income", "Salary"])
     expect(out.criteria["Groceries"]).toMatch(/^Money spent on groceries\. For example: mercadona, carrefour/)
-    expect(body.questions.fits_0).toEqual({ type: "noul", instructions: expect.stringContaining("`transactions[0]`") })
+    expect(body.questions.fits_0).toEqual({ type: "chance", instructions: expect.stringContaining("`transactions[0]`") })
     // No ids, dates, or names leave the server.
-    expect(JSON.stringify(body)).not.toMatch(/t\d+|Maxi|\d{4}-\d{2}-\d{2}/)
+    expect(JSON.stringify({ state: body.state, questions: body.questions })).not.toMatch(/t\d+|Maxi|\d{4}-\d{2}-\d{2}/)
   })
 
   it("starts each row's options somewhere else, so Jev's lean toward the first option doesn't favor one category", () => {
     const [batch] = buildBatches([row("a", -100), row("b", -100)], CATEGORIES)
     const first = (id: string) => {
-      const question = batch!.body.questions[id]!
+      const question = batch!.questions[id]!
       return question.type === "choice" ? Object.keys(question.criteria)[0] : null
     }
     expect(first("category_0")).not.toBe(first("category_1"))
@@ -119,10 +121,8 @@ describe("what a request sends", () => {
 describe("reading answers", () => {
   const [batch] = buildBatches([row("Waymo", -2300)], CATEGORIES)
   const answer = (confidence: number, fits: number, choice = "Transport") => ({
-    answers: {
-      category_0: { type: "choice", choice, confidence, probabilities: {} },
-      fits_0: { type: "noul", noul: fits },
-    },
+    category_0: { type: "choice", choice, confidence, probabilities: {} },
+    fits_0: { type: "chance", chance: fits },
   })
 
   it("uses a category only when the Choice is confident and the Noul says it fits", () => {
@@ -137,41 +137,52 @@ describe("reading answers", () => {
   })
 })
 
-describe("asking Jev", () => {
+describe("asking Jev through ViteHub's client", () => {
+  const client = (fetch: typeof globalThis.fetch) => jev({ provider: "typesafe", apiKey: "ts_test", fetch })
+
   it("posts each batch with the key and returns the sure answers with token usage", async () => {
     const rows = [row("Hetzner Online Gmbh", -2_500), row("Coop Eslov", -34_900), row("Card payment", -1_000)]
     const fetch = fakeJev({ "Hetzner Online Gmbh": "Subscriptions", "Coop Eslov": "Groceries" })
-    const result = await classify(rows, CATEGORIES, { apiKey: "ts_test", fetch })
+    const result = await classify(rows, CATEGORIES, { jev: client(fetch) })
     expect(fetch).toHaveBeenCalledTimes(1)
     const [url, init] = fetch.mock.calls[0]!
-    expect(url).toBe(TYPESAFE_URL)
+    expect(url).toBe("https://api.typesafe.ai/v1/systemone")
     expect(new Headers(init!.headers).get("authorization")).toBe("Bearer ts_test")
+    expect(JSON.parse(String(init!.body))).toMatchObject({ model: "jev-latest", questions: { fits_0: { type: "noul" } } })
     expect(result.decisions.map((decision) => decision.categoryId)).toEqual([idOf("Subscriptions"), idOf("Groceries"), null])
     expect(result.usage).toMatchObject({ calls: 1, failedCalls: 0, inputTokens: 1000, outputTokens: 50, model: "jev-1.14.0" })
   })
 
-  it("retries once after a 429, waiting what retry-after says", async () => {
-    const jev = fakeJev({ Waymo: "Transport" })
+  it("asks the same questions through a Cloudflare AI Gateway", async () => {
+    const fetch = fakeJev({ Waymo: "Transport" })
+    const gateway = jev({ provider: "cloudflare", apiKey: "ts_test", cloudflare: { accountId: "acc", gatewayId: "finance", token: "cf" }, fetch })
+    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { jev: gateway })
+    const [url, init] = fetch.mock.calls[0]!
+    expect(url).toBe("https://gateway.ai.cloudflare.com/v1/acc/finance/custom-typesafe/v1/systemone")
+    expect(new Headers(init!.headers).get("cf-aig-authorization")).toBe("Bearer cf")
+    expect(result.decisions[0]!.categoryId).toBe(idOf("Transport"))
+  })
+
+  it("lets ViteHub retry a 429", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(new Response("slow down", { status: 429, headers: { "retry-after": "3" } }))
-      .mockImplementation(jev)
-    const sleep = vi.fn(async () => {})
-    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { apiKey: "k", fetch, sleep })
-    expect(sleep).toHaveBeenCalledWith(3000)
+      .mockResolvedValueOnce(new Response("slow down", { status: 429 }))
+      .mockImplementation(fakeJev({ Waymo: "Transport" }))
+    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { jev: client(fetch) })
+    expect(fetch).toHaveBeenCalledTimes(2)
     expect(result.decisions[0]!.categoryId).toBe(idOf("Transport"))
   })
 
   it("keeps what the other batches answered when one fails, and throws when all do", async () => {
     const rows = Array.from({ length: BATCH_SIZE + 1 }, (_, index) => row(index === BATCH_SIZE ? "Waymo" : `Shop ${index}`, -500))
-    const jev = fakeJev({ Waymo: "Transport" })
-    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValueOnce(new Response("bad key", { status: 401 })).mockImplementation(jev)
-    const result = await classify(rows, CATEGORIES, { apiKey: "k", fetch })
+    const answer = fakeJev({ Waymo: "Transport" })
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValueOnce(new Response("bad key", { status: 401 })).mockImplementation(answer)
+    const result = await classify(rows, CATEGORIES, { jev: client(fetch) })
     expect(result.usage.failedCalls).toBe(1)
     expect(result.usage.error).toMatchObject({ status: 401 })
     expect(result.decisions).toHaveLength(1)
 
     const down = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response("{}", { status: 422 }))
-    await expect(classify([row("Waymo", -2_300)], CATEGORIES, { apiKey: "k", fetch: down })).rejects.toBeInstanceOf(JevError)
+    await expect(classify([row("Waymo", -2_300)], CATEGORIES, { jev: client(down) })).rejects.toMatchObject({ status: 422 })
   })
 })

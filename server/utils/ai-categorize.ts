@@ -1,23 +1,21 @@
 import { and, count, desc, eq, inArray, isNull, ne, type SQL } from "drizzle-orm"
 import type { RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
-import { useServerEnv } from "#vitehub/env/server"
 import { category, financialAccount, householdSettings, member, rule, transaction, user as users } from "../databases/config"
 import { isDemo, isDemoPerson } from "../demo/mode"
 import { classify, costUsd, type AiCategory, type Usage } from "./ai-categorize-core"
+import { routeFor, type Route } from "./ai-gateway"
 
 /** Rows asked about per call of the one-off action, so a request stays well inside a Worker's time. */
 export const ACTION_LIMIT = 200
 /** Rows asked about per sync. A first sync brings a year; the rest wait for the next sync or the action. */
 export const SYNC_LIMIT = 400
 
-const apiKey = () => useServerEnv().typesafe.apiKey.unseal()?.trim() || ""
-
-/** Whether this server has a TypeSafe key. */
-export const aiConfigured = () => Boolean(apiKey())
-
-/** AI categories need a TypeSafe key and are never for the demo's people, whose data is fictional anyway. */
-export const aiAvailable = (who: { email: string }) => aiConfigured() && !isDemoPerson(who.email)
+/**
+ * The caller's household route to Jev (its own key, else the server's), or null: AI categories need a key and are never
+ * for the demo's people, whose data is fictional anyway.
+ */
+export const aiRouteFor = async (who: { email: string; householdId: string }) => (isDemoPerson(who.email) ? null : await routeFor(who.householdId))
 
 /** Whether the demo's people are in this household (the demo build only). */
 async function demoHousehold(householdId: string) {
@@ -47,11 +45,13 @@ type Log = Pick<RequestLogger, "set" | "warn">
  * `categorySource: "ai"`; every row asked is marked, so an unsure one isn't asked (or paid for) again. Rows in a batch
  * whose request failed stay unmarked for next time.
  *
- * Nothing happens without a TypeSafe key, for the demo's household, or when the household turned it off. The log gets counts, token
- * usage, and cost, never the transactions' text.
+ * Nothing happens without a key (the household's or the server's, server/utils/ai-gateway.ts), for the demo's household,
+ * or when the household turned it off. The log gets the route, counts, token usage, and cost, never the transactions' text.
  */
 export async function categorizeWithAi(householdId: string, accounts: SQL, options: { limit: number; log?: Log }): Promise<AiOutcome | null> {
-  if (!aiConfigured() || (await demoHousehold(householdId))) return null
+  if (await demoHousehold(householdId)) return null
+  const route = await routeFor(householdId)
+  if (!route) return null
   const [settings] = await db
     .select({ aiCategorize: householdSettings.aiCategorize })
     .from(householdSettings)
@@ -93,9 +93,9 @@ export async function categorizeWithAi(householdId: string, accounts: SQL, optio
   const started = Date.now()
   let result: Awaited<ReturnType<typeof classify>>
   try {
-    result = await classify(batch, categories, { apiKey: apiKey(), names })
+    result = await classify(batch, categories, { jev: route.client, names })
   } catch (error) {
-    options.log?.warn("AI categories failed", { ai: { provider: "typesafe", error: error instanceof Error ? error.message : String(error) } })
+    options.log?.warn("AI categories failed", { ai: { ...where(route), error: error instanceof Error ? error.message : String(error) } })
     throw error
   }
   const { decisions, usage, unsent } = result
@@ -118,7 +118,7 @@ export async function categorizeWithAi(householdId: string, accounts: SQL, optio
   for (let index = 0; index < unsure.length; index += 90)
     await db.update(transaction).set({ aiCheckedAt: now }).where(inArray(transaction.id, unsure.slice(index, index + 90)))
 
-  log(options.log, usage, { asked: decisions.length, categorized, durationMs: Date.now() - started })
+  log(options.log, route, usage, { asked: decisions.length, categorized, durationMs: Date.now() - started })
   const [left] = await db
     .select({ count: count() })
     .from(transaction)
@@ -141,10 +141,13 @@ async function householdCategories(householdId: string): Promise<AiCategory[]> {
 }
 
 /** Counts, tokens, and cost on the wide event, shaped like evlog's AI SDK fields (`ai.*`). */
-function log(target: Log | undefined, usage: Usage, counts: { asked: number; categorized: number; durationMs: number }) {
+/** Which route answered, for the logs: `provider` (typesafe, vercel, cloudflare) and whose key (`keySource`). */
+const where = (route: Route) => ({ provider: route.route, keySource: route.source })
+
+function log(target: Log | undefined, route: Route, usage: Usage, counts: { asked: number; categorized: number; durationMs: number }) {
   target?.set({
     ai: {
-      provider: "typesafe",
+      ...where(route),
       model: usage.model,
       calls: usage.calls,
       failedCalls: usage.failedCalls,

@@ -4,7 +4,7 @@ import { db } from "vite-hub/database/drizzle"
 import { useRuntimeConfig } from "nitro/runtime-config"
 import type { MeResponse } from "#shared/api"
 import { householdSettings, organization, user as users } from "../databases/config"
-import { aiAvailable } from "../utils/ai-categorize"
+import { aiRouteFor } from "../utils/ai-categorize"
 import { householdMembers, requireMember } from "../utils/identity"
 
 export default defineHandler(async (event): Promise<MeResponse> => {
@@ -23,6 +23,7 @@ export default defineHandler(async (event): Promise<MeResponse> => {
     .limit(1)
   const [person] = await db.select().from(users).where(eq(users.id, who.userId)).limit(1)
   const members = await householdMembers(who.householdId)
+  const ai = await aiRouteFor(who)
   return {
     user: { id: who.userId, name: who.name, email: who.email, image: person?.image ?? null },
     household: {
@@ -31,10 +32,11 @@ export default defineHandler(async (event): Promise<MeResponse> => {
       currency: household?.currency ?? "EUR",
       shareNewAccounts: household?.shareNewAccounts ?? true,
       aiCategorize: household?.aiCategorize ?? true,
+      aiRoute: ai?.route ?? null,
     },
     role: who.role,
     members: members.map((row) => ({ ...row, role: row.role === "owner" ? "owner" : "member" })),
     email: Boolean(useRuntimeConfig().public.email),
-    ai: aiAvailable(who),
+    ai: Boolean(ai),
   }
 })

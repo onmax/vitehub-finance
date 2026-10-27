@@ -30,6 +30,10 @@ export const householdSettings = sqliteTable("household_settings", {
   shareNewAccounts: integer("share_new_accounts", { mode: "boolean" }).notNull().default(true),
   // Uncategorized transactions get a category from AI (server/utils/ai-categorize.ts) when the server has a TypeSafe key.
   aiCategorize: integer("ai_categorize", { mode: "boolean" }).notNull().default(true),
+  // How the household reaches Jev with its own key (server/utils/ai-gateway.ts); null uses the server's key, if any.
+  aiGateway: text("ai_gateway", { enum: ["typesafe", "vercel", "cloudflare"] }),
+  // The household's key, and for Cloudflare the account, gateway, token, and slug: AES-GCM ciphertext (crypto.ts).
+  aiCredentials: text("ai_credentials"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })

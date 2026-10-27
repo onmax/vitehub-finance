@@ -35,16 +35,49 @@ export interface MeResponse {
     name: string
     currency: string
     shareNewAccounts: boolean
-    /** AI categories for what the rules miss, when the server has them (`ai`). */
+    /** AI categories for what the rules miss, when the household or the server has a key (`ai`). */
     aiCategorize: boolean
+    /** How this household reaches Jev: its own key's route, else the server's, else null (AI categories are off). */
+    aiRoute: AiRoute | null
   }
   role: "owner" | "member"
   members: Person[]
   /** True when the build can send email (magic links, invitations, reminders). */
   email: boolean
-  /** True when the server has a TypeSafe key for AI categories (never in the demo). */
+  /** True when the household or the server has a key for AI categories (never in the demo). */
   ai: boolean
 }
+
+/** Where AI category requests go: TypeSafe's API, or TypeSafe through Vercel AI Gateway or Cloudflare AI Gateway. */
+export type AiRoute = "typesafe" | "vercel" | "cloudflare"
+
+/** A stored secret, as the browser sees it: set, and its last four characters. */
+export interface SecretHint {
+  last4: string
+}
+
+/** `GET /api/household/ai` (owner): the household's route for AI categories, without its secrets. */
+export interface AiGatewaySettings {
+  /** `server`: the server's key, if it has one (`server`). */
+  gateway: "server" | AiRoute
+  /** The server's own route, or null when the server has no key. */
+  server: AiRoute | null
+  /** The household's key: a TypeSafe key (TypeSafe, Cloudflare) or an AI Gateway key (Vercel). */
+  apiKey: (SecretHint & { kind: "typesafe" | "vercel" }) | null
+  cloudflare: { accountId: string; gatewayId: string; slug: string; token: SecretHint | null } | null
+}
+
+/**
+ * `PUT /api/household/ai` and `POST /api/household/ai/test`. An empty `apiKey` or `token` keeps the stored one;
+ * `token: null` removes it.
+ */
+export type AiGatewayInput =
+  | { gateway: "server" }
+  | { gateway: "typesafe" | "vercel"; apiKey?: string }
+  | { gateway: "cloudflare"; apiKey?: string; accountId: string; gatewayId: string; token?: string | null; slug?: string }
+
+/** `POST /api/household/ai/test`: one tiny Jev question through the route. */
+export type AiTestResult = { ok: true; model: string | null; ms: number } | { ok: false; message: string }
 
 /** `POST /api/transactions/categorize`: one round of AI categories over the caller's uncategorized transactions. */
 export interface AiCategorizeResult {
@@ -407,8 +440,11 @@ export interface ProviderInfo {
 export interface LegalInfo {
   /** `FINANCE_CONTACT_EMAIL`, or null when the instance has none. */
   contactEmail: string | null
-  /** Whether this instance sends transactions to TypeSafe for AI categories (`TYPESAFE_API_KEY`). */
-  ai: boolean
+  /**
+   * Where this instance sends transactions for AI categories: the signed-in household's route, else the server's, or null
+   * when neither has a key.
+   */
+  ai: AiRoute | null
 }
 
 /** An MCP client someone allowed through OAuth (GET /api/agents). */

@@ -7,6 +7,7 @@ import { householdSettings, organization } from "../../databases/config"
 import { requireMember, requireOwner } from "../../utils/identity"
 import { Currency, Name, readInput } from "../../utils/input"
 import { refuseDemoPerson } from "../../demo/mode"
+import { aiRouteFor } from "../../utils/ai-categorize"
 
 const Body = v.object({
   name: v.optional(Name),
@@ -51,5 +52,6 @@ export default defineHandler(async (event): Promise<MeResponse["household"]> => 
     currency: row?.currency ?? "EUR",
     shareNewAccounts: row?.shareNewAccounts ?? true,
     aiCategorize: row?.aiCategorize ?? true,
+    aiRoute: (await aiRouteFor(who))?.route ?? null,
   }
 })

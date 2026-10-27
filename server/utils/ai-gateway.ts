@@ -1,0 +1,222 @@
+import { eq } from "drizzle-orm"
+import * as v from "valibot"
+import { jev, type JevClient, type JevOptions } from "vite-hub/agent/gateways"
+import { db } from "vite-hub/database/drizzle"
+import { useServerEnv } from "#vitehub/env/server"
+import type { AiGatewayInput, AiGatewaySettings, AiRoute, AiTestResult, SecretHint } from "#shared/api"
+import { householdSettings } from "../databases/config"
+import { isDemo } from "../demo/mode"
+import { seal, unseal } from "./crypto"
+import { HTTPError } from "./http-error"
+
+/**
+ * How a household reaches Jev, TypeSafe's model for AI categories. All three routes ask the same questions through
+ * ViteHub's `jev()` client:
+ *
+ * - `typesafe`: TypeSafe's API, with a TypeSafe key.
+ * - `vercel`: Vercel AI Gateway, with an AI Gateway key.
+ * - `cloudflare`: TypeSafe's API through a Cloudflare AI Gateway custom provider, with a TypeSafe key, the account and
+ *   gateway ids, an optional gateway token (authenticated gateways), and the provider's slug (default `typesafe`).
+ *
+ * The household's owner picks one in Settings › Categories; its secrets are sealed like connection credentials and never
+ * go back to the browser. Without one, the household uses the server's own route (`typesafeEnv()` in nuxt.config.ts,
+ * `FINANCE_AI_GATEWAY` at build time). Without either, AI categories are off. The demo build never asks Jev.
+ */
+
+/** What `ai_credentials` holds, sealed. */
+interface Credentials {
+  apiKey: string
+  accountId?: string
+  gatewayId?: string
+  token?: string
+  slug?: string
+}
+
+export interface Route {
+  route: AiRoute
+  /** `household`: the household's own key; `server`: the server's. */
+  source: "household" | "server"
+  client: JevClient
+}
+
+const present = (value: string | null | undefined) => (value?.trim() ? value.trim() : undefined)
+
+/**
+ * The server's own route and credentials, from its `typesafeEnv()` group, when it has what that route needs. Passed to
+ * `jev()` explicitly: ViteHub's Server Env fallback inside `jev()` doesn't resolve under `nuxt dev`, where vite-hub stays
+ * external.
+ */
+function serverCredentials(): { gateway: AiRoute; credentials: Credentials } | null {
+  if (isDemo()) return null
+  // Its type follows the build's FINANCE_AI_GATEWAY; read it as any of the three.
+  const config: {
+    provider?: string
+    apiKey?: { unseal(): string | undefined }
+    cloudflare?: { accountId?: string; gatewayId?: string; slug?: string; token?: { unseal(): string | undefined } }
+  } = useServerEnv().typesafe
+  const gateway: AiRoute = config.provider === "vercel" || config.provider === "cloudflare" ? config.provider : "typesafe"
+  const apiKey = present(config.apiKey?.unseal())
+  if (!apiKey) return null
+  if (gateway !== "cloudflare") return { gateway, credentials: { apiKey } }
+  const accountId = present(config.cloudflare?.accountId)
+  const gatewayId = present(config.cloudflare?.gatewayId)
+  if (!accountId || !gatewayId) return null
+  const token = present(config.cloudflare?.token?.unseal())
+  const slug = present(config.cloudflare?.slug)
+  return { gateway, credentials: { apiKey, accountId, gatewayId, ...(token ? { token } : {}), ...(slug ? { slug } : {}) } }
+}
+
+/** The server's own route, or null when it has no key. */
+export const serverRoute = (): AiRoute | null => serverCredentials()?.gateway ?? null
+
+/** A Jev client through the server's own route. */
+export function serverClient() {
+  const server = serverCredentials()
+  return server ? clientFor(server.gateway, server.credentials) : null
+}
+
+async function stored(householdId: string) {
+  const [row] = await db
+    .select({ gateway: householdSettings.aiGateway, credentials: householdSettings.aiCredentials })
+    .from(householdSettings)
+    .where(eq(householdSettings.householdId, householdId))
+    .limit(1)
+  if (!row?.gateway) return null
+  const credentials = await unseal<Credentials>(row.credentials)
+  return credentials ? { gateway: row.gateway, credentials } : null
+}
+
+function optionsFor(gateway: AiRoute, credentials: Credentials): JevOptions {
+  if (gateway !== "cloudflare") return { provider: gateway, apiKey: credentials.apiKey }
+  return {
+    provider: "cloudflare",
+    apiKey: credentials.apiKey,
+    cloudflare: {
+      accountId: credentials.accountId ?? "",
+      gatewayId: credentials.gatewayId ?? "",
+      ...(credentials.token ? { token: credentials.token } : {}),
+      ...(credentials.slug ? { slug: credentials.slug } : {}),
+    },
+  }
+}
+
+/** A Jev client for a household's own route. */
+export const clientFor = (gateway: AiRoute, credentials: Credentials) => jev(optionsFor(gateway, credentials))
+
+/** The household's own route when its owner set one, else the server's, else null (AI categories are off). */
+export async function routeFor(householdId: string): Promise<Route | null> {
+  if (isDemo()) return null
+  const own = await stored(householdId)
+  if (own) return { route: own.gateway, source: "household", client: clientFor(own.gateway, own.credentials) }
+  const server = serverCredentials()
+  return server ? { route: server.gateway, source: "server", client: clientFor(server.gateway, server.credentials) } : null
+}
+
+const hint = (secret: string | undefined): SecretHint | null => (secret ? { last4: secret.slice(-4) } : null)
+
+/** What the owner's form shows: the route and its non-secret fields, and for each secret only that it's set. */
+export async function gatewaySettings(householdId: string): Promise<AiGatewaySettings> {
+  const own = await stored(householdId)
+  return {
+    gateway: own?.gateway ?? "server",
+    server: serverRoute(),
+    apiKey: own ? { kind: own.gateway === "vercel" ? "vercel" : "typesafe", last4: own.credentials.apiKey.slice(-4) } : null,
+    cloudflare:
+      own?.gateway === "cloudflare"
+        ? {
+            accountId: own.credentials.accountId ?? "",
+            gatewayId: own.credentials.gatewayId ?? "",
+            slug: own.credentials.slug ?? "",
+            token: hint(own.credentials.token),
+          }
+        : null,
+  }
+}
+
+const Secret = v.pipe(v.string(), v.trim(), v.maxLength(500))
+const Id = v.pipe(v.string(), v.trim(), v.maxLength(100))
+
+/** The owner's form (`AiGatewayInput`): which route, and its fields. An empty secret keeps the stored one. */
+export const AiGatewayBody = v.variant("gateway", [
+  v.object({ gateway: v.literal("server") }),
+  v.object({ gateway: v.picklist(["typesafe", "vercel"]), apiKey: v.optional(Secret) }),
+  v.object({
+    gateway: v.literal("cloudflare"),
+    apiKey: v.optional(Secret),
+    accountId: Id,
+    gatewayId: Id,
+    token: v.optional(v.nullable(Secret)),
+    slug: v.optional(v.pipe(Id, v.regex(/^[a-z0-9-]*$/i, "Use letters, numbers, and dashes."))),
+  }),
+])
+
+/**
+ * The form's values on top of what's stored: an empty key or token keeps the stored one (a TypeSafe key serves both
+ * TypeSafe and Cloudflare; an AI Gateway key only Vercel), `token: null` removes the token. Null for "server".
+ */
+export async function credentialsFrom(householdId: string, input: AiGatewayInput): Promise<{ gateway: AiRoute; credentials: Credentials } | null> {
+  if (input.gateway === "server") return null
+  const own = await stored(householdId)
+  const sameKind = own && (own.gateway === "vercel") === (input.gateway === "vercel")
+  const apiKey = present(input.apiKey) ?? (sameKind ? own.credentials.apiKey : undefined)
+  if (!apiKey) throw new HTTPError({ status: 400, statusText: "Paste an API key." })
+  if (input.gateway !== "cloudflare") return { gateway: input.gateway, credentials: { apiKey } }
+  const accountId = present(input.accountId)
+  const gatewayId = present(input.gatewayId)
+  if (!accountId || !gatewayId) throw new HTTPError({ status: 400, statusText: "Enter the Cloudflare account ID and gateway ID." })
+  const token = input.token === null ? undefined : (present(input.token) ?? (own?.gateway === "cloudflare" ? own.credentials.token : undefined))
+  const slug = present(input.slug)
+  return { gateway: "cloudflare", credentials: { apiKey, accountId, gatewayId, ...(token ? { token } : {}), ...(slug ? { slug } : {}) } }
+}
+
+/** Saves the household's route, or clears it to use the server's. */
+export async function saveGateway(householdId: string, chosen: Awaited<ReturnType<typeof credentialsFrom>>) {
+  const values = chosen
+    ? { aiGateway: chosen.gateway, aiCredentials: await seal(chosen.credentials) }
+    : { aiGateway: null, aiCredentials: null }
+  await db
+    .insert(householdSettings)
+    .values({ householdId, ...values })
+    .onConflictDoUpdate({ target: householdSettings.householdId, set: values })
+}
+
+/**
+ * One tiny question, to check a route before relying on it: a Noul about a made-up grocery payment, nothing from the
+ * household. A failure returns the provider's own answer (their auth error, for a wrong key), never a credential.
+ */
+export async function testRoute(client: JevClient): Promise<AiTestResult> {
+  const started = Date.now()
+  let model: string | null = null
+  try {
+    await client.ask(
+      { description: "SUPERMARKET 24.10", direction: "money out" },
+      { groceries: { type: "chance", instructions: "Is this a grocery purchase?" } },
+      { onUsage: (record) => (model ??= record.model ?? null), signal: AbortSignal.timeout(20_000) },
+    )
+    return { ok: true, model, ms: Date.now() - started }
+  } catch (error) {
+    return { ok: false, message: describeFailure(error) }
+  }
+}
+
+function describeFailure(error: unknown) {
+  if (!(error instanceof Error)) return String(error).slice(0, 300)
+  // ViteHub's diagnostic says which route failed and how; its cause is the provider's response, such as TypeSafe's
+  // "Cannot authenticate" or Cloudflare's "Unauthorized".
+  const said = providerMessage(error.cause)
+  return `${error.message.replace(/^\[vitehub\] /, "")}${said ? ` ${said}` : ""}`.slice(0, 400)
+}
+
+/** The provider's own words from advocaat's error: its status and the message in its JSON body. */
+function providerMessage(cause: unknown) {
+  if (!(cause instanceof Error)) return ""
+  const { status, body } = cause as Error & { status?: unknown; body?: unknown }
+  const record = (value: unknown) => (typeof value === "object" && value !== null ? (value as Record<string, unknown>) : undefined)
+  const first = (value: unknown) => (Array.isArray(value) ? value[0] : value)
+  const error = record(body)?.error
+  const text = [record(first(error))?.message, typeof error === "string" ? error : undefined, record(body)?.message, typeof body === "string" ? body : undefined].find(
+    (value): value is string => typeof value === "string" && value.trim() !== "",
+  )
+  const message = (text ?? cause.message).replace(/\s+/g, " ").trim().slice(0, 160)
+  return typeof status === "number" && !message.startsWith(String(status)) ? `(${status}: ${message})` : `(${message})`
+}

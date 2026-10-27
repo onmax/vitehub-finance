@@ -1,10 +1,12 @@
 // Categories for transactions the rules left uncategorized, from Jev (TypeSafe's System One model,
-// https://docs.typesafe.ai). Pure logic and the HTTP call, no database: what we send, how answers become categories,
-// and when an answer is sure enough to use. server/utils/ai-categorize.ts picks the rows and writes the results.
+// https://docs.typesafe.ai). Pure logic, no database: what we ask, how answers become categories, and when an answer is
+// sure enough to use. The questions go through ViteHub's Jev client (`jev()` from vite-hub/agent/gateways), which
+// reaches TypeSafe directly or through Vercel or Cloudflare AI Gateway (server/utils/ai-gateway.ts picks the route).
+// server/utils/ai-categorize.ts picks the rows and writes the results.
+import type { AgentUsageRecord, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/agent"
+import type { JevClient } from "vite-hub/agent/gateways"
 import { currencyDigits } from "../../shared/money"
 
-export const TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
-export const JEV_MODEL = "jev-latest"
 /** Dollars per million input tokens (jev-1.14). Output tokens are free. Only used to estimate cost in the logs. */
 export const JEV_PRICE_PER_MTOK = 0.042
 
@@ -45,36 +47,16 @@ export interface AiRow {
   accountKind: string
 }
 
-export interface ChoiceQuestion {
-  type: "choice"
-  instructions: string
-  criteria: Record<string, string>
+export interface JevState {
+  spending_categories: string[]
+  income_categories: string[]
+  transactions: Array<{ direction: "money out" | "money in"; amount: string; description: string; counterparty?: string; account: string }>
 }
 
-export interface NoulQuestion {
-  type: "noul"
-  instructions: string
-}
-
-export interface JevRequest {
-  model: string
-  state: {
-    spending_categories: string[]
-    income_categories: string[]
-    transactions: Array<{ direction: "money out" | "money in"; amount: string; description: string; counterparty?: string; account: string }>
-  }
-  questions: Record<string, ChoiceQuestion | NoulQuestion>
-}
-
-export interface JevResponse {
-  model?: string
-  answers?: Record<string, unknown>
-  usage?: { input_tokens?: number; output_tokens?: number }
-}
-
-/** One batch, ready to send: the body, and per row which questions ask about it and what each option means. */
+/** One batch, ready to ask: the state, the questions, and per row which questions ask about it and what each option means. */
 export interface Batch {
-  body: JevRequest
+  state: JevState
+  questions: Record<string, AskChoiceQuestion | AskChanceQuestion>
   rows: Array<{ id: string; choice: string; fits: string; options: Map<string, string> }>
 }
 
@@ -139,18 +121,17 @@ export function buildBatches(rows: AiRow[], categories: AiCategory[], options: {
   const batches: Batch[] = []
   for (let start = 0; start < sendable.length; start += size) {
     const slice = sendable.slice(start, start + size)
-    const body: JevRequest = {
-      model: JEV_MODEL,
+    const batch: Batch = {
       state: { spending_categories: [...spending.keys()], income_categories: [...income.keys()], transactions: [] },
       questions: {},
+      rows: [],
     }
-    const batch: Batch = { body, rows: [] }
     slice.forEach((row, index) => {
       const out = row.amountMinor < 0
       const pool = out ? spending : income
       const list = out ? "spending_categories" : "income_categories"
       const counterparty = row.counterparty ? scrub(row.counterparty, names) : ""
-      body.state.transactions.push({
+      batch.state.transactions.push({
         direction: out ? "money out" : "money in",
         amount: roughAmount(row.amountMinor, row.currency),
         description: scrub(row.description, names),
@@ -162,13 +143,14 @@ export function buildBatches(rows: AiRow[], categories: AiCategory[], options: {
       const rotated = [...entries.slice(shift), ...entries.slice(0, shift)]
       const choice = `category_${index}`
       const fits = `fits_${index}`
-      body.questions[choice] = {
+      batch.questions[choice] = {
         type: "choice",
         instructions: `Which category does the bank transaction \`transactions[${index}]\` belong to?`,
         criteria: Object.fromEntries(rotated.map(([name, category]) => [name, describe(category)])),
       }
-      body.questions[fits] = {
-        type: "noul",
+      // A chance question is TypeSafe's Noul: the probability of "yes".
+      batch.questions[fits] = {
+        type: "chance",
         instructions: `Does the bank transaction \`transactions[${index}]\` clearly belong to one of \`${list}\`?`,
       }
       batch.rows.push({ id: row.id, choice, fits, options: new Map(rotated.map(([name, category]) => [name, category.id])) })
@@ -188,59 +170,16 @@ export interface Decision {
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 
 /** The answers of one batch as decisions, one per row. A missing or malformed answer is "not sure". */
-export function readAnswers(batch: Batch, response: JevResponse): Decision[] {
-  const answers = isRecord(response.answers) ? response.answers : {}
+export function readAnswers(batch: Batch, answers: Record<string, unknown>): Decision[] {
   return batch.rows.map((row) => {
     const choice = answers[row.choice]
     const fits = answers[row.fits]
     const confidence = isRecord(choice) && typeof choice.confidence === "number" ? choice.confidence : null
     const picked = isRecord(choice) && typeof choice.choice === "string" ? row.options.get(choice.choice) : undefined
-    const fitsYes = isRecord(fits) && typeof fits.noul === "number" ? fits.noul : 0
+    const fitsYes = isRecord(fits) && typeof fits.chance === "number" ? fits.chance : 0
     const sure = picked !== undefined && confidence !== null && confidence >= MIN_CONFIDENCE && fitsYes >= MIN_FITS
     return { id: row.id, categoryId: sure ? picked : null, confidence }
   })
-}
-
-export class JevError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message)
-    this.name = "JevError"
-  }
-}
-
-export interface AskOptions {
-  apiKey: string
-  fetch?: typeof fetch
-  /** Waits before a retry; tests pass one that doesn't. */
-  sleep?: (ms: number) => Promise<void>
-}
-
-const RETRY_STATUSES = new Set([429, 529, 502, 503, 504])
-
-/** POSTs one request, retrying once on 429 and 529 (TypeSafe's "back off and retry"), after `retry-after` up to 10 s. */
-export async function askJev(body: JevRequest, options: AskOptions): Promise<JevResponse> {
-  const call = options.fetch ?? fetch
-  const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)))
-  for (let attempt = 0; ; attempt++) {
-    const response = await call(TYPESAFE_URL, {
-      method: "POST",
-      headers: { authorization: `Bearer ${options.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (response.ok) return (await response.json()) as JevResponse
-    if (attempt === 0 && RETRY_STATUSES.has(response.status)) {
-      const after = Number(response.headers.get("retry-after"))
-      await sleep(Number.isFinite(after) && after > 0 ? Math.min(after, 10) * 1000 : 2000)
-      continue
-    }
-    // TypeSafe's error body names the field or rule; it never echoes the state back.
-    const detail = (await response.text().catch(() => "")).slice(0, 300)
-    throw new JevError(response.status, `TypeSafe answered ${response.status}${detail ? `: ${detail}` : ""}`)
-  }
 }
 
 export interface Usage {
@@ -261,7 +200,7 @@ export const costUsd = (usage: Pick<Usage, "inputTokens">) => (usage.inputTokens
  * yields no decisions (its rows stay as they were, to try again later); when every batch fails, the last error is
  * thrown.
  */
-export async function classify(rows: AiRow[], categories: AiCategory[], options: AskOptions & { names?: string[]; batchSize?: number }) {
+export async function classify(rows: AiRow[], categories: AiCategory[], options: { jev: JevClient; names?: string[]; batchSize?: number }) {
   const batches = buildBatches(rows, categories, options)
   const usage: Usage = { calls: 0, failedCalls: 0, inputTokens: 0, outputTokens: 0 }
   const decisions: Decision[] = []
@@ -271,15 +210,13 @@ export async function classify(rows: AiRow[], categories: AiCategory[], options:
     while (next < batches.length) {
       const batch = batches[next++]!
       try {
-        const response = await askJev(batch.body, options)
+        // ViteHub retries 429s and 5xx itself, and reports each request's model and tokens.
+        const answers = await options.jev.ask(batch.state, batch.questions, { onUsage: (record) => count(usage, record) })
         usage.calls++
-        usage.inputTokens += response.usage?.input_tokens ?? 0
-        usage.outputTokens += response.usage?.output_tokens ?? 0
-        usage.model ??= response.model
-        decisions.push(...readAnswers(batch, response))
+        decisions.push(...readAnswers(batch, answers))
       } catch (error) {
         usage.failedCalls++
-        usage.error = { status: error instanceof JevError ? error.status : 0, message: error instanceof Error ? error.message : String(error) }
+        usage.error = { status: providerStatus(error), message: error instanceof Error ? error.message : String(error) }
         failure = error
       }
     }
@@ -288,4 +225,16 @@ export async function classify(rows: AiRow[], categories: AiCategory[], options:
   if (batches.length && usage.failedCalls === batches.length) throw failure
   const sent = new Set(batches.flatMap((batch) => batch.rows.map((row) => row.id)))
   return { decisions, usage, unsent: rows.filter((row) => !sent.has(row.id)).map((row) => row.id) }
+}
+
+function count(usage: Usage, record: AgentUsageRecord) {
+  usage.inputTokens += record.usage?.inputTokens ?? 0
+  usage.outputTokens += record.usage?.outputTokens ?? 0
+  usage.model ??= record.model
+}
+
+/** The provider's HTTP status behind a ViteHub Jev error (`providerStatus`), or 0 when the request never got one. */
+export function providerStatus(error: unknown) {
+  const status = isRecord(error) ? (error.providerStatus ?? error.status) : undefined
+  return typeof status === "number" ? status : 0
 }

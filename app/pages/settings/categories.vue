@@ -30,6 +30,8 @@ async function edit(category?: Category) {
 
 // AI categories for what the rules missed, in rounds of a few hundred (the server caps each call), until none are left.
 const { data: me } = useMe()
+// The demo never asks Jev, so it has no AI settings.
+const demoBuild = useDemoBuild()
 const aiReady = computed(() => Boolean(me.value?.ai && me.value.household.aiCategorize))
 const categorizing = ref(false)
 const MAX_ROUNDS = 10
@@ -125,6 +127,8 @@ async function remove(category: Category) {
       </div>
     </div>
   </SettingsSection>
+
+  <SettingsAiGateway v-if="!demoBuild" />
 
   <SettingsRules />
 </template>

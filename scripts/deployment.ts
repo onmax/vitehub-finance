@@ -3,6 +3,9 @@ export type Host = (typeof HOSTS)[number]
 
 const isHost = (value: string): value is Host => HOSTS.some((host) => host === value)
 
+export const AI_GATEWAYS = ["typesafe", "vercel", "cloudflare"] as const
+const isAiGateway = (value: string): value is (typeof AI_GATEWAYS)[number] => AI_GATEWAYS.some((gateway) => gateway === value)
+
 /**
  * Build-time choices: where ViteHub Finance runs and which optional services the build includes. Credentials stay runtime
  * settings (nuxt.config.ts `vite.env.server`), so changing a key never needs a rebuild.
@@ -10,6 +13,11 @@ const isHost = (value: string): value is Host => HOSTS.some((host) => host === v
  * - `cloudflare`: a Worker with D1, KV, Cron Triggers, and a Queue that syncs one connection per message.
  * - `node`: one Node process (a VPS, Docker, a home server) with SQLite on disk, KV files, and an in-process cron.
  *   Syncs run inline, one connection after another.
+ *
+ * `FINANCE_AI_GATEWAY` picks how the server's own key reaches Jev for AI categories: `typesafe` (default, `TYPESAFE_API_KEY`),
+ * `vercel` (Vercel AI Gateway, `AI_GATEWAY_API_KEY`), or `cloudflare` (a Cloudflare AI Gateway in front of TypeSafe:
+ * `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, and optionally `CLOUDFLARE_AI_GATEWAY_TOKEN` and
+ * `CLOUDFLARE_AI_GATEWAY_SLUG`). The keys stay runtime settings. Households can bring their own key in Settings anyway.
  *
  * `FINANCE_DEMO=1` builds the demo (finance.vitehub.dev): a made-up household, reset every night, that visitors enter
  * without an account. Nobody can sign up, so it holds no one's real data; its two people can't manage sign-in, people,
@@ -27,7 +35,10 @@ export function deployment(env: Record<string, string | undefined> = process.env
   if (email && email !== "resend" && email !== "cloudflare")
     throw new Error(`FINANCE_EMAIL must be resend, cloudflare, or empty; got "${email}".`)
 
+  const ai = env.FINANCE_AI_GATEWAY?.trim() || "typesafe"
+  if (!isAiGateway(ai)) throw new Error(`FINANCE_AI_GATEWAY must be one of ${AI_GATEWAYS.join(", ")}; got "${ai}".`)
+
   const demo = ["1", "true"].includes((env.FINANCE_DEMO ?? "").trim().toLowerCase())
 
-  return { host, email: email as "" | "resend" | "cloudflare", demo }
+  return { host, email: email as "" | "resend" | "cloudflare", demo, ai }
 }

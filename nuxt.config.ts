@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url"
 import evlog from "evlog/nitro/v3"
 import type { NuxtConfig } from "nuxt/schema"
-import { env } from "vite-hub/env"
+import { env, typesafeEnv } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
 
 const target = deployment()
@@ -308,10 +308,10 @@ export default defineNuxtConfig({
         coingecko: {
           apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
         },
-        // Optional. A TypeSafe key (typesafe.ai) lets Jev categorize what the rules didn't (server/utils/ai-categorize.ts).
-        typesafe: {
-          apiKey: env({ secret: true, source: env.source("TYPESAFE_API_KEY"), default: "" }),
-        },
+        // Optional. The server's key for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
+        // (server/utils/ai-categorize.ts). `FINANCE_AI_GATEWAY` picks the route and so the variables (scripts/deployment.ts);
+        // households without their own key use this one (server/utils/ai-gateway.ts).
+        typesafe: typesafeEnv({ provider: target.ai }),
       },
     },
   },

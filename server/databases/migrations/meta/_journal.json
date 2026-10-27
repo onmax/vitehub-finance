@@ -36,6 +36,13 @@
       "when": 1793082169082,
       "tag": "0004_provider_error_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793091405075,
+      "tag": "0005_ai_gateway",
+      "breakpoints": true
     }
   ]
 }

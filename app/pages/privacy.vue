@@ -6,7 +6,9 @@ import type { LegalInfo } from "#shared/api"
 definePageMeta({ layout: "auth", wide: true })
 useHead({ get title() { return translate('privacy') } })
 const demo = useDemoBuild()
-const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", default: () => ({ contactEmail: null, ai: false }) })
+const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", default: () => ({ contactEmail: null, ai: null }) })
+// Where AI category requests go: straight to TypeSafe, or through Vercel or Cloudflare (server/utils/ai-gateway.ts).
+const AI_PRIVACY = { typesafe: "aiPrivacyTypesafe", vercel: "aiPrivacyVercel", cloudflare: "aiPrivacyCloudflare" } as const
 </script>
 
 <template>
@@ -37,10 +39,9 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
     <p> {{ $t('banksConnectThrough') }} <a href="https://enablebanking.com" target="_blank" rel="noopener">Enable Banking</a>{{ $t('aLicensedAccountInformationServiceProviderUnderPsd2YouGive') }} </p>
     <p> {{ $t('exchangesConnectWithReadOnlyApiKeysYouCreateInteractive') }} </p>
 
-    <template v-if="legal?.ai">
-      <h2>{{ $t('aiCategories') }}</h2>
-      <p> {{ $t('whenNoRuleCategorizesATransactionThisInstanceAsks') }} <a href="https://typesafe.ai" target="_blank" rel="noopener">TypeSafe</a>{{ $t('sJevModelToSuggestOneItSendsTheTransaction') }} </p>
-    </template>
+    <h2>{{ $t('aiCategories') }}</h2>
+    <p> {{ $t('whenNoRuleCategorizesATransactionThisInstanceAsks') }} <a href="https://typesafe.ai" target="_blank" rel="noopener">TypeSafe</a>{{ $t('sJevModelToSuggestOneItSendsTheTransaction') }} </p>
+    <p>{{ legal?.ai ? $t(AI_PRIVACY[legal.ai]) : $t('aiPrivacyNoKey') }}</p>
 
     <h2>{{ $t('howItSProtected') }}</h2>
     <p> {{ $t('bankSessionsExchangeKeysAndBrokerTokensAreEncryptedAt') }} </p>
