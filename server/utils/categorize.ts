@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import { financialAccount, rule, transaction } from "../databases/config"
 import type { Member } from "./identity"
+import { sqliteLowerForms } from "../providers/dedupe"
 import { normalizedWords } from "./recurring-core"
 
 /** The accounts someone may categorize: shared/access.ts `canEdit`, as SQL. */
@@ -19,10 +20,14 @@ const escapeLike = (text: string) => text.replace(/[\\%_]/g, (char) => `\\${char
 
 /** Description or counterparty contains `text`, ignoring case: how a rule matches. */
 export function textMatches(text: string): SQL {
-  const pattern = `%${escapeLike(text.toLowerCase())}%`
   return or(
-    sql`lower(${transaction.description}) like ${pattern} escape '\\'`,
-    sql`lower(coalesce(${transaction.counterparty}, '')) like ${pattern} escape '\\'`,
+    ...sqliteLowerForms(text).flatMap((form) => {
+      const pattern = `%${escapeLike(form)}%`
+      return [
+        sql`lower(${transaction.description}) like ${pattern} escape '\\'`,
+        sql`lower(coalesce(${transaction.counterparty}, '')) like ${pattern} escape '\\'`,
+      ]
+    }),
   )!
 }
 
@@ -31,8 +36,10 @@ export function textMatches(text: string): SQL {
  * (server/providers/dedupe.ts `startsWord` in JS). "fee" matches "Bank fee" but not "Coffee".
  */
 export function ruleMatches(text: string): SQL {
-  const needle = escapeLike(text.toLowerCase())
-  const patterns = [`${needle}%`, ...[" ", "*", ".", "/", "-", ",", "(", ":"].map((before) => `%${escapeLike(before)}${needle}%`)]
+  const patterns = sqliteLowerForms(text).flatMap((form) => {
+    const needle = escapeLike(form)
+    return [`${needle}%`, ...[" ", "*", ".", "/", "-", ",", "(", ":"].map((before) => `%${escapeLike(before)}${needle}%`)]
+  })
   const column = (value: SQL) => or(...patterns.map((pattern) => sql`${value} like ${pattern} escape '\\'`))!
   return or(column(sql`lower(${transaction.description})`), column(sql`lower(coalesce(${transaction.counterparty}, ''))`))!
 }

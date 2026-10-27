@@ -58,6 +58,16 @@ export interface Rule {
   categoryId: string
 }
 
+/**
+ * `text` lowercased, and as SQLite's `lower()` leaves text in capitals: it lowercases only ASCII, so "LØNOVERFØRSEL"
+ * becomes "lØnoverfØrsel" and only the second form finds it.
+ */
+export function sqliteLowerForms(text: string) {
+  const lower = text.toLowerCase()
+  const capitals = lower.replace(/[^\x00-\x7f]/g, (char) => char.toUpperCase())
+  return capitals === lower ? [lower] : [lower, capitals]
+}
+
 /** Whether `needle` starts a word in `haystack` (both lowercase): "fee" matches "Bank fee", not "Coffee". */
 export function startsWord(haystack: string, needle: string) {
   for (let index = haystack.indexOf(needle); index !== -1; index = haystack.indexOf(needle, index + 1))
