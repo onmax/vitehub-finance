@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { ProviderInfo } from "#shared/api"
 import { AccountCreateModal } from "#components"
 
 // A new household: a still, dimmed chart behind one call to action (Midday's empty dashboard), with the other ways in
-// underneath.
+// underneath. Where this server links no banks (a public instance, or no Enable Banking keys), the call is crypto and
+// investments instead.
 const overlay = useOverlay()
 const addAccount = overlay.create(AccountCreateModal, { destroyOnClose: true })
 // A gentle made-up line, only to show where the chart will be.
@@ -10,11 +12,15 @@ const sample = Array.from({ length: 60 }, (_, index) => ({
   date: addDays(today(), index - 59),
   value: 1000 + index * 12 + Math.sin(index / 5) * 60 + Math.cos(index / 2.3) * 25,
 }))
-const options = [
-  { get label() { return translate('addACryptoWallet') }, get description() { return translate('bitcoinEthereumSolanaXrpOrNimiqByAddress') }, icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
+const { data: providers, status } = useScopedFetch<ProviderInfo[]>("/api/connect/providers", { key: "providers", unscoped: true, default: () => [] })
+const banks = computed(() => status.value !== "success" || providers.value.some((provider) => provider.id === "enable_banking" && provider.available))
+const options = computed(() => [
+  banks.value
+    ? { get label() { return translate('addACryptoWallet') }, get description() { return translate('bitcoinEthereumSolanaXrpOrNimiqByAddress') }, icon: "i-lucide-wallet", to: "/connect/crypto#wallet" }
+    : { get label() { return translate('connectInteractiveBrokers') }, get description() { return translate('overviewIbkrOption') }, icon: "i-lucide-trending-up", to: "/connect/investments#ibkr" },
   { get label() { return translate('addAManualAccount') }, get description() { return translate('cashAPensionALoan') }, icon: "i-lucide-plus", action: () => addAccount.open() },
   { get label() { return translate('importACsv') }, get description() { return translate('anyBankSExport') }, icon: "i-lucide-file-up", to: "/connect/banks#import" },
-]
+])
 </script>
 
 <template>
@@ -28,11 +34,18 @@ const options = [
       <div class="absolute inset-0 grid place-items-center bg-default/40 p-4">
         <div class="flex max-w-sm flex-col items-center rounded-xl bg-default/90 p-6 text-center">
           <span class="grid size-10 place-items-center rounded-lg bg-primary/10">
-            <UIcon name="i-lucide-landmark" class="size-5 text-primary" />
+            <UIcon :name="banks ? 'i-lucide-landmark' : 'i-lucide-plug'" class="size-5 text-primary" />
           </span>
-          <h2 class="mt-4 text-base font-semibold text-highlighted">{{ $t('connectYourBank') }}</h2>
-          <p class="mt-1 text-sm text-muted"> {{ $t('balancesAndTransactionsComeInThroughYourBankSOwn') }} </p>
-          <UButton class="mt-5" to="/connect/banks#bank" :label="$t('connectABank')" icon="i-lucide-plug" />
+          <template v-if="banks">
+            <h2 class="mt-4 text-base font-semibold text-highlighted">{{ $t('connectYourBank') }}</h2>
+            <p class="mt-1 text-sm text-muted"> {{ $t('balancesAndTransactionsComeInThroughYourBankSOwn') }} </p>
+            <UButton class="mt-5" to="/connect/banks#bank" :label="$t('connectABank')" icon="i-lucide-plug" />
+          </template>
+          <template v-else>
+            <h2 class="mt-4 text-base font-semibold text-highlighted">{{ $t('overviewNoBanksTitle') }}</h2>
+            <p class="mt-1 text-sm text-pretty text-muted">{{ $t('overviewNoBanksText') }}</p>
+            <UButton class="mt-5" to="/connect/crypto" :label="$t('overviewNoBanksAction')" icon="i-lucide-plug" />
+          </template>
         </div>
       </div>
     </section>

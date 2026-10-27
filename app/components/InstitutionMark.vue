@@ -4,10 +4,11 @@ import { bankMark } from "#shared/banks"
 
 // Whose money it is, as a small tile: the bank's own mark on its color (shared/banks.ts), the bank's logo (Enable
 // Banking's, `logo`, or the built-in one), the exchange's, chain's, or broker's mark, the account kind's icon, or
-// initials. Logos are remote images: lazy, sent without a referrer, and replaced by the next option if they fail.
+// initials. Logos are remote images: lazy, sent without a referrer, and replaced by the next option if they fail. `plain`
+// skips the bank marks and shows initials (catalog platforms that can't be connected yet).
 const props = withDefaults(
-  defineProps<{ provider?: ProviderId | null; name?: string | null; logo?: string | null; icon?: string; size?: "xs" | "sm" | "md" | "lg" }>(),
-  { provider: null, name: null, logo: null, icon: undefined, size: "md" },
+  defineProps<{ provider?: ProviderId | null; name?: string | null; logo?: string | null; icon?: string; size?: "xs" | "sm" | "md" | "lg"; plain?: boolean }>(),
+  { provider: null, name: null, logo: null, icon: undefined, size: "md", plain: false },
 )
 
 // Marks for what isn't a bank, on the brand's color. Kraken and Interactive Brokers aren't in Simple Icons.
@@ -23,7 +24,7 @@ const PROVIDERS: Partial<Record<ProviderId, { icon: string; bg: string; fg: stri
   ibkr: { icon: "i-lucide-chart-candlestick", bg: "#d81222", fg: "#ffffff" },
 }
 
-const mark = computed(() => (props.provider === "enable_banking" || !props.provider ? bankMark(props.name) : null))
+const mark = computed(() => (!props.plain && (props.provider === "enable_banking" || !props.provider) ? bankMark(props.name) : null))
 const brand = computed(() => (mark.value?.icon ? mark.value : props.provider ? PROVIDERS[props.provider] : undefined))
 const failed = ref(false)
 const image = computed(() => (failed.value ? null : (props.logo ?? mark.value?.logo ?? null)))

@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { AccountCreateModal, CsvImportModal } from "#components"
-
 // Banks: the household's bank connections with their state, consent dates, and actions, then the ways to add one: a
 // bank over PSD2, a manual account, a CSV import. The bank's redirect lands here with `?linked=<id>` or `?error=<message>`.
 useHead({ get title() { return translate('banks') } })
 const route = useRoute()
 const router = useRouter()
 const notify = useNotify()
-const overlay = useOverlay()
-const manualModal = overlay.create(AccountCreateModal, { destroyOnClose: true })
-const importModal = overlay.create(CsvImportModal, { destroyOnClose: true })
+const { addManual, importCsv } = useAccountAdders()
 
 const { connections, status, error, refresh, highlight, flash } = useConnectPage("/connect/banks")
 const bankFailure = ref(typeof route.query.error === "string" ? route.query.error : null)
@@ -24,22 +20,6 @@ onMounted(() => {
   }
   if (route.query.linked || route.query.error) router.replace({ query: {}, hash: bankError.value ? "#bank" : route.hash })
 })
-
-async function addManual() {
-  const account = await manualModal.open().result
-  if (account) {
-    notify.success(translate('added2', { value1: account.name }))
-    await navigateTo(`/accounts/${account.id}`)
-  }
-}
-
-async function importCsv() {
-  const result = await importModal.open().result
-  if (result) {
-    notify.success(translate('transactionsImported', { value1: formatCount(result.added) }), result.skipped ? translate('wereAlreadyThere', { value1: formatCount(result.skipped) }) : undefined)
-    await refreshStems("accounts", "overview", "transactions", "recurring", "forecast", "budgets")
-  }
-}
 </script>
 
 <template>
@@ -80,7 +60,9 @@ async function importCsv() {
           </ConnectSection>
         </div>
 
-        <p class="text-sm text-muted"> {{ $t('exchangesWalletsAndInteractiveBrokersAreUnder') }} <ULink to="/connect/crypto" class="font-medium text-highlighted underline underline-offset-4">{{ $t('cryptoInvestments') }}</ULink>.
+        <p class="text-sm text-muted">
+          {{ $t('catalogElsewhereCrypto') }} <ULink to="/connect/crypto" class="font-medium text-highlighted underline underline-offset-4">{{ $t('crypto') }}</ULink>.
+          {{ $t('catalogElsewhereInvestments') }} <ULink to="/connect/investments" class="font-medium text-highlighted underline underline-offset-4">{{ $t('investments') }}</ULink>.
         </p>
       </div>
     </template>

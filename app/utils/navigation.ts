@@ -17,7 +17,8 @@ export const MAIN_PAGES = [
 /** Where money comes in from, one page per kind of provider (`connectPageOf` in utils/accounts.ts). */
 export const CONNECT_PAGES = [
   { get label() { return translate('banks') }, icon: "i-lucide-landmark", to: "/connect/banks", key: "c" },
-  { get label() { return translate('cryptoInvestments') }, icon: "i-lucide-bitcoin", to: "/connect/crypto", key: "k" },
+  { get label() { return translate('crypto') }, icon: "i-lucide-bitcoin", to: "/connect/crypto", key: "k" },
+  { get label() { return translate('investments') }, icon: "i-lucide-trending-up", to: "/connect/investments", key: "i" },
 ] as const
 
 export const SECONDARY_PAGES = [

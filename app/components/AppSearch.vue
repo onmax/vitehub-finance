@@ -36,7 +36,7 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => [
       { get label() { return translate('connectABank') }, icon: "i-lucide-landmark", to: "/connect/banks#bank" },
       { get label() { return translate('addACryptoWallet') }, icon: "i-lucide-wallet", to: "/connect/crypto#wallet" },
       { get label() { return translate('connectAnExchange') }, icon: "i-lucide-bitcoin", to: "/connect/crypto#exchange" },
-      { get label() { return translate('connectInteractiveBrokers') }, icon: "i-lucide-chart-candlestick", to: "/connect/crypto#broker" },
+      { get label() { return translate('connectInteractiveBrokers') }, icon: "i-lucide-chart-candlestick", to: "/connect/investments#ibkr/connect" },
       { get label() { return translate('addAManualAccount') }, icon: "i-lucide-plus", to: "/accounts?new=1" },
       { get label() { return translate('importACsv') }, icon: "i-lucide-upload", to: "/connect/banks#import" },
       { get label() { return translate('inviteSomeoneToTheHousehold') }, icon: "i-lucide-user-plus", to: "/household?invite=1" },

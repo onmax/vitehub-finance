@@ -1,6 +1,7 @@
 // Account kinds as people read them, how /accounts groups them, and what each connection provider is called.
 // Icons here must be in nuxt.config's `icon.clientBundle.icons`: the icon scanner reads .vue files, not .ts.
 import type { AccountKind, ConnectionStatus, ProviderId } from "#shared/api"
+import type { ConnectPage } from "./connect-catalog"
 
 export const ACCOUNT_KINDS: Record<AccountKind, { label: string; icon: string; group: AccountGroup }> = {
   checking: { get label() { return translate('checking') }, icon: "i-lucide-landmark", group: "cash" },
@@ -43,9 +44,12 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
   manual: { get label() { return translate('manual') }, kind: "manual" },
 }
 
-/** The connect page for a provider: banks and manual accounts on one, exchanges, wallets, and brokers on the other. */
-export const connectPageOf = (provider: ProviderId) =>
-  PROVIDERS[provider].kind === "bank" || PROVIDERS[provider].kind === "manual" ? "/connect/banks" : "/connect/crypto"
+/** The connect page for a provider: banks and manual accounts, exchanges and wallets, or investment platforms. */
+export function connectPageOf(provider: ProviderId): ConnectPage {
+  const kind = PROVIDERS[provider].kind
+  if (kind === "broker") return "/connect/investments"
+  return kind === "exchange" || kind === "wallet" ? "/connect/crypto" : "/connect/banks"
+}
 
 /** A connection's state in words, and the semantic color its dot takes. */
 export const CONNECTION_STATUS: Record<ConnectionStatus, { label: string; color: "success" | "warning" | "error" | "neutral" }> = {
