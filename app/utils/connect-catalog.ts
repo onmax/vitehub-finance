@@ -2,7 +2,13 @@
 // in, and the steps its connect dialog walks through. Banks keep their own picker (ConnectBankPicker); exchanges, wallets,
 // and investment platforms are tiles on /connect/crypto and /connect/investments. The server says which ones it can
 // connect (`GET /api/connect/providers`); `soon` ones can't be connected anywhere yet.
-import { defineAsyncComponent, type Component } from "vue"
+import type { Component } from "vue"
+import ExchangeKey from "~/components/connect/ExchangeKey.vue"
+import IbkrCredentials from "~/components/connect/IbkrCredentials.vue"
+import IbkrIntro from "~/components/connect/IbkrIntro.vue"
+import IbkrQuery from "~/components/connect/IbkrQuery.vue"
+import IbkrToken from "~/components/connect/IbkrToken.vue"
+import WalletAddress from "~/components/connect/WalletAddress.vue"
 import type { ConnectionSummary, ProviderId, ProviderInfo } from "#shared/api"
 
 export type ConnectKind = "bank" | "exchange" | "wallet" | "investment"
@@ -60,15 +66,16 @@ export const AUTH_METHODS: Record<AuthMethod, { readonly label: string; icon: st
   "flex-token": { get label() { return translate('catalogAuthFlexToken') }, icon: "i-lucide-key-round" },
 }
 
-const step = (id: string, title: () => string, load: () => Promise<{ default: Component }>, action?: () => string): ConnectStep => ({
+// Steps load with the catalog, not on demand: a step that arrives after the dialog opened makes it jump.
+const step = (id: string, title: () => string, component: Component, action?: () => string): ConnectStep => ({
   id,
   get title() { return title() },
-  component: defineAsyncComponent(load),
+  component,
   get action() { return action?.() },
 })
 
-const exchangeSteps = [step("key", () => translate('catalogStepPasteTheKey'), () => import("~/components/connect/ExchangeKey.vue"), () => translate('catalogCheckAndConnect'))]
-const walletSteps = [step("address", () => translate('catalogStepPasteTheAddress'), () => import("~/components/connect/WalletAddress.vue"), () => translate('addWallet'))]
+const exchangeSteps = [step("key", () => translate('catalogStepPasteTheKey'), ExchangeKey, () => translate('catalogCheckAndConnect'))]
+const walletSteps = [step("address", () => translate('catalogStepPasteTheAddress'), WalletAddress, () => translate('addWallet'))]
 
 function exchange(provider: "kraken" | "binance" | "coinbase", name: string, domain: string, docs: string, detail: () => string): CatalogProvider {
   return {
@@ -152,10 +159,10 @@ export const CATALOG: CatalogProvider[] = [
     get authDetail() { return translate('catalogFlexTokenDetail') },
     docs: "https://www.ibkrguides.com/clientportal/performanceandstatements/flex3.htm",
     steps: [
-      step("intro", () => translate('catalogStepWhatItReads'), () => import("~/components/connect/IbkrIntro.vue")),
-      step("query", () => translate('catalogStepCreateTheFlexQuery'), () => import("~/components/connect/IbkrQuery.vue")),
-      step("token", () => translate('catalogStepCreateTheToken'), () => import("~/components/connect/IbkrToken.vue")),
-      step("credentials", () => translate('catalogStepPasteAndCheck'), () => import("~/components/connect/IbkrCredentials.vue"), () => translate('catalogCheckAndConnect')),
+      step("intro", () => translate('catalogStepWhatItReads'), IbkrIntro),
+      step("query", () => translate('catalogStepCreateTheFlexQuery'), IbkrQuery),
+      step("token", () => translate('catalogStepCreateTheToken'), IbkrToken),
+      step("credentials", () => translate('catalogStepPasteAndCheck'), IbkrCredentials, () => translate('catalogCheckAndConnect')),
     ],
   },
   comingSoon("trade-republic", "Trade Republic", "traderepublic.com", () => translate('catalogTradeRepublicDescription')),

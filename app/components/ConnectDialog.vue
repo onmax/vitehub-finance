@@ -5,7 +5,8 @@ import type { AccountSummary, ConnectionSummary } from "#shared/api"
 // One provider's connect dialog: its steps one at a time, each asking for one thing with its help inline (Executor's
 // authenticate dialog), then the new connection and the accounts it found. The page keys it per provider, so closing
 // throws a half-finished attempt away. `connected` fires as soon as the server linked it; `done` when people leave the
-// success screen, so the page can land on the new connection.
+// success screen, so the page can land on the new connection. It hangs from a fixed top, so a taller step grows down
+// instead of moving the title.
 const props = defineProps<{ entry: CatalogProvider }>()
 const open = defineModel<boolean>("open", { default: false })
 const emit = defineEmits<{ connected: [connection: ConnectionSummary]; done: [connection: ConnectionSummary] }>()
@@ -64,7 +65,7 @@ function finish() {
     v-model:open="open"
     :dismissible="!pending"
     :description="result ? $t('catalogConnectedDescription') : current?.title"
-    :ui="{ content: 'sm:max-w-lg', header: 'items-start', body: 'flex flex-col gap-5', footer: 'justify-between gap-2' }"
+    :ui="{ content: 'sm:max-w-lg top-[6dvh] translate-y-0 max-h-[88dvh] sm:top-[12dvh] sm:max-h-[76dvh]', header: 'items-start', body: 'flex flex-col gap-5', footer: 'justify-between gap-2' }"
     @after:leave="result && emit('done', result)"
   >
     <template #title>
