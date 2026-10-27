@@ -129,7 +129,7 @@ const shownError = computed(() => connectError.value || props.error || "")
       </div>
 
       <PageError v-if="banksError" :error="banksError" :title="$t('couldnTLoadTheBanks')" @retry="refresh()" />
-      <div v-else-if="status === 'pending'" class="grid gap-2 sm:grid-cols-2">
+      <div v-else-if="status === 'pending'" class="grid gap-x-12 gap-y-2 sm:grid-cols-2">
         <USkeleton v-for="row in 6" :key="row" class="h-14 w-full rounded-lg" />
       </div>
       <p v-else-if="filtered.length === 0" class="rounded-lg bg-muted p-4 text-sm text-muted">
@@ -139,7 +139,7 @@ const shownError = computed(() => connectError.value || props.error || "")
         <template v-for="list in lists" :key="list.id">
           <div v-if="list.banks.length" class="flex flex-col gap-1">
             <h4 v-if="list.label" class="text-xs font-medium text-muted">{{ list.label }}</h4>
-            <ul class="grid gap-x-4 sm:grid-cols-2" :aria-label="list.label || $t('banks')">
+            <ul class="grid gap-x-12 sm:grid-cols-2" :aria-label="list.label || $t('banks')">
               <li v-for="bank in list.banks" :key="bank.name">
                 <button
                   type="button"
