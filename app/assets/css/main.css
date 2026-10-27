@@ -105,10 +105,11 @@
   color: var(--color-money-in);
 }
 
-/* Pressed buttons give way a little (make-interfaces-feel-better: 0.96, transform only). */
+/* Pressed buttons give way a little (make-interfaces-feel-better: 0.96, transform only). Not pickers (select menus) or
+   full-width rows: on something that wide, 0.96 reads as the row zooming out, so those answer with their background. */
 @layer components {
-  button:not(:disabled):active,
-  [role="button"]:not([aria-disabled="true"]):active {
+  button:not(:disabled, [aria-haspopup="listbox"], .w-full):active,
+  [role="button"]:not([aria-disabled="true"], .w-full):active {
     @media (prefers-reduced-motion: no-preference) {
       scale: 0.96;
       transition: scale 100ms ease-out;
