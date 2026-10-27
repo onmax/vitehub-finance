@@ -19,7 +19,8 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers o
   found and left out of spending and income.
 - **CSV import** for everything else (other brokers, old statements), with column mapping and a preview.
 - **Categories** from rules (a starter set, plus one for each "apply to similar"), and optionally from AI for what the
-  rules miss: TypeSafe's Jev model, with `TYPESAFE_API_KEY`. See [AI categories](#ai-categories).
+  rules miss: TypeSafe's Jev model, directly or through Vercel or Cloudflare AI Gateway, with the server's key or each
+  household's own. See [AI categories](#ai-categories).
 - **Households**: invite a partner. Each account is private to its owner or shared with the household; a private
   account never shows up for anyone else, in any list, total, chart, or MCP tool.
 - **Recurring payments** detected from transactions, with ways to save: price increases, subscriptions two members both
@@ -86,14 +87,28 @@ JSON lines on stdout.
 ## AI categories
 
 Rules categorize what they recognize ("mercadona" is Groceries). For the rest ("Five Guys Jv Ltd", "Hetzner Online
-Gmbh"), set `TYPESAFE_API_KEY` (a key from [typesafe.ai](https://typesafe.ai)) and ViteHub Finance asks TypeSafe's Jev
-model, after the rules and transfer detection, on every sync and CSV import. `/settings/categories` has a button for
-what's already there. It uses a category only when Jev is sure (confidence 0.7 or more), marks it with a sparkle, and
+Gmbh"), ViteHub Finance asks TypeSafe's Jev model, after the rules and transfer detection, on every sync and CSV import.
+`/settings/categories` has a button for what's already there.
+
+It reaches Jev through ViteHub's `jev()` client, one of three ways:
+
+| Route | Server variables | Household form |
+| --- | --- | --- |
+| TypeSafe, directly (default) | `TYPESAFE_API_KEY` | a TypeSafe key |
+| Vercel AI Gateway | `FINANCE_AI_GATEWAY=vercel` at build time, `AI_GATEWAY_API_KEY` | an AI Gateway key |
+| Cloudflare AI Gateway | `FINANCE_AI_GATEWAY=cloudflare` at build time, `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, optional `CLOUDFLARE_AI_GATEWAY_TOKEN` and `CLOUDFLARE_AI_GATEWAY_SLUG` | the TypeSafe key, account ID, gateway ID, optional gateway token and slug |
+
+The server's key is optional. Each household's owner can pick a route and paste their own key in Settings › Categories
+instead; it's encrypted like connection credentials, the browser only ever sees its last four characters, and Test asks
+Jev one made-up question to check it. A household's own key wins over the server's. For Cloudflare, create the gateway's
+custom provider once (dashboard: AI Gateway › Custom Providers), with the base URL `https://api.typesafe.ai` and the slug
+`typesafe`. It uses a category only when Jev is sure (confidence 0.7 or more), marks it with a sparkle, and
 never asks about the same transaction twice. About $0.02 per 1,000 transactions.
 
 Jev sees each transaction's description, payee, direction, rounded amount, currency, and account type, with household
 members' names, IBANs, and long numbers masked, plus the category names and rule keywords. Never dates, balances, ids,
-or who you are. The household's owner can turn it off in Settings; the demo never uses it.
+or who you are. The household's owner can turn it off in Settings; the demo never uses it. Through a gateway, Vercel or
+Cloudflare handles the requests too (Cloudflare can log them in the gateway owner's account); /privacy names the route.
 
 ## Keep it private
 

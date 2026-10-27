@@ -126,10 +126,19 @@ server/utils/series.ts), so connecting one doesn't count as growth.
 
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
-(`aiCheckedAt` null) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (request,
-answers, thresholds, the HTTP call), tested in test/ai with a stubbed fetch. It runs only with `TYPESAFE_API_KEY`, never in
-the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
-`manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has counts, tokens, and cost.
+(`aiCheckedAt` null) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (questions,
+answers, thresholds, batches through a `jev()` client), tested in test/ai with ViteHub's client on a stubbed fetch. It
+runs only with a key (the household's or the server's), never in the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
+`manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
+`keySource`), counts, tokens, and cost.
+
+Jev is reached through ViteHub's `jev()` client (`vite-hub/agent/gateways`, pnpm-patched until upstream ships it):
+TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
+picks the household's own route (`householdSettings.aiGateway`, its key and Cloudflare fields sealed in `aiCredentials`
+with crypto.ts) when its owner set one in Settings › Categories, else the server's `typesafeEnv()` group (nuxt.config.ts;
+`FINANCE_AI_GATEWAY` picks the route at build time), else none. It passes credentials to `jev()` explicitly: its Server
+Env fallback doesn't resolve under `nuxt dev`. The browser gets only `{ last4 }` of a secret; `GET/PUT
+/api/household/ai` and `POST /api/household/ai/test` are owner-only, in the browser, and refused in the demo.
 
 ## Demo
 
@@ -214,10 +223,13 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | Route | Body / query | Returns |
 | --- | --- | --- |
 | `GET /api/me` | | `MeResponse` |
-| `GET /api/legal` (public) | | `LegalInfo` — the contact email and whether AI categories are on, for /privacy |
+| `GET /api/legal` (public) | | `LegalInfo` — the contact email and the AI categories route (the caller's household's, else the server's), for /privacy |
 | `POST /api/_evlog/ingest` (public, same origin, rate limited) | evlog client event with `clientError` | 204 — logs a browser error |
 | `POST /api/demo/session` (public, public builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
 | `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts?, aiCategorize? }` | `MeResponse["household"]` |
+| `GET /api/household/ai` (owner) | | `AiGatewaySettings` — the household's route for AI categories; secrets only as `{ last4 }` |
+| `PUT /api/household/ai` (owner) | `AiGatewayInput`: `{ gateway: "server" }`, `{ gateway: "typesafe" \| "vercel", apiKey? }`, or `{ gateway: "cloudflare", apiKey?, accountId, gatewayId, token?, slug? }` (empty secret keeps the stored one, `token: null` removes it) | `AiGatewaySettings` |
+| `POST /api/household/ai/test` (owner) | `AiGatewayInput` | `AiTestResult` — one made-up Jev question through that route, not saved |
 | `DELETE /api/household/members/:userId` (owner) | | `{ ok }` — their accounts move to a new household of their own |
 | `POST /api/household/leave` | | `{ ok }` — same, for yourself (not the last owner) |
 | `GET /api/overview` | `scope` | `Overview` |
@@ -228,7 +240,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `DELETE /api/accounts/:id` | | `{ ok }` (owner) |
 | `POST /api/accounts/:id/import` | `{ rows: [{ date, amount, description, counterparty? }] }` (amount in major units) | `{ added, skipped }` |
 | `GET /api/transactions` | `scope, q, account, category (id or "none"), from, to, direction (in/out), cursor, limit` | `TransactionPage` |
-| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, uncategorized rows; 404 without a TypeSafe key, 409 when the household turned it off |
+| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, uncategorized rows; 404 without a key (household or server), 409 when the household turned it off |
 | `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, hidden?, applyToSimilar? }` (`hidden`: the account's owner, in the browser) | `Transaction` |
 | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` | `{ name, kind, icon, color }` | `Category[]` / `Category` |
 | `GET/POST /api/rules`, `DELETE /api/rules/:id` | `{ match, categoryId }` | `{ id, match, categoryId }[]` |
