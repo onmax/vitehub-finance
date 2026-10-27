@@ -157,6 +157,8 @@ export interface Transaction {
   categoryId: string | null
   /** `ai`: suggested by AI, not yet confirmed by anyone; the UI marks it. */
   categorySource: "rule" | "ai" | "manual" | null
+  /** AI's guess for an uncategorized row it wasn't sure about, for people who can edit it; offered in its details only. */
+  aiGuessId: string | null
   note: string | null
   status: "booked" | "pending"
   excluded: boolean

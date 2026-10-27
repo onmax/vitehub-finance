@@ -104,6 +104,9 @@ const body = useTemplateRef<HTMLElement>("body")
 const scroller = computed(() => body.value?.closest<HTMLElement>("[data-slot='body']") ?? null)
 useInfiniteScroll(scroller, loadMore, { distance: 400, canLoadMore: () => Boolean(cursor.value) && !moreError.value })
 
+// Uncategorized rows AI hasn't looked at, sent to it; ones it isn't sure about keep their guess for their details.
+const ai = useAiCategorize()
+
 async function changeCategory(row: Transaction, categoryId: string | null) {
   if (row.categoryId === categoryId) return
   edits.value.set(row.id, { ...row, categoryId })
@@ -156,7 +159,12 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
 <template>
   <UDashboardPanel id="transactions">
     <template #header>
-      <PageNavbar :title="$t('transactions')" />
+      <PageNavbar :title="$t('transactions')">
+        <template v-if="ai.ready.value" #right>
+          <UButton color="neutral" variant="outline" icon="i-lucide-sparkles" :label="$t('categorizeWithAi')" :loading="ai.running.value" class="hidden sm:inline-flex" @click="ai.run()" />
+          <UButton color="neutral" variant="outline" icon="i-lucide-sparkles" :aria-label="$t('categorizeWithAi')" :loading="ai.running.value" class="size-10 justify-center sm:hidden" @click="ai.run()" />
+        </template>
+      </PageNavbar>
       <UDashboardToolbar :ui="{ root: 'py-2 overflow-visible', left: 'w-full min-w-0' }">
         <template #left>
           <TransactionsFilters

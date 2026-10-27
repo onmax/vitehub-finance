@@ -75,6 +75,8 @@ async function setHidden(value: boolean) {
 
 const title = computed(() => props.transaction?.counterparty || props.transaction?.description || translate('transaction'))
 const category = computed(() => find(props.transaction?.categoryId))
+// AI's pick for an uncategorized row it wasn't sure about: offered here, one click to use it, never in the lists.
+const guess = computed(() => (props.transaction && !props.transaction.categoryId ? find(props.transaction.aiGuessId) : undefined))
 </script>
 
 <template>
@@ -102,6 +104,11 @@ const category = computed(() => find(props.transaction?.categoryId))
         <p v-else class="flex items-center gap-2 text-sm">
           <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ category?.name ?? $t('uncategorized') }}
         </p>
+        <div v-if="guess && transaction.canEdit" class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted">
+          <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{{ $t('aiGuess') }}</span>
+          <UButton color="neutral" variant="outline" size="xs" :icon="guess.icon" :label="$t('useCategory', { category: guess.name })" @click="emit('category', transaction!, guess.id)" />
+        </div>
         <p v-if="transaction.categorySource === 'ai'" class="mt-2 flex items-center gap-1.5 text-xs text-muted">
           <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" /> {{ $t('suggestedByAiFromTheDescription', { value1: transaction.canEdit ? $t('pickAnotherIfWrong') : "" }) }}
         </p>

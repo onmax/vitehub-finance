@@ -1057,7 +1057,7 @@
   "nothingToCategorize": "Nada para categorizar",
   "everyTransactionYouCanEditHasACategoryOrAi": "Todas as transações que pode editar têm categoria ou já foram analisadas pela IA.",
   "categorizedOf": "Categorizadas {value1} de {value2}",
-  "aiWasnTSureAboutTheRestSoTheyStay": "A IA não tinha certeza quanto às restantes, que ficam sem categoria.",
+  "aiWasnTSureAboutTheRestSoTheyStay": "A IA não tinha certeza quanto às restantes, que ficam sem categoria. Abra uma para ver a sugestão da IA.",
   "leftRunItAgainToDoMore": "Faltam {value1}. Execute novamente para continuar.",
   "couldnTCategorizeWithAi": "Não foi possível categorizar com IA",
   "itsTransactionsBecomeUncategorizedAndItsRulesAndBudgetsGo": "As transações ficam sem categoria e as regras e orçamentos são eliminados.",
@@ -1530,5 +1530,8 @@
   "alertDismissedOn": "Ignorado a {date}",
   "alertPercentRange": "Escreva um número inteiro de 1 a 100.",
   "enterAnAmount": "Escreva um valor.",
-  "enterAnAmountAboveZero": "Escreva um valor acima de zero."
+  "enterAnAmountAboveZero": "Escreva um valor acima de zero.",
+  "categorizeWithAi": "Categorizar com IA",
+  "aiGuess": "Sugestão da IA, sem certeza suficiente para a aplicar:",
+  "useCategory": "Usar {category}"
 }

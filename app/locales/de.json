@@ -1057,7 +1057,7 @@
   "nothingToCategorize": "Nichts zu kategorisieren",
   "everyTransactionYouCanEditHasACategoryOrAi": "Alle bearbeitbaren Umsätze haben eine Kategorie oder wurden bereits von der KI geprüft.",
   "categorizedOf": "{value1} von {value2} kategorisiert",
-  "aiWasnTSureAboutTheRestSoTheyStay": "Bei den übrigen war die KI unsicher. Sie bleiben ohne Kategorie.",
+  "aiWasnTSureAboutTheRestSoTheyStay": "Bei den übrigen war die KI unsicher. Sie bleiben ohne Kategorie. Öffne eine, um den Vorschlag der KI zu sehen.",
   "leftRunItAgainToDoMore": "Noch {value1} übrig. Starte erneut, um weiterzumachen.",
   "couldnTCategorizeWithAi": "KI-Kategorisierung fehlgeschlagen",
   "itsTransactionsBecomeUncategorizedAndItsRulesAndBudgetsGo": "Ihre Umsätze verlieren die Kategorie, zugehörige Regeln und Budgets werden gelöscht.",
@@ -1530,5 +1530,8 @@
   "alertDismissedOn": "Ausgeblendet am {date}",
   "alertPercentRange": "Gib eine ganze Zahl von 1 bis 100 ein.",
   "enterAnAmount": "Gib einen Betrag ein.",
-  "enterAnAmountAboveZero": "Gib einen Betrag über null ein."
+  "enterAnAmountAboveZero": "Gib einen Betrag über null ein.",
+  "categorizeWithAi": "Mit KI kategorisieren",
+  "aiGuess": "Vorschlag der KI, zu unsicher zum Setzen:",
+  "useCategory": "{category} verwenden"
 }

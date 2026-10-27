@@ -165,6 +165,8 @@ export interface Decision {
   id: string
   /** The category to give it, or null when Jev wasn't sure enough. */
   categoryId: string | null
+  /** Jev's pick when it wasn't sure enough: shown to people on the transaction, never set on its own. */
+  guessId: string | null
   confidence: number | null
 }
 
@@ -179,7 +181,7 @@ export function readAnswers(batch: Batch, answers: Record<string, unknown>): Dec
     const picked = isRecord(choice) && typeof choice.choice === "string" ? row.options.get(choice.choice) : undefined
     const fitsYes = isRecord(fits) && typeof fits.chance === "number" ? fits.chance : 0
     const sure = picked !== undefined && confidence !== null && confidence >= MIN_CONFIDENCE && fitsYes >= MIN_FITS
-    return { id: row.id, categoryId: sure ? picked : null, confidence }
+    return { id: row.id, categoryId: sure ? picked : null, guessId: sure ? null : (picked ?? null), confidence }
   })
 }
 

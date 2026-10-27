@@ -1,0 +1,1 @@
+ALTER TABLE `transaction` ADD `ai_guess_id` text REFERENCES category(id);

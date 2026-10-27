@@ -133,7 +133,14 @@ describe("reading answers", () => {
 
   it("treats an unknown option or a missing answer as unsure", () => {
     expect(readAnswers(batch!, answer(1, 1, "Rockets"))[0]!.categoryId).toBeNull()
-    expect(readAnswers(batch!, {})).toEqual([{ id: batch!.rows[0]!.id, categoryId: null, confidence: null }])
+    expect(readAnswers(batch!, {})).toEqual([{ id: batch!.rows[0]!.id, categoryId: null, guessId: null, confidence: null }])
+  })
+
+  it("keeps an unsure pick as a guess instead of setting it", () => {
+    const [unsure] = readAnswers(batch!, answer(0.4, 0.9))
+    expect(unsure).toMatchObject({ categoryId: null, guessId: expect.any(String) })
+    const [sure] = readAnswers(batch!, answer(0.95, 0.95))
+    expect(sure).toMatchObject({ categoryId: unsure!.guessId, guessId: null })
   })
 })
 

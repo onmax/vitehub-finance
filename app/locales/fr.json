@@ -1057,7 +1057,7 @@
   "nothingToCategorize": "Rien à classer",
   "everyTransactionYouCanEditHasACategoryOrAi": "Toutes les opérations modifiables ont une catégorie ou ont déjà été examinées par l’IA.",
   "categorizedOf": "{value1} sur {value2} classées",
-  "aiWasnTSureAboutTheRestSoTheyStay": "L’IA hésitait sur le reste, qui reste donc sans catégorie.",
+  "aiWasnTSureAboutTheRestSoTheyStay": "L’IA hésitait sur le reste, qui reste donc sans catégorie. Ouvrez-en une pour voir sa proposition.",
   "leftRunItAgainToDoMore": "Il en reste {value1}. Relancez pour continuer.",
   "couldnTCategorizeWithAi": "Impossible de classer avec l’IA",
   "itsTransactionsBecomeUncategorizedAndItsRulesAndBudgetsGo": "Ses opérations perdent leur catégorie, et ses règles et budgets sont supprimés.",
@@ -1530,5 +1530,8 @@
   "alertDismissedOn": "Ignorée le {date}",
   "alertPercentRange": "Saisissez un nombre entier de 1 à 100.",
   "enterAnAmount": "Saisissez un montant.",
-  "enterAnAmountAboveZero": "Saisissez un montant supérieur à zéro."
+  "enterAnAmountAboveZero": "Saisissez un montant supérieur à zéro.",
+  "categorizeWithAi": "Catégoriser avec l’IA",
+  "aiGuess": "Proposition de l’IA, pas assez sûre pour l’appliquer :",
+  "useCategory": "Utiliser {category}"
 }

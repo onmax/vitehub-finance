@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AiCategorizeResult, Category } from "#shared/api"
+import type { Category } from "#shared/api"
 import { CategoryModal } from "#components"
 
 // The household's categories, grouped by kind, and the rules that file transactions into them.
@@ -28,45 +28,10 @@ async function edit(category?: Category) {
   if (saved) notify.success(category ? translate('categorySaved') : translate('categoryAdded'))
 }
 
-// AI categories for what the rules missed, in rounds of a few hundred (the server caps each call), until none are left.
-const { data: me } = useMe()
+// AI categories for what the rules missed (useAiCategorize): the same action as the Transactions page's button.
+const { ready: aiReady, running: categorizing, run: categorizeWithAi } = useAiCategorize()
 // The demo never asks Jev, so it has no AI settings.
 const demoBuild = useDemoBuild()
-const aiReady = computed(() => Boolean(me.value?.ai && me.value.household.aiCategorize))
-const categorizing = ref(false)
-const MAX_ROUNDS = 10
-
-async function categorizeWithAi() {
-  categorizing.value = true
-  let asked = 0
-  let categorized = 0
-  let remaining = 0
-  try {
-    for (let round = 0; round < MAX_ROUNDS; round++) {
-      const result = await $fetch<AiCategorizeResult>("/api/transactions/categorize", { method: "POST" })
-      asked += result.asked
-      categorized += result.categorized
-      remaining = result.remaining
-      if (!result.remaining || !result.asked) break
-    }
-    if (!asked) notify.success(translate('nothingToCategorize'), translate('everyTransactionYouCanEditHasACategoryOrAi'))
-    else
-      notify.success(
-        translate('categorizedOf', { value1: formatCount(categorized), value2: formatCount(asked) }),
-        [
-          categorized < asked ? translate('aiWasnTSureAboutTheRestSoTheyStay') : "",
-          remaining ? translate('leftRunItAgainToDoMore', { value1: formatCount(remaining) }) : "",
-        ]
-          .filter(Boolean)
-          .join(" ") || undefined,
-      )
-    if (categorized) void refreshStems("transactions", "overview", "budgets", "flow")
-  } catch (cause) {
-    notify.error(cause, translate('couldnTCategorizeWithAi'))
-  } finally {
-    categorizing.value = false
-  }
-}
 
 async function remove(category: Category) {
   const { confirmed } = await confirm({

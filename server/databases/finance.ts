@@ -181,6 +181,8 @@ export const transaction = sqliteTable(
     categorySource: text("category_source", { enum: ["rule", "ai", "manual"] }),
     // When AI last looked at it. It's asked once: an uncategorized row with this set was one it wasn't sure about.
     aiCheckedAt: integer("ai_checked_at", { mode: "timestamp_ms" }),
+    // AI's best guess when it wasn't sure enough to set the category: offered only inside the transaction, never applied.
+    aiGuessId: text("ai_guess_id").references(() => category.id, { onDelete: "set null" }),
     note: text("note"),
     status: text("status", { enum: ["booked", "pending"] })
       .notNull()

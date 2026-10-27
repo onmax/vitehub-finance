@@ -87,6 +87,7 @@ function toTransaction(row: Joined, who: Pick<Member, "userId" | "via">, transfe
     counterparty: t.counterparty,
     categoryId: t.categoryId,
     categorySource: t.categorySource,
+    aiGuessId: !t.categoryId && canEdit(row, who.userId) ? t.aiGuessId : null,
     note: t.note,
     status: t.status,
     excluded: t.excluded,
@@ -220,7 +221,7 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   }
   const set: Partial<typeof transaction.$inferInsert> = {}
   if (change.categoryId !== undefined)
-    Object.assign(set, { categoryId: change.categoryId, categoryLocked: true, categorySource: change.categoryId ? "manual" : null })
+    Object.assign(set, { categoryId: change.categoryId, categoryLocked: true, categorySource: change.categoryId ? "manual" : null, aiGuessId: null })
   if (change.note !== undefined) set.note = change.note?.trim() || null
   if (change.excluded !== undefined) set.excluded = change.excluded
   if (change.hidden !== undefined) set.hidden = change.hidden

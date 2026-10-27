@@ -1067,7 +1067,7 @@
   "nothingToCategorize": "Nothing to categorize",
   "everyTransactionYouCanEditHasACategoryOrAi": "Every transaction you can edit has a category, or AI already looked at it.",
   "categorizedOf": "Categorized {value1} of {value2}",
-  "aiWasnTSureAboutTheRestSoTheyStay": "AI wasn’t sure about the rest, so they stay uncategorized.",
+  "aiWasnTSureAboutTheRestSoTheyStay": "AI wasn’t sure about the rest, so they stay uncategorized. Open one to see AI’s guess.",
   "leftRunItAgainToDoMore": "{value1} left. Run it again to do more.",
   "couldnTCategorizeWithAi": "Couldn’t categorize with AI",
   "itsTransactionsBecomeUncategorizedAndItsRulesAndBudgetsGo": "Its transactions become uncategorized, and its rules and budgets go with it.",
@@ -1530,5 +1530,8 @@
   "alertDismissedOn": "Dismissed {date}",
   "alertPercentRange": "Enter a whole number from 1 to 100.",
   "enterAnAmount": "Enter an amount.",
-  "enterAnAmountAboveZero": "Enter an amount above zero."
+  "enterAnAmountAboveZero": "Enter an amount above zero.",
+  "categorizeWithAi": "Categorize with AI",
+  "aiGuess": "AI’s guess, not sure enough to set it:",
+  "useCategory": "Use {category}"
 }

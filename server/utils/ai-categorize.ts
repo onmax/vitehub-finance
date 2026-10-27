@@ -114,9 +114,13 @@ export async function categorizeWithAi(householdId: string, accounts: SQL, optio
         .returning({ id: transaction.id })
       categorized += updated.length
     }
-  const unsure = [...decisions.filter((decision) => !decision.categoryId).map((decision) => decision.id), ...unsent]
-  for (let index = 0; index < unsure.length; index += 90)
-    await db.update(transaction).set({ aiCheckedAt: now }).where(inArray(transaction.id, unsure.slice(index, index + 90)))
+  // Unsure rows keep Jev's guess for the transaction's details, grouped so each guess is one update.
+  const byGuess = new Map<string | null, string[]>([[null, [...unsent]]])
+  for (const decision of decisions)
+    if (!decision.categoryId) byGuess.set(decision.guessId, [...(byGuess.get(decision.guessId) ?? []), decision.id])
+  for (const [aiGuessId, ids] of byGuess)
+    for (let index = 0; index < ids.length; index += 90)
+      await db.update(transaction).set({ aiCheckedAt: now, aiGuessId }).where(inArray(transaction.id, ids.slice(index, index + 90)))
 
   log(options.log, route, usage, { asked: decisions.length, categorized, durationMs: Date.now() - started })
   const [left] = await db
