@@ -16,14 +16,19 @@ export function shortAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address
 }
 
+/** What a wallet transaction changed its holding by: the coins that moved, less the fee. Staking keeps them in the holding. */
+export const holdingChange = (transaction: CryptoTransaction) => (transaction.kind === "stake" ? 0 : transaction.quantity) - transaction.fee
+
 /**
  * A wallet transaction as a row people understand. Its amount is what the holding changed by, fee included. Staking
- * moves are left out: the holding counts staked coins, so they change nothing. Everything but rewards is a transfer:
- * coins moving between your wallet and an exchange, or swapped for another asset, are neither spending nor income.
+ * moves are left out: the holding counts staked coins, so they change nothing. So are transactions that only cost a fee:
+ * a few millionths of a coin, never worth a row (the balance history still counts them). Everything but rewards is a
+ * transfer: coins moving between your wallet and an exchange, into an escrow, or swapped for another asset are neither
+ * spending nor income.
  */
 export function coinTransaction(transaction: CryptoTransaction): ProviderCoinTransaction | null {
   const { kind, quantity, symbol, counterparty } = transaction
-  if (kind === "stake") return null
+  if (kind === "stake" || kind === "fee") return null
   const other = counterparty ? shortAddress(counterparty) : null
   const description =
     kind === "send"
@@ -32,9 +37,13 @@ export function coinTransaction(transaction: CryptoTransaction): ProviderCoinTra
         ? `Received ${coins(quantity, symbol)}`
         : kind === "reward"
           ? `Received ${coins(quantity, symbol)} in rewards`
-          : quantity < 0
-            ? `Swapped ${coins(quantity, symbol)}`
-            : `Swapped for ${coins(quantity, symbol)}`
+          : kind === "escrow"
+            ? quantity < 0
+              ? `Locked ${coins(quantity, symbol)} in escrow${other ? ` for ${other}` : ""}`
+              : `Released ${coins(quantity, symbol)} from escrow`
+            : quantity < 0
+              ? `Swapped ${coins(quantity, symbol)}`
+              : `Swapped for ${coins(quantity, symbol)}`
   return {
     externalId: transaction.id,
     date: transaction.date,
@@ -60,9 +69,9 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
         options && provider.transactions
           ? await provider.transactions({ since: options.since }).catch((error) => {
               console.warn(`[finance] ${provider.name} history unavailable`, error)
-              return []
+              return null
             })
-          : []
+          : null
       return {
         accounts: [
           {
@@ -72,7 +81,13 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
             currency: "EUR",
             institution: provider.name,
             holdings: holdings.map(({ symbol, name, quantity }) => ({ symbol, name, quantity })),
-            coinTransactions: history.map(coinTransaction).filter((row) => row !== null),
+            coinTransactions: (history ?? []).map(coinTransaction).filter((row) => row !== null),
+            ...(history && {
+              coinHistory: {
+                since: options?.since ?? null,
+                changes: history.map((row) => ({ date: row.date, symbol: row.symbol, quantity: holdingChange(row) })).filter((change) => change.quantity !== 0),
+              },
+            }),
           },
         ],
       }

@@ -102,6 +102,16 @@ describe("wallet transactions", () => {
     expect(coinTransaction({ ...base, symbol: "NIM", quantity: -500, kind: "stake" })).toBeNull()
   })
 
+  it("calls locked and released escrow XRP transfers, and leaves fee-only transactions out", () => {
+    const paid = { ...base, fee: 0.00001 }
+    expect(coinTransaction({ ...paid, quantity: -50, kind: "escrow" })).toMatchObject({ description: "Locked 50 XRP in escrow", quantity: -50.00001, transfer: true })
+    expect(coinTransaction({ ...paid, quantity: -50, counterparty: "rLNaPoKeeBjZe2qs6x52yVPZpZ8td4dc6w", kind: "escrow" })).toMatchObject({
+      description: "Locked 50 XRP in escrow for rLNaPo…dc6w",
+    })
+    expect(coinTransaction({ ...paid, quantity: 50, kind: "escrow" })).toMatchObject({ description: "Released 50 XRP from escrow", transfer: true })
+    expect(coinTransaction({ ...paid, quantity: 0, kind: "fee" })).toBeNull()
+  })
+
   it("shortens addresses people can still recognize", () => {
     expect(shortAddress("NQ08 ACT8 T0FE PTG8 P5RL H2S3 QGXH V15R NVXY")).toBe("NQ08 ACT8 … NVXY")
     expect(shortAddress("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")).toBe("bc1qar…5mdq")

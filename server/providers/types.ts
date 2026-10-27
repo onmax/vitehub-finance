@@ -3,6 +3,7 @@
 // their models and errors to the engine's. Providers only fetch and map; the engine (server/utils/sync.ts) owns the
 // database.
 import { errorCode } from "../utils/error-codes"
+import type { CoinHistory } from "../utils/holdings-history"
 import { BankingError } from "@vitehub-finance/banking"
 import { BrokerError } from "@vitehub-finance/brokers"
 import { CryptoError } from "@vitehub-finance/crypto"
@@ -57,6 +58,11 @@ export interface ProviderAccount {
   transactions?: ProviderTransaction[]
   /** Only with `holdings`: coin movements the engine values into transactions. */
   coinTransactions?: ProviderCoinTransaction[]
+  /**
+   * Only with `holdings`: every change to their quantities the provider read, dust and fees included, for the engine to
+   * walk back from today's holdings into a balance history. Left out when the history couldn't be read.
+   */
+  coinHistory?: CoinHistory
   /** Set when this one account failed; the others still sync. */
   error?: string
 }
@@ -69,7 +75,7 @@ export interface ProviderResult<C = unknown> {
 }
 
 export interface FetchOptions {
-  /** `YYYY-MM-DD`: fetch transactions from this day on. Null fetches whatever the provider gives by default. */
+  /** `YYYY-MM-DD`: fetch transactions from this day on. Null fetches whatever the provider gives by default: for a wallet, its whole history. */
   since: string | null
   /** The first sync after linking. */
   initial: boolean

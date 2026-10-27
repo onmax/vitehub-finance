@@ -1,7 +1,10 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import { balanceSnapshot, financialAccount, transaction } from "../databases/config"
+import { currencyDigits } from "#shared/money"
 import { addDays } from "./dates"
+import { quantityTimeline, valueTimeline, type CoinHistory } from "./holdings-history"
+import { closingPrices } from "./prices"
 
 export const today = () => new Date().toISOString().slice(0, 10)
 
@@ -18,8 +21,9 @@ export async function recordSnapshot(accountId: string, balanceMinor: number, da
 
 /**
  * Daily balances for the days an account has transactions but no snapshot, worked backwards from today's balance: a
- * day closes at the next day's close minus what moved the next day. A freshly linked bank or an imported CSV then has a
- * chart at once instead of one that starts today. Days that already have a snapshot are left alone.
+ * day closes at the next day's close minus what moved the next day, back to the day before the first transaction. A
+ * freshly linked bank or an imported CSV then has a chart at once instead of one that starts today. Days that already
+ * have a snapshot are left alone.
  */
 export async function backfillSnapshots(accountId: string, days = 400) {
   const [account] = await db
@@ -44,16 +48,53 @@ export async function backfillSnapshots(accountId: string, days = 400) {
       await db
         .select({ date: balanceSnapshot.date })
         .from(balanceSnapshot)
-        .where(and(eq(balanceSnapshot.accountId, accountId), gte(balanceSnapshot.date, earliest)))
+        .where(and(eq(balanceSnapshot.accountId, accountId), gte(balanceSnapshot.date, addDays(earliest, -1))))
     ).map((row) => row.date),
   )
   const rows: Array<{ accountId: string; date: string; balanceMinor: number }> = []
   let close = account.balanceMinor
-  for (let day = end; day > earliest; ) {
+  for (let day = end; day >= earliest; ) {
     close -= moved.get(day) ?? 0
     day = addDays(day, -1)
     if (!known.has(day)) rows.push({ accountId, date: day, balanceMinor: close })
   }
+  await insertMissing(rows)
+}
+
+// Three parameters a row: 30 rows stay under D1's 100.
+async function insertMissing(rows: Array<{ accountId: string; date: string; balanceMinor: number }>) {
   for (let index = 0; index < rows.length; index += 30)
     await db.insert(balanceSnapshot).values(rows.slice(index, index + 30)).onConflictDoNothing()
+}
+
+/**
+ * A holdings account's (a wallet's) daily value for the days it has no snapshot: what it held each day, walked back from
+ * today's holdings through `history`, at the coins' closing price that day in the account's currency. Goes back a year,
+ * as far as CoinGecko's keyless prices go. Snapshots syncs wrote are kept; prices are only fetched when a day is missing.
+ */
+export async function backfillHoldingSnapshots(
+  accountId: string,
+  currency: string,
+  holdings: Array<{ symbol: string; quantity: number }>,
+  history: CoinHistory,
+) {
+  const end = today()
+  const timeline = quantityTimeline(holdings, history, end, addDays(end, -365))
+  if (!timeline.length) return 0
+  const known = new Set(
+    (
+      await db
+        .select({ date: balanceSnapshot.date })
+        .from(balanceSnapshot)
+        .where(and(eq(balanceSnapshot.accountId, accountId), gte(balanceSnapshot.date, timeline[0]!.date)))
+    ).map((row) => row.date),
+  )
+  const missing = timeline.filter((day) => !known.has(day.date))
+  if (!missing.length) return 0
+  const price = await closingPrices(Object.keys(missing[0]!.quantities), currency)
+  const rows = valueTimeline(missing, price, currencyDigits(currency)).map((day) => ({ accountId, date: day.date, balanceMinor: day.valueMinor }))
+  // Without prices (CoinGecko down, nothing cached) write nothing, not just the days worth 0: the next sync tries again.
+  if (rows.length < missing.length) return 0
+  await insertMissing(rows)
+  return rows.length
 }
