@@ -24,6 +24,7 @@
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@iconify-json/lucide": "^1.2.147",
     "@iconify-json/simple-icons": "^1.2.60",
+    "@internationalized/date": "^3.12.4",
     "@nuxt/ui": "4.11.0",
     "@vitehub-finance/banking": "workspace:*",
     "@vitehub-finance/brokers": "workspace:*",
@@ -45,6 +46,7 @@
     "valibot": "^1.4.2",
     "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@cf2778c0b3fb5808286605cb59bb2092d414ff1f",
     "vue": "3.5.44",
+    "vue-i18n": "^11.4.16",
     "vue-router": "5.2.0"
   },
   "devDependencies": {

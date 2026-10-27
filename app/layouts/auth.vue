@@ -12,6 +12,7 @@ const wide = computed(() => route.meta.wide === true)
         <AppLogo />
       </NuxtLink>
       <slot />
+      <footer class="mt-6 flex justify-center"><LanguagePicker /></footer>
     </div>
   </main>
 </template>

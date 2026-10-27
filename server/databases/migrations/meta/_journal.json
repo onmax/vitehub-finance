@@ -22,6 +22,13 @@
       "when": 1793042991144,
       "tag": "0002_hidden_ai_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793081140197,
+      "tag": "0003_user_language",
+      "breakpoints": true
     }
   ]
 }

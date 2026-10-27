@@ -10,6 +10,8 @@ import { send } from "#mailer"
 import { invitation, member, session } from "./databases/config"
 import { DEMO_DISABLED_PATHS, isDemo, seedingEmails } from "./demo/mode"
 import { isAllowedEmail } from "./utils/allowed"
+import { requestLanguage } from "./utils/language"
+import { isLocale } from "../shared/locale"
 import { createHousehold } from "./utils/household"
 
 /**
@@ -34,16 +36,18 @@ export default defineAuth(({ env, requestOrigin }) => ({
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // Mounted by server/api/auth/[...all].ts: the Nuxt module doesn't add ViteHub's generated Auth route.
   route: false,
+  user: { additionalFields: { language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true } } },
   emailAndPassword: { enabled: true, minPasswordLength: 10 },
   // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in ViteHub Finance needs.
   disabledPaths: ["/token", ...(isDemo() ? DEMO_DISABLED_PATHS : [])],
   databaseHooks: {
     user: {
       create: {
-        before: async (person) => {
+        before: async (person, context) => {
           if (isDemo()) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
-          if (isAllowedEmail(person.email, env.finance.allowedEmails.unseal())) return
-          return (await pendingInvitation(person.email)) ? undefined : false
+          if (!isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email))) return false
+          const language = "language" in person && isLocale(person.language) ? person.language : requestLanguage(context?.headers)
+          return { data: { ...person, language } }
         },
         // Invited people join the inviter's household from the invitation page; everyone else gets their own.
         after: async (person) => {
