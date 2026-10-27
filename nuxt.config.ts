@@ -250,17 +250,9 @@ export default defineNuxtConfig({
         // batches) for querying in the dashboard or `wrangler tail`.
         observability: { enabled: true, head_sampling_rate: 1, logs: { enabled: true, invocation_logs: true } },
         placement: { mode: "smart" },
-        // The sync Queue (server/queues/sync.ts). ViteHub's Nuxt module generates its runtime, but its wrangler entries
-        // don't reach .output/server/wrangler.json, so they're written here with ViteHub's names: the binding is QUEUE_
-        // plus the hex of "sync", the queue queue--<hex>. A Cloudflare account holds one queue per name.
-        ...(queue
-          ? {
-              queues: {
-                producers: [{ binding: "QUEUE_73796E63", queue: "queue--73796e63" }],
-                consumers: [{ queue: "queue--73796e63", max_batch_size: 5, max_retries: 3 }],
-              },
-            }
-          : {}),
+        // The sync Queue (server/queues/sync.ts): ViteHub generates its producer and consumer as the package name plus
+        // queue--<hex of "sync">, binding QUEUE_73796E63. This only tunes the consumer: five syncs per batch.
+        ...(queue ? { queues: { consumers: [{ queue: "vitehub-finance-queue--73796e63", max_batch_size: 5, max_retries: 3 }] } } : {}),
         ...(process.env.FINANCE_DOMAIN
           ? { routes: [{ pattern: process.env.FINANCE_DOMAIN, custom_domain: true }], workers_dev: false }
           : {}),

@@ -41,8 +41,6 @@ export default defineAuth(({ env, requestOrigin }) => ({
   baseURL: requestOrigin,
   secret: env.auth.secret.unseal(),
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
-  // Mounted by server/api/auth/[...all].ts: the Nuxt module doesn't add ViteHub's generated Auth route.
-  route: false,
   user: {
     additionalFields: { language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true } },
     // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day.

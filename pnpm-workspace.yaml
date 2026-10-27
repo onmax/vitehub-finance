@@ -20,9 +20,16 @@ patchedDependencies:
 
 # Only workerd (local Workers runtime) and the SQLite driver need their install scripts.
 allowBuilds:
+  "@mongodb-js/zstd": false
   "@parcel/watcher": false
+  "@swc/core": false
+  cbor-extract: false
+  cpu-features: false
   esbuild: false
+  msgpackr-extract: false
+  node-liblzma: false
   sharp: false
+  ssh2: false
   unrs-resolver: false
   vue-demi: false
   workerd: true

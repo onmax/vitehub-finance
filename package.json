@@ -44,7 +44,7 @@
     "ofetch": "2.0.0-alpha.3",
     "tailwindcss": "4.3.3",
     "valibot": "^1.4.2",
-    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@cf2778c0b3fb5808286605cb59bb2092d414ff1f",
+    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@5bc8735",
     "vue": "3.5.44",
     "vue-i18n": "^11.4.16",
     "vue-router": "5.2.0"

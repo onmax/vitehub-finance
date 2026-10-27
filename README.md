@@ -61,7 +61,7 @@ and emails a reminder a week before a consent expires (when the build has email)
 npx wrangler d1 create vitehub-finance                       # note the database id
 export CLOUDFLARE_D1_DATABASE_ID=<id> FINANCE_DOMAIN=finance.example.com
 npx wrangler kv namespace create KV               # then add its id to the generated wrangler.json, or let wrangler provision it
-npx wrangler queues create queue--73796e63
+npx wrangler queues create vitehub-finance-queue--73796e63   # ViteHub names it <package name>-queue--<hex of "sync">
 pnpm build && pnpm db:migrate:remote
 npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json   # and FINANCE_ENCRYPTION_KEY, ENABLE_BANKING_*, FINANCE_ALLOWED_EMAILS
 npx wrangler deploy --config .output/server/wrangler.json
