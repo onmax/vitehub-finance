@@ -1,5 +1,6 @@
+import { HTTPError } from "../../utils/http-error"
 import { useLogger } from "evlog/nitro/v3"
-import { defineHandler, HTTPError } from "h3"
+import { defineHandler } from "h3"
 import type { AiCategorizeResult } from "#shared/api"
 import { ACTION_LIMIT, aiAvailable, categorizeWithAi } from "../../utils/ai-categorize"
 import { editableAccounts } from "../../utils/categorize"

@@ -1,5 +1,6 @@
+import { HTTPError } from "./http-error"
 import { and, eq, inArray } from "drizzle-orm"
-import { HTTPError } from "h3"
+
 import { db } from "vite-hub/database/drizzle"
 import {
   budget,

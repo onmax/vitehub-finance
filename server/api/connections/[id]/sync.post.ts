@@ -22,6 +22,7 @@ export default defineHandler(async (event) => {
     throw fail(
       429,
       `Try again after ${next.toISOString().slice(11, 16)} UTC. Banks allow only a few syncs a day.`,
+      "syncAfter", { time: next.toISOString().slice(11, 16) },
     )
   }
   const started = new Date(Date.now() - 1000)
@@ -32,11 +33,11 @@ export default defineHandler(async (event) => {
   }
   // Inline syncs record expected failures (an expired consent, a revoked key) instead of throwing.
   const [run] = await db
-    .select({ status: syncRun.status, error: syncRun.error })
+    .select({ status: syncRun.status, error: syncRun.error, errorCode: syncRun.errorCode })
     .from(syncRun)
     .where(and(eq(syncRun.connectionId, row.id), gte(syncRun.startedAt, started)))
     .orderBy(desc(syncRun.startedAt))
     .limit(1)
-  if (run?.status === "failed") throw fail(502, run.error ?? "Sync failed. Try again later.")
+  if (run?.status === "failed") throw fail(502, run.error ?? "Sync failed. Try again later.", run.errorCode ?? "providerUnavailable")
   return { ok: true }
 })

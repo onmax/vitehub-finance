@@ -1,4 +1,5 @@
-import { defineHandler, HTTPError } from "h3"
+import { HTTPError } from "../../utils/http-error"
+import { defineHandler } from "h3"
 import * as v from "valibot"
 import type { Auth } from "better-auth"
 import { DEMO_PEOPLE } from "../../demo/scenario"

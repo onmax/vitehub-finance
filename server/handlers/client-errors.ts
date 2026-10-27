@@ -1,5 +1,6 @@
+import { HTTPError } from "../utils/http-error"
 import { useLogger } from "evlog/nitro/v3"
-import { defineHandler, HTTPError, noContent } from "h3"
+import { defineHandler, noContent } from "h3"
 import * as v from "valibot"
 import { requireRateLimit } from "vite-hub/rate-limit"
 import { identify } from "../utils/identity"

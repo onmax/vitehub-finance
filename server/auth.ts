@@ -10,7 +10,8 @@ import { send } from "#mailer"
 import { invitation, member, session } from "./databases/config"
 import { DEMO_DISABLED_PATHS, isDemo, seedingEmails } from "./demo/mode"
 import { isAllowedEmail } from "./utils/allowed"
-import { requestLanguage } from "./utils/language"
+import { emailLanguage, requestLanguage } from "./utils/language"
+import { translator } from "./utils/translate"
 import { isLocale } from "../shared/locale"
 import { createHousehold } from "./utils/household"
 
@@ -82,11 +83,13 @@ export default defineAuth(({ env, requestOrigin }) => ({
       creatorRole: "owner",
       invitationExpiresIn: 7 * 24 * 60 * 60,
       cancelPendingInvitationsOnReInvite: true,
-      sendInvitationEmail: async ({ id, email, inviter, organization: household }) => {
+      sendInvitationEmail: async ({ id, email, inviter, organization: household }, request) => {
+        const language = await emailLanguage(email, await emailLanguage(inviter.user.email, requestLanguage(request?.headers)))
+        const t = await translator(language)
         await send({
           to: email,
-          subject: `${inviter.user.name} invited you to ${household.name} on ViteHub Finance`,
-          text: `${inviter.user.name} wants to share finances with you on ViteHub Finance.\n\nJoin here: ${requestOrigin}/invite/${id}\n\nThe link works for 7 days.`,
+          subject: t("emailInviteSubject", { name: inviter.user.name, household: household.name }),
+          text: t("emailInviteBody", { name: inviter.user.name, url: `${requestOrigin}/invite/${id}` }),
         })
       },
     }),
@@ -97,8 +100,9 @@ export default defineAuth(({ env, requestOrigin }) => ({
     }),
     twoFactor({ issuer: "ViteHub Finance" }),
     magicLink({
-      sendMagicLink: async ({ email, url }) => {
-        await send({ to: email, subject: "Sign in to ViteHub Finance", text: `Sign in to ViteHub Finance: ${url}\n\nThe link works for 5 minutes.` })
+      sendMagicLink: async ({ email, url }, context) => {
+        const t = await translator(await emailLanguage(email, requestLanguage(context?.headers)))
+        await send({ to: email, subject: t("emailMagicSubject"), text: t("emailMagicBody", { url }) })
       },
     }),
     apiKey({

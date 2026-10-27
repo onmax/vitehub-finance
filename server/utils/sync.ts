@@ -4,7 +4,7 @@ import { db } from "vite-hub/database/drizzle"
 import { connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { categorize, dedupeKeys, isDate, type Rule } from "../providers/dedupe"
 import { providerFor } from "../providers/index"
-import { ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
+import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
@@ -255,13 +255,14 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
         status: "active",
         lastSyncedAt: new Date(),
         lastError: partial,
+        lastErrorCode: partial ? "providerPartial" : null,
         ...(result.consentExpiresAt === undefined ? {} : { consentExpiresAt: result.consentExpiresAt }),
         ...(result.credentials === undefined ? {} : { credentials: await seal(result.credentials) }),
       })
       .where(eq(connection.id, row.id))
     await db
       .update(syncRun)
-      .set({ status: "succeeded", added, error: partial, finishedAt: new Date() })
+      .set({ status: "succeeded", added, error: partial, errorCode: partial ? "providerPartial" : null, finishedAt: new Date() })
       .where(eq(syncRun.id, runId))
     log.set({ sync: { status: "succeeded" } })
     return { added, error: partial }
@@ -273,10 +274,10 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     // the owner. Anything else is a bug to look at.
     if (error instanceof ProviderError) log.warn(message, { sync: { status: "failed", code } })
     else log.error(error instanceof Error ? error : new Error(message), { sync: { status: "failed", code } })
-    await db.update(syncRun).set({ status: "failed", error: message, finishedAt: new Date() }).where(eq(syncRun.id, runId))
+    await db.update(syncRun).set({ status: "failed", error: message, errorCode: providerMessageCode(error), finishedAt: new Date() }).where(eq(syncRun.id, runId))
     await db
       .update(connection)
-      .set({ status: expired ? "expired" : "error", lastError: message })
+      .set({ status: expired ? "expired" : "error", lastError: message, lastErrorCode: providerMessageCode(error) })
       .where(eq(connection.id, row.id))
     if (retryable(error)) throw error
     return { added: 0, error: message }

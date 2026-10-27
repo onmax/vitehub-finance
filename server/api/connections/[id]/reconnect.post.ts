@@ -12,7 +12,7 @@ export default defineHandler(async (event) => {
   const config = requireBankConfig()
   try {
     const bank = await findBank(config, row.institution ?? row.name, row.country ?? "")
-    if (!bank) throw fail(400, `${row.institution ?? row.name} isn't in the bank list anymore. Remove this connection.`)
+    if (!bank) throw fail(400, `${row.institution ?? row.name} isn't in the bank list anymore. Remove this connection.`, "bankNotListed", { bank: row.institution ?? row.name })
     return { url: await startBankLink(event, who, row, bank) }
   } catch (error) {
     throw providerHttpError(error)

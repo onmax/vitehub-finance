@@ -3,6 +3,8 @@ import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { defineSchedule } from "vite-hub/schedule"
 import { dispatchSync } from "#dispatch"
+import { isLocale, FORMAT_LOCALES } from "../../shared/locale"
+import { translator } from "../utils/translate"
 import { send } from "#mailer"
 import { connection, householdSettings, user as users } from "../databases/config"
 import { isDemo } from "../demo/mode"
@@ -51,14 +53,14 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
   await step(() =>
     db
       .update(connection)
-      .set({ status: "expired", lastError: "The bank consent has expired. Reconnect the bank to keep syncing." })
+      .set({ status: "expired", lastError: "The bank consent has expired. Reconnect the bank to keep syncing.", lastErrorCode: "providerExpired" })
       .where(and(eq(connection.status, "active"), isNotNull(connection.consentExpiresAt), lte(connection.consentExpiresAt, new Date(now)))),
   )
 
   await step(async () => {
     const origin = await knownOrigin()
     const expiring = await db
-      .select({ id: connection.id, name: connection.name, until: connection.consentExpiresAt, remindedAt: connection.remindedAt, email: users.email })
+      .select({ id: connection.id, name: connection.name, until: connection.consentExpiresAt, remindedAt: connection.remindedAt, email: users.email, language: users.language })
       .from(connection)
       .innerJoin(users, eq(users.id, connection.ownerId))
       .where(
@@ -70,14 +72,16 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
       )
     for (const row of expiring) {
       if (row.remindedAt && now - row.remindedAt.getTime() < 6 * DAY) continue
-      const until = row.until!.toISOString().slice(0, 10)
+      const language = isLocale(row.language) ? row.language : "en"
+      const t = await translator(language)
+      const until = language === "en" ? row.until!.toISOString().slice(0, 10) : new Intl.DateTimeFormat(FORMAT_LOCALES[language], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(row.until!)
       await step(async () => {
         await send({
           to: row.email,
-          subject: `Reconnect ${row.name} in ViteHub Finance`,
+          subject: t("emailReconnectSubject", { name: row.name }),
           text: [
-            `Your consent for ${row.name} ends on ${until}. Reconnect it before then to keep its balances and transactions up to date. It takes a minute at your bank.`,
-            origin ? `Reconnect here: ${origin}/connect/banks` : "Open ViteHub Finance and reconnect it on the Banks page.",
+            t("emailReconnectBody", { name: row.name, date: until }),
+            origin ? t("emailReconnectLink", { url: `${origin}/connect/banks` }) : t("emailReconnectNoLink"),
           ].join("\n\n"),
         })
         await db.update(connection).set({ remindedAt: new Date(now) }).where(eq(connection.id, row.id))

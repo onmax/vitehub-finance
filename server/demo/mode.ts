@@ -1,4 +1,5 @@
-import { HTTPError } from "h3"
+import { HTTPError } from "../utils/http-error"
+
 import { useRuntimeConfig } from "nitro/runtime-config"
 
 /** The public demo build (`FINANCE_DEMO=1`, nuxt.config.ts): a fictional household anyone can enter, reset nightly. */

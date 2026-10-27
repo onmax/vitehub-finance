@@ -1,4 +1,6 @@
-import { type H3Event, HTTPError } from "h3"
+import { errorCode } from "./error-codes"
+import { HTTPError } from "./http-error"
+import { type H3Event } from "h3"
 import * as v from "valibot"
 import { CATEGORY_COLORS } from "#shared/categories"
 import { ACCOUNT_KINDS } from "../databases/config"
@@ -13,13 +15,13 @@ export async function readInput<T extends v.GenericSchema>(event: H3Event, schem
   if (result.success) return result.output
   const issue = result.issues[0]
   const path = issue.path?.map((item) => String(item.key)).join(".")
-  throw new HTTPError({ status: 400, statusText: `${path ? `${path}: ` : ""}${issue.message}`.replace(/[^\x20-\x7e]/g, "") })
+  throw new HTTPError({ status: 400, statusText: `${path ? `${path}: ` : ""}${issue.message}`.replace(/[^\x20-\x7e]/g, ""), data: { code: errorCode(issue.message) === "providerUnavailable" ? "invalidField" : errorCode(issue.message), params: { field: path ?? "" } } })
 }
 
 /** A route parameter (`[id]`), decoded. */
 export function param(event: H3Event, name = "id") {
   const value = event.context.params?.[name]
-  if (!value) throw new HTTPError({ status: 400, statusText: `Missing ${name}.` })
+  if (!value) throw new HTTPError({ status: 400, statusText: `Missing ${name}.`, data: { code: "missingField", params: { field: name } } })
   return decodeURIComponent(value)
 }
 

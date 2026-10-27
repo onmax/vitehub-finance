@@ -1,5 +1,6 @@
+import { HTTPError } from "../../utils/http-error"
 import { and, eq } from "drizzle-orm"
-import { defineHandler, HTTPError } from "h3"
+import { defineHandler } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { rule } from "../../databases/config"
 import { requireMember } from "../../utils/identity"

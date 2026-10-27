@@ -1,4 +1,5 @@
-import { defineHandler, HTTPError } from "h3"
+import { HTTPError } from "../../utils/http-error"
+import { defineHandler } from "h3"
 import type { BudgetsResponse } from "#shared/api"
 import { scopeOf } from "../../utils/access"
 import { listBudgets } from "../../utils/budgets"

@@ -1,5 +1,6 @@
+import { HTTPError } from "./http-error"
 import { and, eq, inArray, or, type SQL } from "drizzle-orm"
-import { type H3Event, HTTPError } from "h3"
+import { type H3Event } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { financialAccount, transaction } from "../databases/config"
 import { canEdit, canView, type AccountAccess, type Scope } from "#shared/access"

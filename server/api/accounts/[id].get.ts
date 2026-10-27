@@ -1,4 +1,5 @@
-import { defineHandler, HTTPError } from "h3"
+import { HTTPError } from "../../utils/http-error"
+import { defineHandler } from "h3"
 import type { AccountDetail } from "#shared/api"
 import { accountDetail } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"

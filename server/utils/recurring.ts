@@ -1,5 +1,6 @@
+import { HTTPError } from "./http-error"
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm"
-import { HTTPError } from "h3"
+
 import { db } from "vite-hub/database/drizzle"
 import type { Recurring, RecurringResponse } from "#shared/api"
 import { canEdit } from "#shared/access"
@@ -143,7 +144,7 @@ export async function recurringOverview(who: Member, scope: Scope): Promise<Recu
   const [subscriptions] = await db
     .select({ id: category.id })
     .from(category)
-    .where(and(eq(category.householdId, who.householdId), sql`lower(${category.name}) = 'subscriptions'`))
+    .where(and(eq(category.householdId, who.householdId), sql`lower(${category.name}) in ('subscriptions', 'suscripciones', 'abonnements', 'abos', 'subscrições')`))
     .limit(1)
   const insights = findInsights(rows, {
     currency,

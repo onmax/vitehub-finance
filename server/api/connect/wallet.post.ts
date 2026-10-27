@@ -24,7 +24,7 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   const who = await requireMember(event)
   const body = await readValid(event, Body)
   const address = parseAddress(body.chain, body.address)
-  if (!address) throw fail(400, `That isn't a valid ${CHAINS[body.chain].name} address.`)
+  if (!address) throw fail(400, `That isn't a valid ${CHAINS[body.chain].name} address.`, "invalidWallet", { chain: CHAINS[body.chain].name })
   await assertNotLinked(who, body.chain, address)
   const id = crypto.randomUUID()
   await db.insert(connection).values({

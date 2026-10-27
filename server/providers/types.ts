@@ -2,6 +2,7 @@
 // workspace packages (@vitehub-finance/banking, @vitehub-finance/crypto, @vitehub-finance/brokers); these adapters map
 // their models and errors to the engine's. Providers only fetch and map; the engine (server/utils/sync.ts) owns the
 // database.
+import { errorCode } from "../utils/error-codes"
 import { BankingError } from "@vitehub-finance/banking"
 import { BrokerError } from "@vitehub-finance/brokers"
 import { CryptoError } from "@vitehub-finance/crypto"
@@ -108,4 +109,11 @@ export async function mapped<T>(run: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw asProviderError(error)
   }
+}
+
+export function providerMessageCode(error: unknown): string {
+  if (!(error instanceof ProviderError)) return "providerUnavailable"
+  const specific = errorCode(error.message)
+  if (specific !== "providerUnavailable") return specific
+  return { auth: "providerAuth", expired: "providerExpired", rate_limited: "providerRateLimited", unavailable: "providerUnavailable" }[error.code]
 }

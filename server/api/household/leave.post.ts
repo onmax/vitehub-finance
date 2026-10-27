@@ -1,4 +1,5 @@
-import { defineHandler, HTTPError } from "h3"
+import { HTTPError } from "../../utils/http-error"
+import { defineHandler } from "h3"
 import { requireMember } from "../../utils/identity"
 import { moveOut, requireNotLastOwner } from "../../utils/membership"
 import { refuseInDemo } from "../../demo/mode"

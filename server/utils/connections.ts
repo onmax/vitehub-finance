@@ -1,5 +1,7 @@
+import { errorCode } from "./error-codes"
+import { HTTPError } from "./http-error"
 import { and, desc, eq, isNotNull } from "drizzle-orm"
-import { type H3Event, HTTPError } from "h3"
+import { type H3Event } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
@@ -8,7 +10,7 @@ import type { Bank, ConnectionSummary, SyncRun } from "#shared/api"
 import { connection, financialAccount, syncRun, user as users } from "../databases/config"
 import type { Institution } from "@vitehub-finance/banking"
 import { listBanks, startAuth, type EnableBankingConfig } from "../providers/enable-banking"
-import { ProviderError } from "../providers/types"
+import { ProviderError, providerMessageCode } from "../providers/types"
 import { bankLogos } from "./bank-logos"
 import type { Member } from "./identity"
 
@@ -22,7 +24,8 @@ export function errorMessage(error: unknown) {
 }
 
 /** An HTTPError whose JSON body and status line both carry the readable reason. */
-export const fail = (status: number, message: string) => new HTTPError({ status, statusText: message, message })
+export const fail = (status: number, message: string, code?: string, params?: Record<string, string | number>) =>
+  new HTTPError({ status, statusText: message, message, ...(code ? { data: { code, params } } : {}) })
 
 /** Parses a JSON body with a valibot schema; a 400 names the first problem. */
 export async function readValid<S extends v.GenericSchema>(event: H3Event, schema: S): Promise<v.InferOutput<S>> {
@@ -33,7 +36,7 @@ export async function readValid<S extends v.GenericSchema>(event: H3Event, schem
   if (result.success) return result.output
   const issue = result.issues[0]
   const path = issue.path?.map((item) => item.key).join(".")
-  throw fail(400, path ? `${path}: ${issue.message}` : issue.message)
+  throw fail(400, path ? `${path}: ${issue.message}` : issue.message, errorCode(issue.message) === "providerUnavailable" ? "invalidField" : errorCode(issue.message), { field: path ?? "" })
 }
 
 /** Enable Banking's app id and key, or null when this ViteHub Finance has none. */
@@ -59,7 +62,7 @@ export function providerHttpError(error: unknown) {
   if (error instanceof HTTPError) return error
   if (error instanceof ProviderError) {
     const status = error.code === "auth" ? 401 : error.code === "rate_limited" ? 429 : error.code === "expired" ? 409 : 502
-    return fail(status, error.message)
+    return fail(status, error.message, providerMessageCode(error))
   }
   return fail(502, errorMessage(error))
 }
@@ -174,6 +177,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       consentExpiresAt: iso(row.consentExpiresAt),
       lastSyncedAt: iso(row.lastSyncedAt),
       lastError: row.lastError,
+      lastErrorCode: row.lastErrorCode,
       accountCount: visible.get(row.id) ?? 0,
       canManage: row.ownerId === who.userId,
     }))
@@ -193,6 +197,7 @@ export async function recentRuns(connectionId: string, limit = 20): Promise<Sync
     status: row.status,
     added: row.added,
     error: row.error,
+    errorCode: row.errorCode,
     startedAt: row.startedAt.toISOString(),
     finishedAt: iso(row.finishedAt),
   }))

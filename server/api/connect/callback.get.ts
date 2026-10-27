@@ -1,3 +1,4 @@
+import { errorCode } from "../../utils/error-codes"
 import { eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { defineHandler, redirect } from "h3"
@@ -38,9 +39,9 @@ export default defineHandler(async (event) => {
     if (row)
       await db
         .update(connection)
-        .set({ ...(row.status === "pending" ? { status: "error" as const } : {}), lastError: message })
+        .set({ ...(row.status === "pending" ? { status: "error" as const } : {}), lastError: message, lastErrorCode: errorCode(message) })
         .where(eq(connection.id, row.id))
-    return toConnect({ error: message.slice(0, 200) })
+    return toConnect({ error: message.slice(0, 200), error_code: errorCode(message) })
   }
 
   try {
@@ -83,6 +84,7 @@ export default defineHandler(async (event) => {
         consentExpiresAt: session.consentExpiresAt,
         status: "active",
         lastError: null,
+        lastErrorCode: null,
         remindedAt: null,
       })
       .where(eq(connection.id, row.id))
@@ -96,7 +98,7 @@ export default defineHandler(async (event) => {
       await dispatchSync(row.id, "link")
     } catch (error) {
       log.warn("First sync failed", { callback: { outcome: "linked", syncError: errorMessage(error) } })
-      return toConnect({ error: `Connected, but the first sync failed. ${errorMessage(error)}`.slice(0, 200) })
+      return toConnect({ error: `Connected, but the first sync failed. ${errorMessage(error)}`.slice(0, 200), error_code: "providerPartial" })
     }
     // Inline syncs record expected failures instead of throwing; read how it went.
     const [after] = await db
@@ -106,7 +108,7 @@ export default defineHandler(async (event) => {
       .limit(1)
     log.set({ callback: { outcome: "linked", syncStatus: after?.status } })
     if (after && after.status !== "active")
-      return toConnect({ error: `Connected, but the first sync failed. ${after.lastError ?? "Try again later."}`.slice(0, 200) })
+      return toConnect({ error: `Connected, but the first sync failed. ${after.lastError ?? "Try again later."}`.slice(0, 200), error_code: "providerPartial" })
     return toConnect({ linked: row.id })
   } catch (error) {
     // An error, not the warning `failed` adds: something other than the bank or the person went wrong.

@@ -1,3 +1,4 @@
+import type { InsightTranslation } from "../../shared/api"
 // Finds repeating payments in one account's transactions. Pure (no database), so vitest runs it directly;
 // server/utils/recurring.ts loads the rows and stores what this returns.
 import type { Cadence } from "#shared/api"
@@ -279,6 +280,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
     kind: "price_increase" | "duplicate" | "unused" | "large_subscription"
     title: string
     detail: string
+    translation: InsightTranslation
     savingsMinor: number
     recurringIds: string[]
   }> = []
@@ -292,6 +294,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
     const savingsMinor = options.convert((latest - previous) * PER_YEAR[item.cadence], item.currency)
     insights.push({
       kind: "price_increase",
+      translation: { kind: "price_increase", name: item.name, percent, latest, previous, currency: item.currency, base: options.currency, cadence: item.cadence, account: item.accountName },
       title: `${item.name} went up ${percent}%`,
       detail: `Now ${money(latest, item.currency)} ${CADENCE_WORD[item.cadence]} on ${item.accountName}, up from ${money(previous, item.currency)}. That's ${money(savingsMinor)} more a year.`,
       savingsMinor,
@@ -312,6 +315,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
     const who = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`
     insights.push({
       kind: "duplicate",
+      translation: { kind: "duplicate", name: sorted[0]!.name, owners: names, monthly: sorted.map((item) => -item.monthlyMinor), currency: options.currency, count: group.length },
       title: `${sorted[0]!.name} is paid ${group.length === 2 ? "twice" : `${group.length} times`}`,
       detail: `${who} each pay for ${sorted[0]!.name}, ${sorted.map((item) => `${money(-item.monthlyMinor)}`).join(" + ")} a month. One shared or family plan saves up to ${money(savingsMinor)} a year.`,
       savingsMinor,
@@ -324,6 +328,7 @@ export function findInsights(items: RecurringItem[], options: InsightOptions) {
       if (item.categoryId !== options.subscriptionsCategoryId || -item.monthlyMinor < options.largeMonthlyMinor) continue
       insights.push({
         kind: "large_subscription",
+        translation: { kind: "large_subscription", name: item.name, monthly: -item.monthlyMinor, yearly: yearly(item), currency: options.currency, account: item.accountName },
         title: `${item.name} costs ${money(-item.monthlyMinor)} a month`,
         detail: `${money(yearly(item))} a year on ${item.accountName}. Check that you still use it, or look for a cheaper plan.`,
         savingsMinor: yearly(item),

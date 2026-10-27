@@ -1,5 +1,6 @@
+import { HTTPError } from "../../utils/http-error"
 import { eq } from "drizzle-orm"
-import { defineHandler, HTTPError } from "h3"
+import { defineHandler } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import type { AccountSummary } from "#shared/api"

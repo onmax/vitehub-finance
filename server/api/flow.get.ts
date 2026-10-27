@@ -1,4 +1,5 @@
-import { defineHandler, HTTPError } from "h3"
+import { HTTPError } from "../utils/http-error"
+import { defineHandler } from "h3"
 import type { MoneyFlow } from "#shared/api"
 import { scopeOf } from "../utils/access"
 import { isIsoMonth } from "../utils/dates"
