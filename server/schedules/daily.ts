@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNotNull, lt, lte } from "drizzle-orm"
+import { and, eq, gt, inArray, isNotNull, like, lt, lte, notInArray, type SQL } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { defineSchedule } from "vite-hub/schedule"
@@ -11,6 +11,7 @@ import { isDemo } from "../demo/mode"
 import { seedDemo } from "../demo/seed"
 import { errorMessage, knownOrigin } from "../utils/connections"
 import { detectTransfers } from "../utils/transfers"
+import { DEMO_DOMAIN } from "../../shared/demo"
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -18,7 +19,9 @@ const DAY = 24 * 60 * 60 * 1000
  * Every morning: expire consents that ran out, remind owners a week before one does, drop bank links nobody finished,
  * then sync every active (or failed) connection one at a time. One failure never stops the rest.
  *
- * The demo has nothing to sync: it rebuilds its household as of today instead, wiping whatever visitors changed.
+ * A public instance (`FINANCE_DEMO=1`) first rebuilds the demo household as of today, wiping whatever visitors changed
+ * as Lucía and Pablo, then does the rest for everyone else. The demo's connections are fakes: they never sync, expire,
+ * or get reminders.
  *
  * The run is one wide event (`action: "schedule"`) with what it did and each step that failed; every sync it starts
  * inline (Node) logs its own.
@@ -41,20 +44,24 @@ export default defineSchedule({
 })
 
 async function daily(scheduledAt: Date, log: RequestLogger) {
-  if (isDemo()) {
-    await seedDemo(scheduledAt.toISOString().slice(0, 10))
-    log.set({ schedule: { demo: true } })
-    return { seeded: true }
-  }
   const now = scheduledAt.getTime()
   const errors: unknown[] = []
   const step = async (run: () => Promise<unknown>) => run().catch((error) => errors.push(error))
+
+  // Only the demo's people: seedDemo wipes by their emails and households nobody else is in (server/utils/erase.ts).
+  let real: SQL | undefined
+  if (isDemo()) {
+    await step(() => seedDemo(scheduledAt.toISOString().slice(0, 10)))
+    const demoPeople = await db.select({ id: users.id }).from(users).where(like(users.email, `%@${DEMO_DOMAIN}`))
+    if (demoPeople.length) real = notInArray(connection.ownerId, demoPeople.map((row) => row.id))
+    log.set({ schedule: { demo: true } })
+  }
 
   await step(() =>
     db
       .update(connection)
       .set({ status: "expired", lastError: "The bank consent has expired. Reconnect the bank to keep syncing.", lastErrorCode: "providerExpired" })
-      .where(and(eq(connection.status, "active"), isNotNull(connection.consentExpiresAt), lte(connection.consentExpiresAt, new Date(now)))),
+      .where(and(eq(connection.status, "active"), isNotNull(connection.consentExpiresAt), lte(connection.consentExpiresAt, new Date(now)), real)),
   )
 
   await step(async () => {
@@ -68,6 +75,7 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
           eq(connection.status, "active"),
           gt(connection.consentExpiresAt, new Date(now)),
           lte(connection.consentExpiresAt, new Date(now + 7 * DAY)),
+          real,
         ),
       )
     for (const row of expiring) {
@@ -91,7 +99,7 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
 
   // Bank links abandoned at the consent screen, so they don't linger as "pending" forever.
   await step(() =>
-    db.delete(connection).where(and(eq(connection.status, "pending"), lt(connection.createdAt, new Date(now - DAY)))),
+    db.delete(connection).where(and(eq(connection.status, "pending"), lt(connection.createdAt, new Date(now - DAY)), real)),
   )
 
   // Pairs moves between accounts again, so rows imported or recategorized since yesterday can still pair.
@@ -99,7 +107,7 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
     await step(() => detectTransfers(householdId))
 
   // Connections in `error` retry too: most errors (a bank or an API down) pass. Expired ones wait for their owner.
-  const active = await db.select({ id: connection.id }).from(connection).where(inArray(connection.status, ["active", "error"]))
+  const active = await db.select({ id: connection.id }).from(connection).where(and(inArray(connection.status, ["active", "error"]), real))
   for (const { id } of active) await step(() => dispatchSync(id, "schedule"))
 
   log.set({ schedule: { dispatched: active.length, failures: errors.length } })

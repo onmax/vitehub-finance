@@ -6,7 +6,7 @@ import { db } from "vite-hub/database/drizzle"
 import { connection } from "../../databases/config"
 import { fail, findBank, providerHttpError, readValid, requireBankConfig, startBankLink } from "../../utils/connections"
 import { requireMember } from "../../utils/identity"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 const Body = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
@@ -15,7 +15,7 @@ const Body = v.object({
 
 /** Starts linking a bank: a `pending` connection owned by the caller, and the bank's consent page to open. */
 export default defineHandler(async (event) => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
   const config = requireBankConfig()
   const body = await readValid(event, Body)

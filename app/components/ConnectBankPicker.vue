@@ -5,11 +5,12 @@ import type { Bank, ProviderInfo } from "#shared/api"
 import { bankMark } from "#shared/banks"
 
 // Banks over PSD2 through Enable Banking: pick a country, find the bank, and go to its consent page. On a ViteHub Finance without
-// Enable Banking's credentials it explains the setup instead.
+// Enable Banking's credentials it explains the setup instead; on a public instance, which links no banks, it says so and
+// points at what works there.
 const props = defineProps<{ error?: string | null }>()
 const emit = defineEmits<{ dismissError: [] }>()
 // The demo links no real banks (the server refuses); it says so instead of listing banks.
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const COUNTRIES = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "GB"]
 const names = computed(() => new Intl.DisplayNames(currentFormatLocale(), { type: "region" }))
@@ -21,8 +22,9 @@ const { data: providers, status: providersStatus } = useScopedFetch<ProviderInfo
   unscoped: true,
   default: () => [],
 })
-const available = computed(() => providers.value.find((provider) => provider.id === "enable_banking")?.available ?? false)
-const configured = computed(() => providersStatus.value === "success" && available.value)
+const bankProvider = computed(() => providers.value.find((provider) => provider.id === "enable_banking"))
+const configured = computed(() => providersStatus.value === "success" && Boolean(bankProvider.value?.available))
+const publicInstance = computed(() => bankProvider.value?.reason === "public")
 
 const { data: banks, status, error: banksError, refresh } = useScopedFetch<Bank[]>("/api/connect/banks", {
   key: "banks",
@@ -95,6 +97,16 @@ const shownError = computed(() => connectError.value || props.error || "")
     <div v-else-if="providersStatus === 'pending' || providersStatus === 'idle'" class="flex flex-col gap-2">
       <USkeleton class="h-9 w-full" />
       <USkeleton v-for="row in 3" :key="row" class="h-12 w-full" />
+    </div>
+
+    <div v-else-if="!configured && publicInstance" class="rounded-lg bg-muted p-4">
+      <p class="text-sm font-medium text-highlighted">{{ $t('banksArenTAvailableOnThisServer') }}</p>
+      <p class="mt-1.5 text-sm text-pretty text-muted">{{ $t('banksPublicInstanceExplanation') }}</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-file-up" :label="$t('importACsv')" to="#import" />
+        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-wallet" :label="$t('catalogWalletsAndExchanges')" to="/connect/crypto" />
+        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-trending-up" label="Interactive Brokers" to="/connect/investments#ibkr" />
+      </div>
     </div>
 
     <div v-else-if="!configured" class="rounded-lg bg-muted p-4">

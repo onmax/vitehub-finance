@@ -7,4 +7,5 @@ useHead({ get title() { return translate('security') } })
   <SettingsTwoFactor />
   <SettingsPassword />
   <SettingsSessions />
+  <SettingsDeleteAccount />
 </template>

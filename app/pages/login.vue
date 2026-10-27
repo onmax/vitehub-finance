@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Sign in: email and password, a passkey (also offered by the browser's autofill on the email field), a magic link when
-// this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code.
+// this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code. A
+// public instance also opens the demo household, and points newcomers at sign-up, which is open to anyone there.
 definePageMeta({ layout: "auth" })
 useHead({ get title() { return translate('signIn') } })
 
@@ -8,7 +9,7 @@ const route = useRoute()
 const { $auth } = useNuxtApp()
 const session = useAuthSession()
 const emailWorks = useRuntimeConfig().public.email
-const demo = useDemo()
+const publicInstance = usePublicInstance()
 const step = computed(() => (route.query.step === "2fa" ? "2fa" : "sign-in"))
 const redirect = computed(() => safeRedirect(route.query.redirect))
 
@@ -32,21 +33,6 @@ onMounted(async () => {
 async function finish() {
   await session.refresh()
   await navigateTo(redirect.value)
-}
-
-/** The demo's way in: the server seeds the household if needed and signs in as Lucía. */
-async function exploreDemo() {
-  pending.value = "demo"
-  error.value = ""
-  try {
-    await $fetch("/api/demo/session", { method: "POST", body: { as: "lucia" } })
-    await session.refresh()
-    await navigateTo("/")
-  } catch (cause) {
-    error.value = errorText(cause, translate('couldnTOpenTheDemoTryAgain'))
-  } finally {
-    pending.value = null
-  }
 }
 
 async function signIn() {
@@ -164,21 +150,7 @@ watch(step, () => {
       <h1 class="text-lg font-semibold text-highlighted">{{ $t('signInToVitehubFinance') }}</h1>
       <p class="mt-1 text-sm text-muted">{{ $t('yourHouseholdSMoneyInOnePlace') }}</p>
 
-      <template v-if="demo">
-        <UButton
-          class="mt-6"
-          block
-          size="lg"
-          icon="i-lucide-arrow-right"
-          trailing
-          :label="$t('exploreTheDemo')"
-          :loading="pending === 'demo'"
-          :disabled="pending !== null && pending !== 'demo'"
-          @click="exploreDemo"
-        />
-        <p class="mt-2 text-center text-xs text-muted">{{ $t('aFictionalHouseholdInMadridItsDataResetsEveryNight') }}</p>
-        <USeparator :label="$t('orSignIn')" class="mt-5" :ui="{ label: 'text-xs text-muted' }" />
-      </template>
+      <DemoEntry v-if="publicInstance" class="mt-6" :disabled="pending !== null" @pending="(value) => (pending = value ? 'demo' : null)" />
 
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="signIn">
         <UFormField :label="$t('email')" name="email" :hint="lastUsed === 'email' ? $t('lastUsed') : undefined">
@@ -189,7 +161,7 @@ watch(step, () => {
             :placeholder="$t('youExampleCom')"
             class="w-full"
             required
-            :autofocus="!demo"
+            :autofocus="!publicInstance"
           />
         </UFormField>
         <UFormField :label="$t('password')" name="password">
@@ -248,7 +220,7 @@ watch(step, () => {
       <p v-if="error" class="mt-4 text-sm text-error" role="alert">{{ error }}</p>
     </template>
   </div>
-  <p v-if="step !== '2fa' && !demo" class="mt-6 text-center text-sm text-muted"> {{ $t('newHere') }} <ULink :to="{ path: '/signup', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">{{ $t('createAnAccount') }}</ULink>
+  <p v-if="step !== '2fa'" class="mt-6 text-center text-sm text-muted"> {{ $t('newHere') }} <ULink :to="{ path: '/signup', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">{{ $t('createAnAccount') }}</ULink>
   </p>
-  <LegalLinks :class="demo && step !== '2fa' ? 'mt-6' : 'mt-4'" />
+  <LegalLinks class="mt-4" />
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Create an account. A new account gets its own household; people invited to one join it from /invite/<id> instead.
+// A public instance takes anyone, and offers the demo household beside it.
 definePageMeta({ layout: "auth" })
 useHead({ get title() { return translate('createAnAccount') } })
 
@@ -12,8 +13,7 @@ const reveal = ref(false)
 const pending = ref(false)
 const error = ref("")
 const refused = ref(false)
-// The demo never creates accounts (the server refuses too); visitors enter its household from /login.
-const demo = useDemo()
+const publicInstance = usePublicInstance()
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
@@ -53,16 +53,6 @@ async function submit() {
   <div>
     <h1 class="text-lg font-semibold text-highlighted">{{ $t('createYourAccount') }}</h1>
     <p class="mt-1 text-sm text-muted">{{ $t('youGetAHouseholdOfYourOwnInviteOthersTo') }}</p>
-    <UAlert
-      v-if="demo"
-      class="mt-4"
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-lock"
-      :title="$t('signUpIsOffInTheDemo')"
-      :description="$t('exploreTheDemoHouseholdFromTheSignInPageInstead')"
-      :actions="[{ label: $t('goToSignIn'), to: '/login', color: 'neutral', variant: 'outline' }]"
-    />
 
     <UForm :state="state" :validate="validate" class="mt-6 flex flex-col gap-4" @submit="submit">
       <UFormField :label="$t('name')" name="name">
@@ -104,10 +94,14 @@ async function submit() {
         :description="$t('onlyAllowedEmailsCanSignUpHereIfSomeoneInvited')"
       />
       <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
-      <UButton type="submit" block :label="$t('createAccount')" :loading="pending" :disabled="demo" />
+      <p v-if="publicInstance" class="text-xs text-pretty text-muted">
+        {{ $t('thisIsAPublicInstanceOfOpenSourceSoftware') }} <ULink to="/terms" class="font-medium text-highlighted underline underline-offset-4">{{ $t('terms') }}</ULink> · <ULink to="/privacy" class="font-medium text-highlighted underline underline-offset-4">{{ $t('privacy') }}</ULink>
+      </p>
+      <UButton type="submit" block :label="$t('createAccount')" :loading="pending" />
     </UForm>
+    <DemoEntry v-if="publicInstance" class="mt-6" :disabled="pending" />
   </div>
   <p class="mt-6 text-center text-sm text-muted"> {{ $t('alreadyHaveAnAccount') }} <ULink :to="{ path: '/login', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">{{ $t('signIn') }}</ULink>
   </p>
-  <LegalLinks class="mt-4" />
+  <LegalLinks v-if="!publicInstance" class="mt-4" />
 </template>

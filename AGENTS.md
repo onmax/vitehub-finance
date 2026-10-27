@@ -4,7 +4,8 @@ Household finance on ViteHub. People sign up, get a household (a Better Auth org
 banks (Enable Banking, PSD2), crypto exchanges, wallets, and Interactive Brokers, and see their money together: accounts, transactions,
 recurring payments, budgets, goals, and a cash-flow forecast. An MCP server lets their agents read it.
 
-Private by default (`FINANCE_ALLOWED_EMAILS`), forkable, deployable to Cloudflare or any Node host.
+Private by default (`FINANCE_ALLOWED_EMAILS`), or public (`FINANCE_DEMO=1`: anyone signs up, plus a demo household),
+forkable, deployable to Cloudflare or any Node host.
 
 ## Stack
 
@@ -79,8 +80,28 @@ A pnpm workspace: the app at the root, and three clients in `packages/` that kno
 Packages import with `.ts` extensions and only erasable TypeScript, so Node runs their source directly. Their errors
 become the app's `ProviderError` in `server/providers/types.ts` (`asProviderError`); `server/providers/*` are thin
 adapters that keep what the app stores (sealed credentials) and add dedupe keys. A new exchange or chain goes in the
-crypto package, a new broker in the brokers package; the app only needs its id in `ProviderId`, the schema enum, and the
-UI lists.
+crypto package, a new broker in the brokers package; the app only needs its id in `ProviderId`, the schema enum,
+`PROVIDERS` (app/utils/accounts.ts), and a catalog entry.
+
+## Connect
+
+Three pages, each listing the household's connections of its kind and then how to add more: `/connect/banks` (Enable
+Banking's country and bank picker, manual accounts, CSV import), `/connect/crypto` (exchanges and wallets), and
+`/connect/investments` (Interactive Brokers, plus platforms that can't be connected yet). `connectPageOf(provider)`
+(app/utils/accounts.ts) says which page a connection belongs on; the sidebar badges each page for connections needing
+someone. `/connect` and `/connect/crypto#broker` redirect, keeping query and hash.
+
+- app/utils/connect-catalog.ts is the catalog: per provider its kind, mark, one line, what it reads, what it can't do,
+  how it signs in, docs, `soon` for platforms that can't be connected, and `steps`, the components its connect dialog
+  walks through. `GET /api/connect/providers` says what the server can connect (`reason: "setup" | "public"` when not).
+- `ConnectCatalogPage` (a page's list, catalog, and overlays), `ConnectCatalog` (search, kind chips, groups that are
+  section anchors like `#wallet`), `ConnectProviderTile`, `ConnectProviderDetail` (slideover), and `ConnectDialog`
+  (the stepper, then the accounts found). The overlays are hash routes (`useConnectRoutes`): `#ibkr` opens the details,
+  `#ibkr/connect` the dialog.
+- A step (app/components/connect/) renders a `UForm` with `useConnectFlow().formId`; the dialog's primary button submits
+  it, so validation runs on submit. It calls `flow.next()`, or on the last step `flow.connect(request, fallback)` with
+  the existing endpoint (`/api/connect/exchange`, `/wallet`, `/broker`). New provider: add the entry and, if no step
+  fits, a step component.
 
 ## Sync
 
@@ -110,14 +131,28 @@ answers, thresholds, the HTTP call), tested in test/ai with a stubbed fetch. It 
 the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has counts, tokens, and cost.
 
-## Demo
+## Public instance and demo
 
-`FINANCE_DEMO=1` (scripts/deployment.ts) sets `runtimeConfig.public.demo`; on Cloudflare it also drops the Queue
-(`#dispatch` is inline). server/demo: `scenario.ts` is the pure, date-seeded household (tested in test/demo),
-`seed.ts` wipes and rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()`, `refuseInDemo()` (403 "Not available
-in the demo."), and the Better Auth paths the demo disables. Routes that manage banks, connections, people, the household,
-or delete accounts call `refuseInDemo()` first; data edits never do. In the UI, `useDemo()` and `<DemoLock>` disable the
-same controls. The daily Schedule reseeds instead of syncing. Demo users are only created by the seed
+`FINANCE_DEMO=1` (scripts/deployment.ts) builds a public instance (finance.vitehub.dev) and sets
+`runtimeConfig.public.demo`. Anyone signs up (`FINANCE_ALLOWED_EMAILS` is ignored) and uses the real product with their
+own data; the login and sign-up pages also offer the demo household. No bank connections there (`banksUnavailable()` in
+server/utils/connections.ts answers `public`): Enable Banking's restricted apps only reach their owner's accounts. On
+Cloudflare it has no Queue (`#dispatch` is inline), so it can share an account with a private instance's queue.
+
+The locks are per person. The demo's people are Lucía and Pablo, emails under `DEMO_DOMAIN` (shared/demo.ts,
+`isDemoEmail`). server/demo: `scenario.ts` is the pure, date-seeded household (tested in test/demo), `seed.ts` wipes and
+rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()` (the build), `isDemoPerson(email)`,
+`refuseDemoPerson(who)` (403 "Not available in the demo."), and `DEMO_LOCKED_PATHS`, the Better Auth endpoints that
+server/auth.ts's `hooks.before` refuses for a demo person's session or for a request naming a demo email (sign-up, magic
+links, password resets, invitations). Routes that manage banks, connections, people, the household, or delete accounts
+call `refuseDemoPerson(await requireMember(event))` first; data edits never do. In the UI, `useDemoPerson()` and
+`<DemoLock>` disable the same controls; `usePublicInstance()` is the build. AI categories never run for the demo's
+household. The daily Schedule reseeds first, then runs as usual for everyone else, skipping the demo's connections.
+
+Erasing goes through server/utils/erase.ts: `erasePeople` deletes people and only the households whose every member is
+being erased (`splitHouseholds` in erase-core.ts, tested in test/privacy). The nightly reset erases the demo domain's
+people; deleting your account (Better Auth's `/delete-user`, Settings › Security) erases you and your household, and
+waits until nobody else is in it. Demo users are only created by the seed
 (`seedingEmails` in `user.create.before`).
 
 ## Logs and errors
@@ -181,7 +216,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `GET /api/me` | | `MeResponse` |
 | `GET /api/legal` (public) | | `LegalInfo` — the contact email and whether AI categories are on, for /privacy |
 | `POST /api/_evlog/ingest` (public, same origin, rate limited) | evlog client event with `clientError` | 204 — logs a browser error |
-| `POST /api/demo/session` (public, demo builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
+| `POST /api/demo/session` (public, public builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
 | `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts?, aiCategorize? }` | `MeResponse["household"]` |
 | `DELETE /api/household/members/:userId` (owner) | | `{ ok }` — their accounts move to a new household of their own |
 | `POST /api/household/leave` | | `{ ok }` — same, for yourself (not the last owner) |
@@ -203,7 +238,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `GET /api/recurring` | `scope` | `RecurringResponse` |
 | `PATCH /api/recurring/:id` | `{ status }` | `Recurring` |
 | `GET /api/forecast` | `scope, months (1-24)` | `Forecast` |
-| `GET /api/connect/providers` | | `ProviderInfo[]` |
+| `GET /api/connect/providers` | | `ProviderInfo[]` — `available`, and `reason` (`setup`, `public`) when not |
 | `GET /api/connect/banks` | `country` (ISO 3166 alpha-2) | `Bank[]` |
 | `POST /api/connect/bank` | `{ name, country }` | `{ url }` — open it; the bank returns to `/api/connect/callback` |
 | `GET /api/connect/callback` (bank redirect) | `code, state, error` | 302 to `/connect/banks?linked=<id>` or `/connect/banks?error=<message>` |

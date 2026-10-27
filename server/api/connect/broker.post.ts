@@ -9,7 +9,7 @@ import { BROKER_PROVIDERS } from "../../providers/index"
 import { assertNotLinked, connectionSummary, fail, providerHttpError, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 const Body = v.object({
   provider: v.picklist(BROKER_PROVIDERS),
@@ -23,7 +23,7 @@ const Body = v.object({
  * saved, so a wrong token or a query without positions answers 401 with IBKR's reason; then it's sealed and synced.
  */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
   const body = await readValid(event, Body)
   const credentials = { token: body.token, queryId: body.queryId }

@@ -16,7 +16,7 @@ const backupCodes = ref<string[]>([])
 const pending = ref(false)
 const error = ref("")
 // A second factor on a demo person would lock every other visitor out; the server refuses it there too.
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const secret = computed(() => {
   if (!totpURI.value || !URL.canParse(totpURI.value)) return ""
@@ -26,7 +26,7 @@ const secret = computed(() => {
 const groupedSecret = computed(() => secret.value.replace(/(.{4})/g, "$1 ").trim())
 
 function start(next: typeof mode.value) {
-  if (demo) return
+  if (demo.value) return
   mode.value = next
   step.value = "password"
   password.value = ""

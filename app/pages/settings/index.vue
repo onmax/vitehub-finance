@@ -13,7 +13,7 @@ watchEffect(() => {
 })
 const pending = ref(false)
 // The demo's people keep their names for every visitor (Better Auth's /update-user is off there).
-const demo = useDemo()
+const demo = useDemoPerson()
 const error = ref("")
 const dirty = computed(() => Boolean(me.value) && state.name.trim() !== me.value?.user.name)
 
@@ -22,7 +22,7 @@ function validate(values: typeof state) {
 }
 
 async function save() {
-  if (demo) return
+  if (demo.value) return
   pending.value = true
   error.value = ""
   try {

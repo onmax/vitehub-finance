@@ -13,7 +13,7 @@ const notify = useNotify()
 const confirm = useConfirm()
 const supported = typeof window !== "undefined" && "PublicKeyCredential" in window
 // A passkey on a demo person would let one visitor lock out the rest; the server refuses registration there too.
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const { data: passkeys, status, error, refresh } = useAsyncData<Passkey[]>(
   "settings:passkeys",
@@ -28,7 +28,7 @@ const { data: passkeys, status, error, refresh } = useAsyncData<Passkey[]>(
 const adding = ref(false)
 const addError = ref("")
 async function add() {
-  if (demo) return
+  if (demo.value) return
   adding.value = true
   addError.value = ""
   try {

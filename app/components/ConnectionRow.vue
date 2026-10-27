@@ -12,7 +12,7 @@ const confirm = useConfirm()
 const historyOpen = ref(false)
 const pending = ref<"sync" | "reconnect" | "remove" | null>(null)
 // The demo's connections are fakes: syncing, reconnecting, or removing them is refused (DemoLock, and the server).
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const provider = computed(() => PROVIDERS[props.connection.provider])
 const isBank = computed(() => props.connection.provider === "enable_banking")
@@ -84,7 +84,7 @@ async function remove() {
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
     ...(isBank.value
-      ? [{ get label() { return translate('reconnect') }, icon: "i-lucide-link", onSelect: reconnect, disabled: demo, description: demo ? demoLocked() : undefined }]
+      ? [{ get label() { return translate('reconnect') }, icon: "i-lucide-link", onSelect: reconnect, disabled: demo.value, description: demo.value ? demoLocked() : undefined }]
       : []),
     { get label() { return translate('syncHistory') }, icon: "i-lucide-history", onSelect: () => (historyOpen.value = true) },
   ],
@@ -94,8 +94,8 @@ const menu = computed<DropdownMenuItem[][]>(() => [
       icon: "i-lucide-trash-2",
       color: "error" as const,
       onSelect: remove,
-      disabled: demo,
-      description: demo ? demoLocked() : undefined,
+      disabled: demo.value,
+      description: demo.value ? demoLocked() : undefined,
     },
   ],
 ])

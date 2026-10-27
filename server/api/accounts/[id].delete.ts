@@ -7,11 +7,11 @@ import { balanceSnapshot, financialAccount, goal, holding, recurring, transactio
 import { requireAccount } from "../../utils/access"
 import { requireMember } from "../../utils/identity"
 import { param } from "../../utils/input"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 /** The owner deletes an account with its history. Dependent rows go explicitly: SQLite may run without foreign keys. */
 export default defineHandler(async (event) => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
   const account = await requireAccount(who, param(event))
   if (!canManage(account, who.userId)) throw new HTTPError({ status: 403, statusText: "Only the account's owner can delete it." })

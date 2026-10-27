@@ -394,8 +394,13 @@ export interface Bank {
 
 export interface ProviderInfo {
   id: ProviderId
-  /** Whether this ViteHub Finance has the credentials the provider needs (Enable Banking's app id and key). */
+  /** Whether this ViteHub Finance can connect it. */
   available: boolean
+  /**
+   * Why it can't: `setup`, the server lacks the provider's credentials (Enable Banking's app id and key); `public`, a
+   * public instance, which offers no bank connections.
+   */
+  reason?: "setup" | "public"
 }
 
 /** `GET /api/legal` (public): what the privacy page shows about this instance. */

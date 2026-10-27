@@ -27,7 +27,7 @@ const dirty = computed(
 )
 const saving = ref(false)
 // The demo household keeps its name and currency for every visitor (the server refuses the change too).
-const demo = useDemo()
+const demo = useDemoPerson()
 const error = ref("")
 
 const validate = (values: typeof state) => (values.name.trim() ? [] : [{ name: "name", message: translate('giveTheHouseholdAName') }])
