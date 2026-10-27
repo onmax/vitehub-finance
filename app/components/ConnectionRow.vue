@@ -2,8 +2,8 @@
 import type { DropdownMenuItem } from "@nuxt/ui"
 import type { ConnectionSummary } from "#shared/api"
 
-// One connection: what it is, whose, how it's doing, when its bank consent ends, and (for its owner) sync, reconnect,
-// history, and remove.
+// One connection: what it is, whose, how it's doing, when its bank consent ends, the accounts it feeds (each opens on its
+// own page), and (for its owner) sync, reconnect, history, and remove.
 const props = defineProps<{ connection: ConnectionSummary; highlighted?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
 const shared = useShared()
@@ -54,7 +54,7 @@ async function reconnect() {
 }
 
 async function remove() {
-  const count = props.connection.accountCount
+  const count = props.connection.accounts.length
   const { confirmed, checked } = await confirm({
     title: translate('remove', { value1: props.connection.name }),
     get description() { return translate('itStopsSyncingAndItsSavedCredentialsAreDeleted') },
@@ -81,6 +81,9 @@ async function remove() {
     pending.value = null
   }
 }
+
+const accounts = computed(() => props.connection.accounts)
+const accountItems = computed<DropdownMenuItem[]>(() => accounts.value.map((account) => ({ label: account.name, to: `/accounts/${account.id}` })))
 
 const menu = computed<DropdownMenuItem[][]>(() => [
   [
@@ -111,7 +114,13 @@ const menu = computed<DropdownMenuItem[][]>(() => [
     <InstitutionMark :provider="connection.provider" :name="connection.institution ?? connection.name" :logo="connection.logo" />
     <div class="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto">
       <p class="flex items-center gap-2">
-        <span class="truncate text-sm font-medium text-highlighted" :title="connection.name">{{ connection.name }}</span>
+        <ULink
+          v-if="accounts.length === 1"
+          :to="`/accounts/${accounts[0]!.id}`"
+          class="truncate text-sm font-medium text-highlighted underline-offset-4 hover:underline"
+          :title="connection.name"
+        >{{ connection.name }}</ULink>
+        <span v-else class="truncate text-sm font-medium text-highlighted" :title="connection.name">{{ connection.name }}</span>
         <OwnerAvatar v-if="shared" :name="connection.ownerName" :user-id="connection.ownerId" size="3xs" />
       </p>
       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted">
@@ -119,7 +128,15 @@ const menu = computed<DropdownMenuItem[][]>(() => [
         <span aria-hidden="true">·</span>
         <span>{{ provider.label }}</span>
         <span aria-hidden="true">·</span>
-        <span class="tabular-nums">{{ $t('account2', { count: formatCount(connection.accountCount) }, connection.accountCount) }}</span>
+        <ULink v-if="accounts.length === 1" :to="`/accounts/${accounts[0]!.id}`" class="tabular-nums underline-offset-4 hover:text-highlighted hover:underline">
+          {{ $t('account2', { count: formatCount(1) }, 1) }}
+        </ULink>
+        <UDropdownMenu v-else-if="accounts.length" :items="accountItems" :content="{ align: 'start' }">
+          <button type="button" class="inline-flex items-center gap-0.5 tabular-nums underline-offset-4 hover:text-highlighted hover:underline">
+            {{ $t('account2', { count: formatCount(accounts.length) }, accounts.length) }}<UIcon name="i-lucide-chevron-down" class="size-3" />
+          </button>
+        </UDropdownMenu>
+        <span v-else class="tabular-nums">{{ $t('account2', { count: formatCount(0) }, 0) }}</span>
         <span aria-hidden="true">·</span>
         <span :title="connection.lastSyncedAt ? formatDateTime(connection.lastSyncedAt) : undefined">{{ connection.lastSyncedAt ? $t('synced', { value1: timeAgo(connection.lastSyncedAt) }) : $t('notSyncedYet') }}</span>
         <template v-if="consent">

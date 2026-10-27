@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm"
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import type { ConnectionSummary, Overview } from "#shared/api"
 import { category, connection, financialAccount, user as users } from "../databases/config"
@@ -109,11 +109,12 @@ async function netWorthHistory(
 /** Connections feeding visible accounts that failed, expired, or whose bank consent ends within 14 days. */
 export async function needsAttention(who: Member, scope: Scope): Promise<ConnectionSummary[]> {
   const feeding = await db
-    .select({ connectionId: financialAccount.connectionId })
+    .select({ id: financialAccount.id, name: financialAccount.name, connectionId: financialAccount.connectionId })
     .from(financialAccount)
     .where(and(visibleAccounts(who, scope), isNotNull(financialAccount.connectionId)))
-  const counts = new Map<string, number>()
-  for (const row of feeding) counts.set(row.connectionId!, (counts.get(row.connectionId!) ?? 0) + 1)
+    .orderBy(asc(financialAccount.name))
+  const counts = new Map<string, Array<{ id: string; name: string }>>()
+  for (const row of feeding) counts.set(row.connectionId!, [...(counts.get(row.connectionId!) ?? []), { id: row.id, name: row.name }])
   const ids = [...counts.keys()]
   if (!ids.length) return []
   const rows = []
@@ -147,7 +148,7 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
       lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
       lastError: row.lastError,
       lastErrorCode: row.lastErrorCode,
-      accountCount: counts.get(row.id) ?? 0,
+      accounts: counts.get(row.id) ?? [],
       canManage: row.ownerId === who.userId,
     }))
 }

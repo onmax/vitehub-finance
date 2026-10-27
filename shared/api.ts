@@ -441,7 +441,8 @@ export interface ConnectionSummary {
   lastSyncedAt: string | null
   lastError: string | null
   lastErrorCode?: string | null
-  accountCount: number
+  /** The accounts it feeds that the caller may see, which open on their own page. */
+  accounts: Array<{ id: string; name: string }>
   canManage: boolean
 }
 

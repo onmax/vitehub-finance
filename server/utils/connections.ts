@@ -1,6 +1,6 @@
 import { errorCode } from "./error-codes"
 import { HTTPError } from "./http-error"
-import { and, desc, eq, isNotNull } from "drizzle-orm"
+import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
 import { type H3Event } from "h3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
@@ -154,7 +154,7 @@ export async function requireOwnConnection(who: Member, id: string | undefined) 
 const iso = (date: Date | null | undefined) => (date ? date.toISOString() : null)
 
 /**
- * The caller's own connections plus other members' that feed at least one shared account. Counts only the accounts the
+ * The caller's own connections plus other members' that feed at least one shared account. Lists only the accounts the
  * caller may see; credentials never leave the server.
  */
 export async function listConnections(who: Member, onlyId?: string): Promise<ConnectionSummary[]> {
@@ -165,16 +165,17 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
     .where(and(eq(connection.householdId, who.householdId), onlyId ? eq(connection.id, onlyId) : undefined))
     .orderBy(desc(connection.createdAt))
   const accounts = await db
-    .select({ connectionId: financialAccount.connectionId, ownerId: financialAccount.ownerId, visibility: financialAccount.visibility })
+    .select({ id: financialAccount.id, name: financialAccount.name, connectionId: financialAccount.connectionId, ownerId: financialAccount.ownerId, visibility: financialAccount.visibility })
     .from(financialAccount)
     .where(and(eq(financialAccount.householdId, who.householdId), isNotNull(financialAccount.connectionId)))
-  const visible = new Map<string, number>()
+    .orderBy(asc(financialAccount.name))
+  const visible = new Map<string, Array<{ id: string; name: string }>>()
   const shared = new Set<string>()
   for (const account of accounts) {
     if (!account.connectionId) continue
     if (account.visibility === "household") shared.add(account.connectionId)
     if (account.ownerId === who.userId || account.visibility === "household")
-      visible.set(account.connectionId, (visible.get(account.connectionId) ?? 0) + 1)
+      visible.set(account.connectionId, [...(visible.get(account.connectionId) ?? []), { id: account.id, name: account.name }])
   }
   const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
   return rows
@@ -192,7 +193,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       lastSyncedAt: iso(row.lastSyncedAt),
       lastError: row.lastError,
       lastErrorCode: row.lastErrorCode,
-      accountCount: visible.get(row.id) ?? 0,
+      accounts: visible.get(row.id) ?? [],
       canManage: row.ownerId === who.userId,
     }))
 }
