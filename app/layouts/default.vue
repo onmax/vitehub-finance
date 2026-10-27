@@ -37,8 +37,9 @@ const toItem = (page: { label: string; icon: string; to: string }): NavigationMe
 // it mounts, so it mounts again once the accounts arrive and as you move between those groups.
 const { data: accounts } = useAccounts()
 const inAccounts = computed(() => isActive("/accounts"))
-const accountLink = (account: AccountSummary, label = account.name): NavigationMenuItem => ({
+const accountLink = (account: AccountSummary, label = account.name, ui?: NavigationMenuItem["ui"]): NavigationMenuItem => ({
   label,
+  ui,
   to: `/accounts/${account.id}`,
   active: route.path === `/accounts/${account.id}`,
   onSelect: () => (open.value = false),
@@ -61,7 +62,9 @@ const accountItems = computed<NavigationMenuItem[]>(() =>
           label: bank,
           badge: { label: String(members.length), color: "neutral", variant: "soft", size: "sm" },
           defaultOpen: key === openGroup.value,
-          children: members.map((account) => accountLink(account, withoutBank(account.name, bank))),
+          // Under Accounts' own guide line already: a second line and indent would push them too far in.
+          ui: { childList: "ms-0 border-s-0" },
+          children: members.map((account) => accountLink(account, withoutBank(account.name, bank), { childItem: "ms-0 ps-0", link: "ps-5" })),
         },
   ),
 )
