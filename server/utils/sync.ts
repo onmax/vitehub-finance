@@ -1,16 +1,17 @@
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, min } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
-import { connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
+import { balanceSnapshot, connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { categorize, dedupeKeys, isDate, type Rule } from "../providers/dedupe"
-import { providerFor } from "../providers/index"
+import { providerFor, WALLET_PROVIDERS } from "../providers/index"
 import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
+import type { CoinHistory } from "./holdings-history"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
 import { valueCoinTransactions, valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
-import { backfillSnapshots, recordSnapshot } from "./snapshots"
+import { backfillHoldingSnapshots, backfillSnapshots, recordSnapshot } from "./snapshots"
 import { detectTransfers, transferCategory } from "./transfers"
 
 export type SyncTrigger = "schedule" | "manual" | "link"
@@ -92,6 +93,13 @@ async function replaceHoldings(accountId: string, holdings: PricedHolding[]) {
     await db.insert(holding).values(values.slice(index, index + HOLDING_CHUNK)).onConflictDoNothing()
 }
 
+/** What a holdings account held now and how it changed, in the currency its value is kept in. */
+interface HoldingsHistory {
+  currency: string
+  holdings: ProviderHolding[]
+  coins: CoinHistory
+}
+
 interface Context {
   row: typeof connection.$inferSelect
   household: { currency: string; shareNewAccounts: boolean }
@@ -147,6 +155,8 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
   }
   if (hasHoldings) await replaceHoldings(account.id, holdings)
   await recordSnapshot(account.id, balance ?? account.balanceMinor)
+  // A wallet's history, to walk back from what it holds now into a balance chart once its rows are in.
+  const history: HoldingsHistory | null = hasHoldings && remote.coinHistory ? { currency, holdings: remote.holdings!, coins: remote.coinHistory } : null
   // A wallet's coin movements, valued in the account's currency. They never set its balance: the holdings do.
   const coins = hasHoldings && remote.coinTransactions?.length ? await valueCoinTransactions(remote.coinTransactions, currency) : []
   const rows = [...(remote.transactions ?? []), ...coins]
@@ -154,8 +164,23 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
   return {
     accountId: account.id,
     hasHoldings,
+    history,
     added: rows.length ? await insertTransactions(account, rows, context.rules, transfers) : 0,
   }
+}
+
+/**
+ * Whether a wallet's history was never read in full: it has no transactions yet (its first sync came before its chain
+ * had history here, or it moved nothing worth a row), or its balance history starts after its first transaction (the
+ * history was read but couldn't be valued). Its next sync then reads the whole history instead of the last few days;
+ * rows dedupe on the transaction hash and snapshots only fill missing days, so reading it again changes nothing.
+ */
+async function walletHistoryMissing(connectionId: string, horizon: string) {
+  const accounts = db.select({ id: financialAccount.id }).from(financialAccount).where(eq(financialAccount.connectionId, connectionId))
+  const [rows] = await db.select({ first: min(transaction.date) }).from(transaction).where(inArray(transaction.accountId, accounts))
+  if (!rows?.first) return true
+  const [snapshots] = await db.select({ first: min(balanceSnapshot.date) }).from(balanceSnapshot).where(inArray(balanceSnapshot.accountId, accounts))
+  return !snapshots?.first || snapshots.first > (rows.first > horizon ? rows.first : horizon)
 }
 
 const retryable = (error: unknown) => !(error instanceof ProviderError) || error.code === "unavailable"
@@ -198,7 +223,14 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     })
     if (!credentials) throw new ProviderError("expired", "This connection has no credentials. Reconnect it.")
     const initial = trigger === "link" || !row.lastSyncedAt
-    const since = initial ? dayString(started - 365 * DAY) : dayString(row.lastSyncedAt!.getTime() - 10 * DAY)
+    // A wallet reads its whole history (up to the crypto package's page caps) until it has it; then the last few days.
+    const wallet = (WALLET_PROVIDERS as readonly string[]).includes(row.provider)
+    const since =
+      wallet && (await walletHistoryMissing(row.id, dayString(started - 365 * DAY)))
+        ? null
+        : initial
+          ? dayString(started - 365 * DAY)
+          : dayString(row.lastSyncedAt!.getTime() - 10 * DAY)
     const provider = providerFor(row.provider, { enableBanking: bankConfig() })
     const result = await provider(credentials, { since, initial })
     log.set({ sync: { runId, since, fetchMs: Date.now() - started, accounts: result.accounts.length } })
@@ -217,6 +249,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     const touched: string[] = []
     // Accounts whose balance is the transactions' sum; a holdings account's past value depends on past prices instead.
     const backfill: string[] = []
+    const histories: Array<{ accountId: string; history: HoldingsHistory }> = []
     const failures: string[] = []
     // Each account on its own: one failing never loses what the others brought.
     for (const remote of result.accounts) {
@@ -229,6 +262,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
         added += outcome.added
         touched.push(outcome.accountId)
         if (!outcome.hasHoldings) backfill.push(outcome.accountId)
+        if (outcome.history) histories.push({ accountId: outcome.accountId, history: outcome.history })
       } catch (error) {
         failures.push(`${remote.name}: ${errorMessage(error)}`)
       }
@@ -246,6 +280,12 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     if (touched.length) await step("Recurring detection", () => detectRecurring(row.householdId, touched))
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial) for (const accountId of backfill) await step("Snapshot backfill", () => backfillSnapshots(accountId))
+    // A wallet's past value from what it held each day; it fills only days without a snapshot, so it runs every time.
+    for (const { accountId, history } of histories)
+      await step("Holdings history", async () => {
+        const written = await backfillHoldingSnapshots(accountId, history.currency, history.holdings, history.coins)
+        if (written) log.set({ sync: { historyDays: written } })
+      })
 
     const partial = failures.length ? `Couldn't sync ${failures.length} of ${result.accounts.length} accounts. ${failures.join(" ")}` : null
     if (partial) log.warn("Some accounts failed", { sync: { partial: partial.slice(0, 500) } })

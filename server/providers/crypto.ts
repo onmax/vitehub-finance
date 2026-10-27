@@ -16,6 +16,9 @@ export function shortAddress(address: string) {
   return address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address
 }
 
+/** What a wallet transaction changed its holding by: the coins that moved, less the fee. Staking keeps them in the holding. */
+export const holdingChange = (transaction: CryptoTransaction) => (transaction.kind === "stake" ? 0 : transaction.quantity) - transaction.fee
+
 /**
  * A wallet transaction as a row people understand. Its amount is what the holding changed by, fee included. Staking
  * moves are left out: the holding counts staked coins, so they change nothing. So are transactions that only cost a fee:
@@ -66,9 +69,9 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
         options && provider.transactions
           ? await provider.transactions({ since: options.since }).catch((error) => {
               console.warn(`[finance] ${provider.name} history unavailable`, error)
-              return []
+              return null
             })
-          : []
+          : null
       return {
         accounts: [
           {
@@ -78,7 +81,13 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
             currency: "EUR",
             institution: provider.name,
             holdings: holdings.map(({ symbol, name, quantity }) => ({ symbol, name, quantity })),
-            coinTransactions: history.map(coinTransaction).filter((row) => row !== null),
+            coinTransactions: (history ?? []).map(coinTransaction).filter((row) => row !== null),
+            ...(history && {
+              coinHistory: {
+                since: options?.since ?? null,
+                changes: history.map((row) => ({ date: row.date, symbol: row.symbol, quantity: holdingChange(row) })).filter((change) => change.quantity !== 0),
+              },
+            }),
           },
         ],
       }

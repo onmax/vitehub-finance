@@ -3,6 +3,7 @@ import { kv } from "vite-hub/kv"
 import { useServerEnv } from "#vitehub/env/server"
 import { currencyDigits } from "#shared/money"
 import { USER_AGENT } from "../providers/types"
+import { addDays } from "./dates"
 import { rates } from "./fx"
 
 /**
@@ -187,6 +188,16 @@ async function dailyPrices(symbol: string, currency: string): Promise<Record<str
   }
 }
 
+/** Each coin's year of daily prices in `currency`, sorted days included; null for a coin without history. */
+async function priceHistories(symbols: string[], currency: string) {
+  const history = new Map<string, { prices: Record<string, number>; days: string[] } | null>()
+  for (const symbol of new Set(symbols.map((entry) => entry.toUpperCase()))) {
+    const prices = await dailyPrices(symbol, currency)
+    history.set(symbol, prices && Object.keys(prices).length ? { prices, days: Object.keys(prices).sort() } : null)
+  }
+  return history
+}
+
 /**
  * Coin movements as transactions in `currency`, valued at the coin's price on their day: what they were worth when they
  * happened, as a bank statement would show them. Days outside CoinGecko's year take the closest day it has; a coin with
@@ -195,11 +206,7 @@ async function dailyPrices(symbol: string, currency: string): Promise<Record<str
 export async function valueCoinTransactions<T extends { symbol: string; quantity: number; date: string }>(rows: T[], currency: string) {
   const symbols = [...new Set(rows.map((row) => row.symbol.toUpperCase()))]
   const today = await quotes(symbols, currency)
-  const history = new Map<string, { prices: Record<string, number>; days: string[] } | null>()
-  for (const symbol of symbols) {
-    const prices = await dailyPrices(symbol, currency)
-    history.set(symbol, prices && Object.keys(prices).length ? { prices, days: Object.keys(prices).sort() } : null)
-  }
+  const history = await priceHistories(symbols, currency)
   const scale = 10 ** currencyDigits(currency)
   const valued: Array<Omit<T, "symbol" | "quantity"> & { amountMinor: number; currency: string }> = []
   for (const row of rows) {
@@ -213,6 +220,19 @@ export async function valueCoinTransactions<T extends { symbol: string; quantity
     valued.push({ ...rest, amountMinor, currency })
   }
   return valued
+}
+
+/**
+ * Each coin's price in `currency` when `date` closed: CoinGecko's price at 00:00 UTC the next day, or that day's own for
+ * today. Days outside its year take the closest day it has. Null for a coin without a price history.
+ */
+export async function closingPrices(symbols: string[], currency: string) {
+  const history = await priceHistories(symbols, currency)
+  return (symbol: string, date: string): number | null => {
+    const series = history.get(symbol.toUpperCase())
+    if (!series) return null
+    return series.prices[addDays(date, 1)] ?? series.prices[date] ?? series.prices[closest(series.days, date)] ?? null
+  }
 }
 
 /** The latest of the sorted days on or before `date`, or the first one when `date` is before them all. */

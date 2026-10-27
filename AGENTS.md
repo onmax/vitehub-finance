@@ -94,8 +94,12 @@ Schedule (`server/schedules/daily.ts`) dispatches every active connection throug
 An account with holdings (crypto, investment) is worth its holdings in the household's currency (`valueHoldings` in
 server/utils/prices.ts): coins at CoinGecko's price, and a holding with the provider's own `quote` (IBKR's mark price) at
 that price, converted with fx.ts. A wallet's `coinTransactions` become transactions valued at the coin's price on their
-day (`valueCoinTransactions`, from CoinGecko's keyless year of daily prices). They never set the balance, and holdings
-accounts get no balance history backfilled from transactions, since their past value depends on past prices.
+day (`valueCoinTransactions`, from CoinGecko's keyless year of daily prices). They never set the balance. A wallet reads
+its whole history (`since: null`, up to the crypto package's page caps) until it has transactions and a balance history
+that reaches back to them (`walletHistoryMissing` in sync.ts), then the last ten days. Its `coinHistory` (every change
+to the holding, fees and dust included) gives it a balance history: `backfillHoldingSnapshots` (server/utils/snapshots.ts)
+walks back from today's quantity day by day (`quantityTimeline`, server/utils/holdings-history.ts) and values each day at
+that day's closing price (`closingPrices`), writing only days without a snapshot, for up to a year.
 
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
