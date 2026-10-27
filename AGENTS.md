@@ -44,6 +44,23 @@ Private by default (`FINANCE_ALLOWED_EMAILS`), forkable, deployable to Cloudflar
 - D1 limits a statement to 100 bound parameters: insert in chunks. There are no interactive transactions.
 - API response types live in `shared/api.ts`. Server handlers return them; pages type `useFetch` with them.
 
+## Translations
+
+- English copy is the source of truth in `app/locales/en.json`; every key must also exist in `es`, `fr`, `de`, and `pt`.
+  Add whole messages with named interpolation and plural branches, then use `$t` in templates or `translate` in scripts.
+  Keep labels reactive. `pnpm test` checks key/parameter parity, message compilation, plural forms, and locale formatting.
+- `app/lib/i18n.ts` lazy-loads the five catalogs through a client-only `vue-i18n` plugin. Routes have no locale prefix.
+  `useLanguage` saves signed-in preferences to Better Auth's `user.language`; localStorage remembers signed-out/demo
+  choices. Otherwise match the browser language, falling back to English. Use `useMoney` and `app/utils/format.ts` for display.
+- API diagnostics and MCP text stay English. Import `HTTPError` from `server/utils/http-error.ts` and register its
+  stable message code in `error-codes.ts`; the browser translates `data.code`. Provider packages stay independent:
+  map their codes in `server/providers/types.ts`. Store provider codes with sync errors so they follow language changes.
+- Emails use `server/utils/translate.ts` with the recipient's saved language, then the request's `X-Finance-Language`
+  or `Accept-Language`. Scheduled reminders use the saved language or English. Seed new categories in the creator's
+  language; never translate existing category names, rule keywords, user data, or demo data in place.
+- Spanish uses tú and Movimientos; French vous and Opérations; German du and Umsätze; Portuguese uses pt-PT and Transações.
+  Keep brands and protocol identifiers unchanged. Escape literal `@` and `|` with vue-i18n literal interpolation.
+
 ## Packages
 
 A pnpm workspace: the app at the root, and three clients in `packages/` that know nothing about the app.
