@@ -104,7 +104,7 @@ const expires = computed(() => (invitation.value ? formatDate(new Date(invitatio
           <p class="mt-1.5 text-sm text-muted"> {{ invitedEmail ? $t('inviteCreateNamed', { email: invitedEmail }) : $t('inviteCreate') }} </p>
         </div>
       </div>
-      <InviteAuthForm :email="invitedEmail" initial-mode="sign-up" />
+      <InviteAuthForm :email="invitedEmail" :invitation-id="id" initial-mode="sign-up" />
     </template>
 
     <template v-else-if="problem === 'other-email'">

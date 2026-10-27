@@ -59,6 +59,8 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
   PASSKEY_AUTH_FAILED: "thePasskeyDidnTWork", PASSKEY_NOT_FOUND: "thePasskeyDidnTWork", FAILED_TO_VERIFY_AUTHENTICATION: "thePasskeyDidnTWork",
   FAILED_TO_VERIFY_REGISTRATION: "couldnTAddThePasskey",
   DEMO_LOCKED: "errorNotAvailableInTheDemo", HOUSEHOLD_NOT_EMPTY: "othersShareYourHouseholdLeaveItFirst",
+  EMAIL_NOT_VERIFIED: "confirmYourEmailFirst",
+  SIGN_UP_NEEDS_INVITATION: "signUpNeedsInvitation", SIGN_UP_WRONG_INVITATION: "signUpWrongInvitation",
 }
 
 export function providerErrorText(message: string | null | undefined, code?: string | null) {

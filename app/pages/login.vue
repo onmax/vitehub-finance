@@ -39,6 +39,8 @@ async function signIn() {
   error.value = ""
   try {
     const { data, error: failure } = await $auth.signIn.email({ email: state.email.trim(), password: state.password })
+    // With Email, a password account opens once its address is confirmed; Better Auth just sent a new link.
+    if (failure?.code === "EMAIL_NOT_VERIFIED") throw new Error(translate('confirmYourEmailFirst'))
     if (failure) throw Object.assign(new Error(failure.status === 401 ? translate('thatEmailAndPasswordDonTMatch') : failure.message), { code: failure.code })
     // With two-factor on, the plugin sends us to ?step=2fa (plugins/auth.ts); keep where we were headed.
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {

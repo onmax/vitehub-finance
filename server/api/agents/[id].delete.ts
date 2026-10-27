@@ -8,11 +8,11 @@ import { param } from "../../utils/input"
 
 /**
  * Disconnects an agent: its approval and refresh tokens go, so it has to ask again. An access token it already holds
- * is a signed JWT and works until it expires (an hour at most). Only people in the browser disconnect agents.
+ * is a signed JWT, but `identify` finds no approval behind it and refuses it from the next request on. Only people in
+ * the browser disconnect agents (`isBrowserOnlyRoute`).
  */
 export default defineHandler(async (event) => {
   const who = await requireMember(event)
-  if (who.via !== "browser") throw new HTTPError({ status: 403, statusText: "Disconnect agents in the browser." })
   const [consent] = await db
     .select()
     .from(oauthConsent)

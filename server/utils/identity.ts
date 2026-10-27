@@ -1,13 +1,14 @@
 import { HTTPError } from "./http-error"
 import type { Auth } from "better-auth"
 import { verifyJwsAccessToken } from "better-auth/oauth2"
-import { and, asc, eq } from "drizzle-orm"
+import { and, asc, desc, eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { type H3Event } from "h3"
 import { getAuthForRequest } from "vite-hub/auth/server"
 import { db } from "vite-hub/database/drizzle"
-import { member, oauthClient, user as users } from "../databases/config"
+import { member, oauthClient, oauthConsent, user as users } from "../databases/config"
 import type auth from "../auth"
+import { bearerFrom, isBrowserOnlyRoute, requireBrowser } from "./request-policy"
 
 type FinanceAuth = Auth<ReturnType<typeof auth.options>>
 
@@ -25,20 +26,23 @@ export interface Member {
 
 export const authFor = (event: H3Event) => getAuthForRequest(event.req, undefined, event) as unknown as FinanceAuth
 
-export const bearerFrom = (headers: Headers) => headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null
-
 /**
  * Resolved once per request. Null when nobody is signed in or they belong to no household. The request's wide event
  * gets who it was (ids, role, and how they came in), never a name, email, or credential.
+ *
+ * On a browser-only route (`isBrowserOnlyRoute`) an agent or API key gets a 403 here, so every handler that asks who
+ * is calling enforces it. Here rather than in a middleware: ViteHub opens each request's database scope in a
+ * middleware of its own, which runs after the app's.
  */
 export function identify(event: H3Event): Promise<Member | null> {
   return ((event.context as { financeMember?: Promise<Member | null> }).financeMember ??= resolve(event).then((who) => {
-    if (who)
-      useLogger(event).set({
-        userId: who.userId,
-        householdId: who.householdId,
-        user: { role: who.role, via: who.via, ...(who.clientName ? { client: who.clientName } : {}) },
-      })
+    if (!who) return null
+    useLogger(event).set({
+      userId: who.userId,
+      householdId: who.householdId,
+      user: { role: who.role, via: who.via, ...(who.clientName ? { client: who.clientName } : {}) },
+    })
+    if (isBrowserOnlyRoute(event.req.method, event.url.pathname)) requireBrowser(who)
     return who
   }))
 }
@@ -50,7 +54,10 @@ export async function requireMember(event: H3Event): Promise<Member> {
   throw new HTTPError({ status: 401, statusText: "Sign in, or send a valid access token or API key." })
 }
 
-/** Household owners manage people and household settings. Agents never do, whoever connected them. */
+/**
+ * Household owners manage people and household settings. Agents never do, whoever connected them; see `requireBrowser`
+ * (server/utils/request-policy.ts) for everything else they don't do.
+ */
 export async function requireOwner(event: H3Event): Promise<Member> {
   const who = await requireMember(event)
   if (who.role !== "owner" || who.via !== "browser")
@@ -82,10 +89,20 @@ async function fromAccessToken(event: H3Event, token: string) {
   }).catch(() => null)
   if (!payload?.sub) return null
   const clientId = typeof payload.client_id === "string" ? payload.client_id : null
-  const [client] = clientId
-    ? await db.select({ name: oauthClient.name }).from(oauthClient).where(eq(oauthClient.clientId, clientId)).limit(1)
-    : []
-  return withHousehold({ userId: payload.sub, via: "agent", clientName: client?.name || "MCP client" }, null)
+  if (!clientId) return null
+  // The token is signed for an hour; the person's approval is checked on every request, so disconnecting the agent
+  // (server/api/agents/[id].delete.ts) or disabling its client stops it at once. A token older than the approval it
+  // finds (both in whole seconds) was issued under one that was withdrawn before the agent was connected again.
+  const [grant] = await db
+    .select({ name: oauthClient.name, disabled: oauthClient.disabled, grantedAt: oauthConsent.createdAt })
+    .from(oauthConsent)
+    .innerJoin(oauthClient, eq(oauthClient.clientId, oauthConsent.clientId))
+    .where(and(eq(oauthConsent.clientId, clientId), eq(oauthConsent.userId, payload.sub)))
+    .orderBy(desc(oauthConsent.createdAt))
+    .limit(1)
+  if (!grant || grant.disabled) return null
+  if (grant.grantedAt && typeof payload.iat === "number" && payload.iat * 1000 < grant.grantedAt.getTime()) return null
+  return withHousehold({ userId: payload.sub, via: "agent", clientName: grant.name || "MCP client" }, null)
 }
 
 async function fromApiKey(event: H3Event, key: string) {

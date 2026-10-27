@@ -33,7 +33,20 @@ forkable, deployable to Cloudflare or any Node host.
 - The caller is `await requireMember(event)` (server/utils/identity.ts): `{ userId, householdId, role, via }`. Never take
   a household id or owner id from the request body or query.
 - `scope` (`?scope=me|household`, `scopeOf(event)`) narrows a view to the caller's own accounts.
-- Agents (`via: "agent"`) and API keys never manage people or household settings (`requireOwner`).
+- Agents (`via: "agent"`) and API keys never manage people or household settings (`requireOwner`), and act as their
+  person only for what the consent screen (app/pages/oauth.vue) promises: reading, categorizing, notes, and other data
+  edits. Deleting accounts or connections, sharing or archiving an account, connecting, syncing, or re-linking, agents,
+  and the household are the browser's (`isBrowserOnlyRoute` in server/utils/request-policy.ts, enforced by `identify`;
+  `requireBrowser` for PATCH /api/accounts/:id's sharing fields). A new route that
+  changes something must be classified in test/security/request-policy.test.ts. An agent's token works only while its
+  approval (`oauth_consent`) exists, so disconnecting it stops it at once.
+- Cookie requests that change something (POST/PUT/PATCH/DELETE under /api) must come from this origin and carry JSON
+  (`crossSiteProblem`, server/middleware/same-origin.ts); Better Auth's routes and /api/_evlog/ingest check their own.
+- Households change members only through the app's endpoints (`moveOut`): Better Auth's organization routes that
+  would remove, leave, or delete are off (`DISABLED_AUTH_PATHS`, server/utils/disabled-auth-paths.ts).
+- A password sign-up has to prove the mailbox: with Email, Better Auth's email verification; without (`sendsEmail`
+  from `#mailer`), only the instance's first allowed person or someone sending the invitation's id for that email
+  (`signUpRefusal`, server/utils/sign-up.ts). Passkeys and existing accounts sign in as before.
 
 ## Data
 
