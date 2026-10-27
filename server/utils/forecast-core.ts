@@ -47,6 +47,8 @@ export interface CoreRow {
   amountMinor: number
   /** In a transfer category: a move between accounts, not spending or income. */
   transfer: boolean
+  /** Money back in a spending category: it lowers spending instead of counting as income. */
+  refund?: boolean
   /** recurring-core `seriesKey`, to match the row to a series. */
   key: string | null
 }
@@ -170,7 +172,7 @@ export function combineHistory(accounts: Array<{ days: Array<{ date: string; val
 function flexOf(row: CoreRow, inSeries: boolean) {
   if (inSeries) return null
   if (row.transfer) return { variable: 0, moved: -row.amountMinor }
-  return row.amountMinor < 0 ? { variable: -row.amountMinor, moved: 0 } : null
+  return row.amountMinor < 0 || row.refund ? { variable: -row.amountMinor, moved: 0 } : null
 }
 
 /**
@@ -230,7 +232,7 @@ export function buildForecast(input: ForecastInput): Omit<Forecast, "currency"> 
     const flex = flexOf(row, Boolean(row.key && seriesKeys.has(`${row.accountId}|${row.key}`)))
     if (row.date >= from && row.date <= to) {
       if (!row.transfer) {
-        if (row.amountMinor > 0) income += row.amountMinor
+        if (row.amountMinor > 0 && !row.refund) income += row.amountMinor
         else spent -= row.amountMinor
       }
       if (flex) {

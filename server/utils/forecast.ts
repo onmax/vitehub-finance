@@ -107,6 +107,7 @@ export async function forecast(who: Member, scope: Scope, months: number): Promi
         date: row.date,
         amountMinor: convert(row.amountMinor, row.currency),
         transfer: row.kind === "transfer",
+        refund: row.amountMinor > 0 && row.kind === "expense",
         key: row.date <= today ? seriesKey(row) : null,
       })),
       since: oldest?.date ?? null,

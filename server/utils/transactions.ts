@@ -253,6 +253,9 @@ async function isTransferCategory(categoryId: string | null) {
   return row?.kind === "transfer"
 }
 
+/** Money back in a spending category (a refund) lowers that category's spending; it isn't income. */
+const isRefund = sql`(${transaction.amountMinor} > 0 and ${category.kind} = 'expense')`
+
 /** Category kinds that are not spending or income: moving money between your own accounts. */
 const notTransfer = or(isNull(category.kind), ne(category.kind, "transfer"))!
 
@@ -266,27 +269,30 @@ export interface FlowOptions {
 
 /**
  * Money in and out (both positive) of visible accounts between two dates, in the household's currency, without
- * excluded rows and transfers between accounts.
+ * excluded rows and transfers between accounts. A refund in a spending category lowers money out instead of counting
+ * as money in.
  */
 export async function cashFlow(who: Member, options: FlowOptions, convert: Converter) {
   const rows = await db
     .select({
       currency: transaction.currency,
-      inMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} > 0 then ${transaction.amountMinor} else 0 end), 0)`,
-      outMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} < 0 then -${transaction.amountMinor} else 0 end), 0)`,
+      inMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} > 0 and not ${isRefund} then ${transaction.amountMinor} else 0 end), 0)`,
+      // Refunds take back what they refund: money out is net of them.
+      outMinor: sql<number>`coalesce(sum(case when ${transaction.amountMinor} < 0 or ${isRefund} then -${transaction.amountMinor} else 0 end), 0)`,
     })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
     .leftJoin(category, eq(category.id, transaction.categoryId))
     .where(flowConditions(who, options))
     .groupBy(transaction.currency)
-  return rows.reduce(
+  const totals = rows.reduce(
     (sum, row) => ({
       inMinor: sum.inMinor + convert(Number(row.inMinor), row.currency),
       outMinor: sum.outMinor + convert(Number(row.outMinor), row.currency),
     }),
     { inMinor: 0, outMinor: 0 },
   )
+  return { ...totals, outMinor: Math.max(0, totals.outMinor) }
 }
 
 function flowConditions(who: Member, options: FlowOptions) {
@@ -322,7 +328,7 @@ export async function movedOut(who: Member, options: FlowOptions, convert: Conve
   return rows.reduce((sum, row) => sum + convert(Number(row.outMinor), row.currency), 0)
 }
 
-/** Outflows per category (positive, household currency) between two dates; `null` is uncategorized. */
+/** Spending per category (positive, household currency, net of refunds) between two dates; `null` is uncategorized. */
 export async function spendingByCategory(who: Member, options: FlowOptions, convert: Converter) {
   const totals = new Map<string | null, number>()
   const rows = await db
@@ -334,9 +340,11 @@ export async function spendingByCategory(who: Member, options: FlowOptions, conv
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
     .leftJoin(category, eq(category.id, transaction.categoryId))
-    .where(and(flowConditions(who, options), sql`${transaction.amountMinor} < 0`))
+    .where(and(flowConditions(who, options), or(sql`${transaction.amountMinor} < 0`, isRefund)))
     .groupBy(transaction.categoryId, transaction.currency)
   for (const row of rows) totals.set(row.categoryId, (totals.get(row.categoryId) ?? 0) + convert(Number(row.outMinor), row.currency))
+  // A category whose refunds passed its spending spent nothing this month.
+  for (const [id, amount] of totals) if (amount <= 0) totals.delete(id)
   return totals
 }
 

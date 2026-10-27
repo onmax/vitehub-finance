@@ -70,6 +70,15 @@ describe("buildForecast", () => {
   const gym = series("gym", -950, "2026-10-31", { cadence: "weekly" })
   const insurance = series("insurance", -12000, "2027-01-15", { cadence: "yearly" })
 
+  it("counts a refund against spending, not as income", () => {
+    const row = (date: string, amountMinor: number, refund = false): CoreRow => ({ accountId: "main", date, amountMinor, transfer: false, refund, key: null })
+    // 31,000 spent each month, and 6,000 of September's came back as a refund.
+    const rows = [row("2026-07-15", -31000), row("2026-08-15", -31000), row("2026-09-15", -31000), row("2026-09-20", 6000, true)]
+    const result = buildForecast(input({ rows }))
+    expect(result.variableMonthlyMinor).toBe(29000)
+    expect(result.averageMonthlyIncomeMinor).toBe(0)
+  })
+
   it("adds each month's recurring payments and usual spending, counting only what's left of this month", () => {
     // 31,000 a month of everyday spending in July, August, and September.
     const rows = ["2026-07-15", "2026-08-15", "2026-09-15"].map((date) => ({ accountId: "main", date, amountMinor: -31000, transfer: false, key: null }))
