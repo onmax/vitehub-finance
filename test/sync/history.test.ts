@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { xrpl } from "@vitehub-finance/crypto"
 import { coinTransaction, holdingChange } from "../../server/providers/crypto"
 import { quantityTimeline, valueTimeline } from "../../server/utils/holdings-history"
+import { netWorthSeries } from "../../server/utils/series"
 
 const address = "rRedactedXrpAddress01xxxxxxxxxxx"
 const fixture = (name: string) =>
@@ -101,5 +102,25 @@ describe("a wallet's balance history", () => {
     expect(rows.every((row) => row.transfer)).toBe(true)
     // Valued at €1.16 the dust rounds to €0.00 and valueCoinTransactions drops it, leaving the three real payments.
     expect(rows.filter((row) => Math.round(row.quantity * 1.16 * 100) !== 0).map((row) => row.quantity)).toEqual([3559.800466, 43788.683248, 13.7])
+  })
+})
+
+describe("net worth over time", () => {
+  const dates = ["2026-10-23", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27"]
+
+  it("holds an account connected inside the window at its first balance, so connecting it isn't growth", () => {
+    const bank = [1000, 1100, 1100, 1200, 1250]
+    const exchange = [null, null, null, 50_000, 51_000]
+    const series = netWorthSeries(dates, [bank, exchange])
+    expect(series.map((day) => day.valueMinor)).toEqual([51_000, 51_100, 51_100, 51_200, 52_250])
+    // The change shown is the bank's +250 and the exchange's +1,000 since it was connected.
+    expect(series.at(-1)!.valueMinor - series[0]!.valueMinor).toBe(1250)
+  })
+
+  it("keeps a rebuilt history's real start, and zero before any account had a balance", () => {
+    const wallet = [null, 0, 50_000, 52_000, 55_000]
+    const manual = [null, null, 300, 300, 300]
+    expect(netWorthSeries(dates, [wallet, manual]).map((day) => day.valueMinor)).toEqual([0, 300, 50_300, 52_300, 55_300])
+    expect(netWorthSeries(dates, [[null, null, null, null, 700]]).map((day) => day.valueMinor)).toEqual([0, 0, 0, 0, 700])
   })
 })

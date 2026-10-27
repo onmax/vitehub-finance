@@ -99,7 +99,9 @@ its whole history (`since: null`, up to the crypto package's page caps) until it
 that reaches back to them (`walletHistoryMissing` in sync.ts), then the last ten days. Its `coinHistory` (every change
 to the holding, fees and dust included) gives it a balance history: `backfillHoldingSnapshots` (server/utils/snapshots.ts)
 walks back from today's quantity day by day (`quantityTimeline`, server/utils/holdings-history.ts) and values each day at
-that day's closing price (`closingPrices`), writing only days without a snapshot, for up to a year.
+that day's closing price (`closingPrices`), writing only days without a snapshot, for up to a year. Exchanges and IBKR
+have no history: the overview holds an account at its first known balance before it (`netWorthSeries` in
+server/utils/series.ts), so connecting one doesn't count as growth.
 
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen

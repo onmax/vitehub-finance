@@ -21,8 +21,9 @@ export async function recordSnapshot(accountId: string, balanceMinor: number, da
 
 /**
  * Daily balances for the days an account has transactions but no snapshot, worked backwards from today's balance: a
- * day closes at the next day's close minus what moved the next day. A freshly linked bank or an imported CSV then has a
- * chart at once instead of one that starts today. Days that already have a snapshot are left alone.
+ * day closes at the next day's close minus what moved the next day, back to the day before the first transaction. A
+ * freshly linked bank or an imported CSV then has a chart at once instead of one that starts today. Days that already
+ * have a snapshot are left alone.
  */
 export async function backfillSnapshots(accountId: string, days = 400) {
   const [account] = await db
@@ -47,12 +48,12 @@ export async function backfillSnapshots(accountId: string, days = 400) {
       await db
         .select({ date: balanceSnapshot.date })
         .from(balanceSnapshot)
-        .where(and(eq(balanceSnapshot.accountId, accountId), gte(balanceSnapshot.date, earliest)))
+        .where(and(eq(balanceSnapshot.accountId, accountId), gte(balanceSnapshot.date, addDays(earliest, -1))))
     ).map((row) => row.date),
   )
   const rows: Array<{ accountId: string; date: string; balanceMinor: number }> = []
   let close = account.balanceMinor
-  for (let day = end; day > earliest; ) {
+  for (let day = end; day >= earliest; ) {
     close -= moved.get(day) ?? 0
     day = addDays(day, -1)
     if (!known.has(day)) rows.push({ accountId, date: day, balanceMinor: close })

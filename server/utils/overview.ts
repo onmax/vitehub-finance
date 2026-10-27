@@ -5,9 +5,10 @@ import { category, connection, financialAccount, user as users } from "../databa
 import { visibleAccounts, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts, type Converter } from "./accounts"
 import { bankLogos } from "./bank-logos"
-import { addDays, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
+import { addDays, eachDay, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
 import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
+import { netWorthSeries } from "./series"
 import { cashFlow, searchTransactions, spendingByCategory } from "./transactions"
 
 const UNCATEGORIZED = { categoryId: null, name: "Uncategorized", icon: "i-lucide-circle-help", color: "neutral" }
@@ -78,7 +79,10 @@ export async function categorySpending(who: Member, scope: Scope, month: string,
     .sort((a, b) => b.amountMinor - a.amountMinor)
 }
 
-/** Per account, the last known balance each day; then the household's sum in its currency at today's rates. */
+/**
+ * Per account, the last known balance each day in the household's currency at today's rates; then their sum, with an
+ * account that appears inside the window held at its first balance before it (`netWorthSeries`).
+ */
 async function netWorthHistory(
   accounts: Array<{ id: string; currency: string; balanceMinor: number }>,
   from: string,
@@ -90,17 +94,16 @@ async function netWorthHistory(
     from,
     to,
   )
-  const totals = new Map<string, number>()
-  for (const account of accounts) {
-    const days = history.get(account.id) ?? []
-    for (const day of days) {
-      // Today is the live balance, whether or not today's snapshot exists yet.
-      const value = day.date === to ? account.balanceMinor : day.value
-      if (value !== null) totals.set(day.date, (totals.get(day.date) ?? 0) + convert(value, account.currency))
-      else totals.set(day.date, totals.get(day.date) ?? 0)
-    }
-  }
-  return [...totals].sort(([a], [b]) => a.localeCompare(b)).map(([date, valueMinor]) => ({ date, valueMinor }))
+  const dates = eachDay(from, to)
+  const values = accounts.map((account) => {
+    const days = new Map((history.get(account.id) ?? []).map((day) => [day.date, day.value]))
+    // Today is the live balance, whether or not today's snapshot exists yet.
+    return dates.map((date) => {
+      const value = date === to ? account.balanceMinor : (days.get(date) ?? null)
+      return value === null ? null : convert(value, account.currency)
+    })
+  })
+  return netWorthSeries(dates, values)
 }
 
 /** Connections feeding visible accounts that failed, expired, or whose bank consent ends within 14 days. */
