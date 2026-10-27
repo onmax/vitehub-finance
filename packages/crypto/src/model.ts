@@ -1,7 +1,8 @@
 // The one data model every provider answers in: what a place holds, coin by coin, and for wallets what moved.
+import type { StakingLedger } from "./staking.ts"
 
 export type ExchangeId = "kraken" | "binance" | "coinbase"
-export type ChainId = "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq"
+export type ChainId = "bitcoin" | "ethereum" | "polygon" | "solana" | "xrpl" | "nimiq"
 export type CryptoProviderId = ExchangeId | ChainId | "fake"
 
 export interface Holding {
@@ -26,6 +27,8 @@ export interface CryptoProvider {
   balances(): Promise<Holding[]>
   /** What moved in and out of the address, newest first. Only wallets on chains with a public history have it. */
   transactions?(options?: TransactionsOptions): Promise<CryptoTransaction[]>
+  /** Its staking: balances by state, and rewards, deposits, withdrawals, and fees. Only chains with an adapter (Nimiq). */
+  staking?(): Promise<StakingLedger>
 }
 
 export interface TransactionsOptions {

@@ -10,10 +10,11 @@ Cloudflare Workers, Node, Deno, and Bun.
 | `binance` | API key with only “Enable Reading” | spot and Simple Earn |
 | `coinbase` | CDP key name and private key, “View” only | every account |
 | `bitcoin` | address | mempool.space: balance and transactions |
-| `ethereum` | address | ethereum-rpc.publicnode.com (ETH only) |
+| `ethereum` | address | ethereum-rpc.publicnode.com, then rpc.flashbots.net: ETH plus USDC, USDT, DAI, and WETH |
+| `polygon` | address | polygon-bor-rpc.publicnode.com, then polygon.drpc.org: POL plus USDC, USDC.e, USDT, DAI, and WETH |
 | `solana` | address | api.mainnet-beta.solana.com (SOL only) |
 | `xrpl` | address | s1.ripple.com, s2.ripple.com, then xrplcluster.com: balance and transactions |
-| `nimiq` | address (`NQ…`) | rpc.nimiqwatch.com: the balance plus staked NIM, and transactions |
+| `nimiq` | address (`NQ…`) | rpc.nimiqwatch.com: the balance plus staked NIM, transactions, and staking (`staking()`) |
 
 ## Usage
 
@@ -34,6 +35,30 @@ const { holdings, failed } = await crypto.totals()
 Bitcoin). `createCrypto(...).balances()` returns each provider's
 result, and one provider failing never hides the others. `connect(id, credentials)` builds a provider from its id, for
 code that stores the id.
+
+## Staking
+
+`staking.ts` is chain-independent: a chain's adapter reads a `StakingLedger` (balances by state, `liquid`, `active`,
+`inactive`, `retired`, and `StakingEvent`s: `reward_paid`, `reward_restaked`, `deposit`, `withdrawal`, `fee`,
+`unclassified`) in bigint base units, and `summarizeStaking(ledger)` adds it up: totals, identified rewards per month,
+who paid them, and `unknown: { unpaidRewards: null, profit: null, apy: null }`. The same event read twice counts once;
+two different events with one id throw `StakingConflict`. Rewards are history inside the balances, never added to them;
+deposits and withdrawals are gross principal moves, never earnings. `formatUnits(atoms, decimals)` writes exact decimals.
+
+```ts
+import { nimiq, summarizeStaking, formatUnits } from "@vitehub-finance/crypto"
+
+const ledger = await nimiq("NQ07 0000 0000 0000 0000 0000 0000 0000 0000").staking!()
+const { totals, monthly } = summarizeStaking(ledger)
+formatUnits(totals.rewards, 5) // "1234.56789"
+```
+
+Nimiq is the first adapter (`nimiqStaking`): NimiqWatch's JSON-RPC for the account, the staker, the validator, and every
+transaction since proof-of-stake genesis (2024-11-19), paginated with stalled-cursor detection; NimiqWatch's restake
+index (`v2.nimiqwatch.com/api/v2/staker/{address}/events/restake-grouped`) for rewards added to the stake; and the
+Nimiq validators directory. A payment counts as a reward only from a listed validator, the current validator, or its
+on-chain reward address; everything else stays `unclassified`. Any part that can't be read fails the call: a partial
+history never reads as smaller earnings. Only "No staker with address" means the address doesn't stake.
 
 ## Model
 

@@ -3,13 +3,14 @@ import type { ConnectionSummary } from "#shared/api"
 
 // A wallet's public address: no keys, nothing to sign. The server checks it's an address of that chain
 // (`POST /api/connect/wallet`) and reads its balance right away.
-type Chain = "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq"
+type Chain = "bitcoin" | "ethereum" | "polygon" | "solana" | "xrpl" | "nimiq"
 const flow = useConnectFlow()
 const demo = useDemoPerson()
 const chain = flow.entry.provider as Chain
 const PLACEHOLDERS: Record<Chain, () => string> = {
   bitcoin: () => translate('bc1qOr1Or3'),
   ethereum: () => translate('0x'),
+  polygon: () => translate('0x'),
   solana: () => translate('base58Address'),
   xrpl: () => translate('r'),
   nimiq: () => translate('nq'),

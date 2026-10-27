@@ -205,6 +205,7 @@ function updated(next: AccountSummary) {
               </section>
 
               <AccountHoldings v-if="account.holdings.length" :holdings="account.holdings" :currency="account.currency" />
+              <AccountStaking v-if="account.staking" :staking="account.staking" :currency="account.currency" />
 
               <AccountTransactions :account-id="account.id" :currency="account.currency" />
             </div>

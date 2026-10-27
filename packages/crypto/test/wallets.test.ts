@@ -386,3 +386,37 @@ describe("createCrypto", () => {
     expect(failed.map((result) => [result.provider.name, result.error?.code])).toEqual([["Broken", "rate_limited"]])
   })
 })
+
+describe("EVM wallets", () => {
+  const address = "0x00000000000000000000000000000000000000a1"
+  /** Answers eth_getBalance and balanceOf per contract; the first server fails, so the second answers. */
+  function evmStub(balances: Record<string, bigint>, native: bigint) {
+    const hosts: string[] = []
+    const stub = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input))
+      hosts.push(url.host)
+      if (url.host.includes("publicnode")) return new Response("down", { status: 503 })
+      const { method, params } = JSON.parse(String(init!.body))
+      const units = method === "eth_getBalance" ? native : (balances[params[0].to.toLowerCase()] ?? 0n)
+      return Response.json({ jsonrpc: "2.0", id: 1, result: `0x${units.toString(16)}` })
+    }) as typeof fetch
+    return { stub, hosts }
+  }
+
+  it("reads the native coin and the tokens it holds, from the next server when one fails", async () => {
+    const { stub, hosts } = evmStub({ "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": 1_500_000n }, 2n * 10n ** 18n)
+    const holdings = await connect("polygon", { address }, { fetch: stub }).balances()
+    expect(holdings).toEqual([
+      { symbol: "POL", name: "Polygon", quantity: 2, staked: 0 },
+      { symbol: "USDC.e", name: "USD Coin (bridged)", quantity: 1.5, staked: 0 },
+    ])
+    expect(hosts).toContain("polygon.drpc.org")
+  })
+
+  it("lists only the native coin when no token is held, and fails when every server does", async () => {
+    const { stub } = evmStub({}, 5n * 10n ** 15n)
+    expect(await connect("ethereum", { address }, { fetch: stub }).balances()).toEqual([{ symbol: "ETH", name: "Ether", quantity: 0.005, staked: 0 }])
+    const down = (async () => new Response("down", { status: 503 })) as typeof fetch
+    await expect(connect("ethereum", { address }, { fetch: down }).balances()).rejects.toBeInstanceOf(CryptoError)
+  })
+})

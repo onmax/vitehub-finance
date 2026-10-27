@@ -94,7 +94,7 @@ function exchange(provider: "kraken" | "binance" | "coinbase", name: string, dom
   }
 }
 
-function wallet(provider: "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq", name: string, domain: string, history: boolean): CatalogProvider {
+function wallet(provider: "bitcoin" | "ethereum" | "polygon" | "solana" | "xrpl" | "nimiq", name: string, domain: string, history: boolean): CatalogProvider {
   return {
     id: provider,
     provider,
@@ -143,6 +143,7 @@ export const CATALOG: CatalogProvider[] = [
   exchange("coinbase", "Coinbase", "coinbase.com", () => translate('inTheCoinbaseDeveloperPlatformCreateASecretApiKey')),
   wallet("bitcoin", "Bitcoin", "bitcoin.org", true),
   wallet("ethereum", "Ethereum", "ethereum.org", false),
+  wallet("polygon", "Polygon", "polygon.technology", false),
   wallet("solana", "Solana", "solana.com", false),
   wallet("xrpl", "XRP Ledger", "xrpl.org", true),
   wallet("nimiq", "Nimiq", "nimiq.com", true),

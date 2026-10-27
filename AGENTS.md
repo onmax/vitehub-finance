@@ -72,7 +72,10 @@ A pnpm workspace: the app at the root, and three clients in `packages/` that kno
   Ledger, and Nimiq also have `transactions({ since })` (`CryptoTransaction[]`: hash, day, signed quantity, fee,
   counterparty, kind). Factories per exchange and chain, `connect(id, credentials)`, `createCrypto([...])`,
   `parseAddress`, `CryptoError`. The XRP Ledger reader tries `XRPL_SERVERS` in order and moves on when one rate limits.
-  `./fake` for tests.
+  Ethereum and Polygon wallets read the native coin plus a short list of common ERC-20 tokens (`balanceOf`), trying
+  two public nodes each. Staking is chain-independent (`staking.ts`: `StakingLedger` in bigint base units,
+  `summarizeStaking`, `formatUnits`); a chain with an adapter answers `staking()` (Nimiq: `nimiqStaking`, which fails
+  rather than return part of the history). `./fake` for tests.
 - `@vitehub-finance/brokers`: brokerage accounts. `ibkr({ token, queryId }).accounts()` runs an Activity Flex Query
   through IBKR's Flex Web Service and returns `BrokerAccount[]` (positions at IBKR's mark prices, cash per currency);
   `parseXml` is its small XML reader (Workers have no DOMParser), `BrokerError`. `myinvestor({ funds }).accounts()`
@@ -125,6 +128,13 @@ walks back from today's quantity day by day (`quantityTimeline`, server/utils/ho
 that day's closing price (`closingPrices`), writing only days without a snapshot, for up to a year. Exchanges and IBKR
 have no history: the overview holds an account at its first known balance before it (`netWorthSeries` in
 server/utils/series.ts), so connecting one doesn't count as growth.
+
+A wallet whose provider answers `staking()` gets a `staking_position` row and its `staking_event`s, replaced by each
+complete read (`saveStaking`, server/utils/staking.ts); a failed read keeps the last one. They never touch the balance:
+the holding already counts staked coins and the rewards inside them. `stakingView` serves the account page, the overview,
+and agents: exact decimal strings of coins, today's-price values, identified rewards per month, and unpaid rewards,
+profit, and APY always null. Payments from a known validator also become `reward` transactions (income); moves into
+and out of staking stay out of transactions, since the holding counts staked coins.
 
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen

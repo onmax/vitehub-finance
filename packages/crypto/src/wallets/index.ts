@@ -3,9 +3,10 @@
 import { CryptoError, type CryptoErrorCode } from "../errors.ts"
 import { fromBaseUnits } from "../holdings.ts"
 import { describeBody, jsonRpc, readBody, requester, type ClientOptions, type Request } from "../http.ts"
-import type { ChainId, CryptoProvider, CryptoTransaction, CryptoTransactionKind } from "../model.ts"
+import type { ChainId, CryptoProvider, CryptoTransaction, CryptoTransactionKind, Holding } from "../model.ts"
 import { parseAddress } from "./address.ts"
 import { CHAINS, type ChainInfo } from "./chains.ts"
+import { nimiqRpc, nimiqStaking, nimiqTime } from "./nimiq-staking.ts"
 
 export interface WalletOptions extends ClientOptions {
   /** Another endpoint for the chain's API: your own node, or a provider with a key in the URL. */
@@ -30,6 +31,8 @@ interface Context {
 
 interface Reader {
   balance(context: Context): Promise<Balance>
+  /** Tokens the address holds beside the native coin, zero balances left out. */
+  tokens?(context: Context): Promise<Holding[]>
   /** Newest first, nothing before `since`. */
   transactions?(context: Context, since: string | null): Promise<CryptoTransaction[]>
 }
@@ -194,7 +197,7 @@ function nimiqTransaction(context: Context, tx: any): CryptoTransaction | null {
   if (tx.executionResult === false) return null
   const value = BigInt(tx.value ?? 0)
   const fee = tx.from === address ? BigInt(tx.fee ?? 0) : 0n
-  const base = { id: tx.hash, time: tx.timestamp, fee }
+  const base = { id: tx.hash, time: nimiqTime(tx), fee }
   if (value === 0n || (tx.from === address && tx.to === address)) return null
   if (tx.from === address)
     return tx.to === NIMIQ_STAKING
@@ -235,6 +238,77 @@ function bitcoinTransaction(context: Context, tx: any): CryptoTransaction | null
   })
 }
 
+/** An ERC-20 token worth checking: most addresses hold one of a few. Symbols are ours where the contract's mislead. */
+interface Token {
+  contract: string
+  symbol: string
+  name: string
+  decimals: number
+}
+
+/**
+ * EVM chains: the native coin, and the common tokens below through `balanceOf`. Public JSON-RPC servers, tried in order;
+ * a token nobody lists here isn't read (there's no keyless index of every token an address holds). Each contract's
+ * symbol and decimals were checked on chain.
+ */
+const EVM: Record<"ethereum" | "polygon", { rpcs: string[]; tokens: Token[] }> = {
+  ethereum: {
+    rpcs: ["https://ethereum-rpc.publicnode.com", "https://rpc.flashbots.net"],
+    tokens: [
+      { contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", symbol: "USDC", name: "USD Coin", decimals: 6 },
+      { contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7", symbol: "USDT", name: "Tether", decimals: 6 },
+      { contract: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI", name: "Dai", decimals: 18 },
+      { contract: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", symbol: "WETH", name: "Wrapped Ether", decimals: 18 },
+    ],
+  },
+  polygon: {
+    rpcs: ["https://polygon-bor-rpc.publicnode.com", "https://polygon.drpc.org"],
+    tokens: [
+      { contract: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", name: "USD Coin", decimals: 6 },
+      // Bridged from Ethereum before Circle issued USDC on Polygon; its contract calls itself USDC too.
+      { contract: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", symbol: "USDC.e", name: "USD Coin (bridged)", decimals: 6 },
+      // Its contract calls itself USDT0 since Tether's upgrade.
+      { contract: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT", name: "Tether", decimals: 6 },
+      { contract: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", symbol: "DAI", name: "Dai", decimals: 18 },
+      { contract: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", symbol: "WETH", name: "Wrapped Ether", decimals: 18 },
+    ],
+  },
+}
+
+/** One EVM JSON-RPC call's result, from the first server that answers it without an error. */
+async function evmCall(context: Context, chain: "ethereum" | "polygon", method: string, params: unknown[]): Promise<string> {
+  const reasons: string[] = []
+  for (const url of context.rpcUrl ? [context.rpcUrl] : EVM[chain].rpcs) {
+    try {
+      const { response, body } = await jsonRpc(context.request, url, method, params)
+      if (response.ok && !body.error && typeof body.result === "string") return body.result
+      reasons.push(`${new URL(url).host}: ${describeBody(body.error, `HTTP ${response.status}`)}`)
+    } catch {
+      reasons.push(`${new URL(url).host} didn't answer`)
+    }
+  }
+  throw context.fail("unavailable", `The ${context.info.name} servers returned errors. Try again later. Details: ${reasons.join("; ")}`)
+}
+
+function evmReader(chain: "ethereum" | "polygon"): Reader {
+  return {
+    async balance(context) {
+      return liquid(BigInt(await evmCall(context, chain, "eth_getBalance", [context.address, "latest"])))
+    },
+    async tokens(context) {
+      // balanceOf(address): its selector, then the address left-padded to 32 bytes.
+      const data = `0x70a08231${context.address.slice(2).toLowerCase().padStart(64, "0")}`
+      const out: Holding[] = []
+      for (const token of EVM[chain].tokens) {
+        const result = await evmCall(context, chain, "eth_call", [{ to: token.contract, data }, "latest"])
+        const units = result === "0x" ? 0n : BigInt(result)
+        if (units > 0n) out.push({ symbol: token.symbol, name: token.name, quantity: fromBaseUnits(units, token.decimals), staked: 0 })
+      }
+      return out
+    },
+  }
+}
+
 const READERS: Record<ChainId, Reader> = {
   bitcoin: {
     async balance(context) {
@@ -260,13 +334,8 @@ const READERS: Record<ChainId, Reader> = {
       return out
     },
   },
-  ethereum: {
-    async balance({ request, fail, address, rpcUrl = "https://ethereum-rpc.publicnode.com" }) {
-      const { response, body } = await jsonRpc(request, rpcUrl, "eth_getBalance", [address, "latest"])
-      if (!response.ok || body.error) throw fail("unavailable", `The Ethereum server returned an error. Try again later. Details: ${describeBody(body.error, `HTTP ${response.status}`)}`)
-      return liquid(BigInt(body.result ?? "0x0"))
-    },
-  },
+  ethereum: evmReader("ethereum"),
+  polygon: evmReader("polygon"),
   solana: {
     async balance({ request, fail, address, rpcUrl = "https://api.mainnet-beta.solana.com" }) {
       const { response, body } = await jsonRpc(request, rpcUrl, "getBalance", [address])
@@ -316,14 +385,13 @@ const READERS: Record<ChainId, Reader> = {
    */
   nimiq: {
     async balance(context) {
-      const account = await nimiqCall(context, "getAccountByAddress", [context.address])
-      if (account.error) throw context.fail("unavailable", `The Nimiq server returned an error. Try again later. Details: ${describeBody(account.error, "unknown error")}`)
-      const staker = await nimiqCall(context, "getStakerByAddress", [context.address])
-      // An address that never staked answers "No staker with address…": it stakes nothing.
-      const stake = staker.error
-        ? 0n
-        : ["balance", "inactiveBalance", "retiredBalance"].reduce((sum, key) => sum + BigInt(staker.result?.data?.[key] ?? 0), 0n)
-      return { total: BigInt(account.result?.data?.balance ?? 0) + stake, staked: stake }
+      const url = context.rpcUrl ?? "https://rpc.nimiqwatch.com"
+      const account = await nimiqRpc(context.request, url, "getAccountByAddress", [context.address])
+      // An address that never staked answers "No staker with address…": it stakes nothing. Any other error is an error,
+      // not a stake of zero.
+      const staker = await nimiqRpc(context.request, url, "getStakerByAddress", [context.address], "No staker with address")
+      const stake = staker ? ["balance", "inactiveBalance", "retiredBalance"].reduce((sum, key) => sum + BigInt(staker[key] ?? 0), 0n) : 0n
+      return { total: BigInt(account?.balance ?? 0) + stake, staked: stake }
     },
     // Newest first; the next page starts after the hash it names.
     async transactions(context, since) {
@@ -334,7 +402,7 @@ const READERS: Record<ChainId, Reader> = {
         if (body.error) throw context.fail("unavailable", `The Nimiq server returned an error. Try again later. Details: ${describeBody(body.error, "unknown error")}`)
         const list: any[] = body.result?.data ?? []
         for (const tx of list) {
-          if (since && day(tx.timestamp) < since) return out
+          if (since && day(nimiqTime(tx)) < since) return out
           const parsed = nimiqTransaction(context, tx)
           if (parsed) out.push(parsed)
         }
@@ -373,15 +441,18 @@ export function wallet(chain: ChainId, address: string, options: WalletOptions =
     address: parsed,
     async balances() {
       const balance = await reader.balance(context)
+      const tokens = reader.tokens ? await reader.tokens(context) : []
       // A wallet always lists its coin, even at zero, so an emptied wallet reads as empty rather than unknown.
-      return [{ symbol: info.symbol, name: info.coin, quantity: fromBaseUnits(balance.total, info.decimals), staked: fromBaseUnits(balance.staked, info.decimals) }]
+      return [{ symbol: info.symbol, name: info.coin, quantity: fromBaseUnits(balance.total, info.decimals), staked: fromBaseUnits(balance.staked, info.decimals) }, ...tokens]
     },
     ...(reader.transactions && { transactions: (options) => reader.transactions!(context, options?.since ?? null) }),
+    ...(chain === "nimiq" && { staking: () => nimiqStaking(parsed, { request: context.request, rpcUrl: options.rpcUrl }) }),
   }
 }
 
 export const bitcoin = (address: string, options?: WalletOptions) => wallet("bitcoin", address, options)
 export const ethereum = (address: string, options?: WalletOptions) => wallet("ethereum", address, options)
+export const polygon = (address: string, options?: WalletOptions) => wallet("polygon", address, options)
 export const solana = (address: string, options?: WalletOptions) => wallet("solana", address, options)
 export const xrpl = (address: string, options?: WalletOptions) => wallet("xrpl", address, options)
 export const nimiq = (address: string, options?: WalletOptions) => wallet("nimiq", address, options)

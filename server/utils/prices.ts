@@ -46,7 +46,9 @@ async function coingecko(symbols: string[], currency: string): Promise<Record<st
         signal: AbortSignal.timeout(8000),
       })
       if (!response.ok) throw new Error(`CoinGecko answered ${response.status}`)
-      const body = (await response.json()) as Record<string, Record<string, number> | undefined>
+      const answer = (await response.json()) as Record<string, Record<string, number> | undefined>
+      // Keys come back lowercase, mostly: Polygon's is "POL".
+      const body = Object.fromEntries(Object.entries(answer).map(([key, value]) => [key.toLowerCase(), value]))
       for (const symbol of batch) {
         const price = body[symbol.toLowerCase()]?.[vs]
         result[symbol] = typeof price === "number" && Number.isFinite(price) ? price : null

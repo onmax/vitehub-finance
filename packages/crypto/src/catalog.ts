@@ -13,7 +13,7 @@ export const EXCHANGES: Record<ExchangeId, { name: string; keyHelp: string }> = 
 }
 
 export const EXCHANGE_IDS = ["kraken", "binance", "coinbase"] as const satisfies readonly ExchangeId[]
-export const CHAIN_IDS = ["bitcoin", "ethereum", "solana", "xrpl", "nimiq"] as const satisfies readonly ChainId[]
+export const CHAIN_IDS = ["bitcoin", "ethereum", "polygon", "solana", "xrpl", "nimiq"] as const satisfies readonly ChainId[]
 
 export const isExchange = (id: string): id is ExchangeId => id in EXCHANGES
 export const isChain = (id: string): id is ChainId => id in CHAINS

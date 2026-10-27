@@ -27,11 +27,11 @@ const MAX_CONSENT_DAYS = 180
  * 7776000 seconds in the future".
  */
 class ConsentTooLong extends BankingError {
-  constructor(
-    readonly seconds: number,
-    message: string,
-  ) {
+  readonly seconds: number
+
+  constructor(seconds: number, message: string) {
     super("unavailable", message, "enable_banking")
+    this.seconds = seconds
   }
 }
 

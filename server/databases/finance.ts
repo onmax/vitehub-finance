@@ -50,7 +50,7 @@ export const connection = sqliteTable(
     householdId: householdId(),
     ownerId: ownerId(),
     provider: text("provider", {
-      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "solana", "xrpl", "nimiq", "ibkr", "myinvestor", "manual"],
+      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "polygon", "solana", "xrpl", "nimiq", "ibkr", "myinvestor", "manual"],
     }).notNull(),
     name: text("name").notNull(),
     institution: text("institution"),
@@ -127,6 +127,54 @@ export const holding = sqliteTable(
     updatedAt: updatedAt(),
   },
   (table) => [uniqueIndex("holding_account_symbol_idx").on(table.accountId, table.symbol)],
+)
+
+/**
+ * A crypto account's staking, as its provider last read it from public data (Nimiq for now): balances by state, the
+ * validator, and what the data can't tell. Amounts are base units as decimal strings: they outgrow a double. The
+ * holdings already count every staked coin, so nothing here adds to the balance.
+ */
+export const stakingPosition = sqliteTable("staking_position", {
+  accountId: text("account_id")
+    .primaryKey()
+    .references(() => financialAccount.id, { onDelete: "cascade" }),
+  chain: text("chain").notNull(),
+  symbol: text("symbol").notNull(),
+  decimals: integer("decimals").notNull(),
+  validator: text("validator"),
+  // Whether the validator is in the chain's public directory; null when unknown or not staking.
+  validatorListed: integer("validator_listed", { mode: "boolean" }),
+  liquid: text("liquid").notNull(),
+  active: text("active").notNull(),
+  inactive: text("inactive").notNull(),
+  retired: text("retired").notNull(),
+  observedAt: text("observed_at").notNull(),
+  // The half-open interval the events cover, ISO timestamps.
+  coverageFrom: text("coverage_from").notNull(),
+  coverageTo: text("coverage_to").notNull(),
+  // JSON array of sentences: what the sources can't tell.
+  notes: text("notes").notNull().default("[]"),
+  updatedAt: updatedAt(),
+})
+
+export const STAKING_EVENT_KINDS = ["reward_paid", "reward_restaked", "deposit", "withdrawal", "fee", "unclassified"] as const
+
+/** What moved in and out of staking, one row per event the provider read, each with where it comes from. */
+export const stakingEvent = sqliteTable(
+  "staking_event",
+  {
+    accountId: text("account_id")
+      .notNull()
+      .references(() => financialAccount.id, { onDelete: "cascade" }),
+    // The provider's stable id for the event: a transaction hash and part, or a restake group's digest.
+    id: text("id").notNull(),
+    at: text("at").notNull(),
+    kind: text("kind", { enum: STAKING_EVENT_KINDS }).notNull(),
+    atoms: text("atoms").notNull(),
+    counterparty: text("counterparty"),
+    evidence: text("evidence").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.accountId, table.id] }), index("staking_event_account_at_idx").on(table.accountId, table.at)],
 )
 
 /** One balance per account per day, for the net worth chart. */

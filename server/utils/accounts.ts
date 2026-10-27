@@ -9,6 +9,7 @@ import { bankLogos } from "./bank-logos"
 import { converterTo } from "./fx"
 import type { Member } from "./identity"
 import { carryForward } from "./series"
+import { stakingView } from "./staking"
 
 export type Converter = Awaited<ReturnType<typeof converterTo>>
 export type AccountRow = typeof financialAccount.$inferSelect
@@ -152,5 +153,5 @@ export async function accountDetail(who: Pick<Member, "userId" | "householdId">,
   const history = days.flatMap((day) => (day.value === null ? [] : [{ date: day.date, balanceMinor: day.value }]))
   // An account without snapshots still shows today's balance.
   if (!history.length) history.push({ date: today, balanceMinor: summary.balanceMinor })
-  return { ...summary, holdings, history }
+  return { ...summary, holdings, history, staking: await stakingView(accountId, summary.currency) }
 }

@@ -12,6 +12,7 @@ export type ProviderId =
   | "coinbase"
   | "bitcoin"
   | "ethereum"
+  | "polygon"
   | "solana"
   | "xrpl"
   | "nimiq"
@@ -134,6 +135,59 @@ export interface AccountDetail extends AccountSummary {
   holdings: Holding[]
   /** Daily balances, oldest first, in the account's currency. */
   history: Array<{ date: string; balanceMinor: number }>
+  /** A wallet's staking (Nimiq), when its provider reads it. */
+  staking: StakingView | null
+}
+
+export type StakingEventKind = "reward_paid" | "reward_restaked" | "deposit" | "withdrawal" | "fee" | "unclassified"
+
+/** Every staking total, in coins. `holdings` is liquid plus staked; rewards, deposits, and withdrawals are history inside it. */
+export type StakingAmount =
+  | "liquid"
+  | "active"
+  | "inactive"
+  | "retired"
+  | "staked"
+  | "holdings"
+  | "rewardsPaid"
+  | "rewardsRestaked"
+  | "rewards"
+  | "fees"
+  | "rewardsLessFees"
+  | "deposits"
+  | "withdrawals"
+  | "netStakingTransfers"
+  | "unclassified"
+
+/**
+ * A wallet's staking from public data. Amounts are exact decimal strings of coins; `values` are the same at today's
+ * price in the account's currency (minor units), not what the coins were worth when they moved. Identified rewards are
+ * a documented subset, not lifetime earnings; deposits and withdrawals are gross principal moves, never earnings.
+ */
+export interface StakingView {
+  chain: string
+  symbol: string
+  validator: string | null
+  /** Whether the validator is in the chain's public directory; null when unknown or not staking. */
+  validatorListed: boolean | null
+  /** When the balances were read, ISO. */
+  observedAt: string
+  /** The half-open interval the events cover, ISO. */
+  coverage: { from: string; to: string }
+  amounts: Record<StakingAmount, string>
+  values: Record<StakingAmount, number | null> | null
+  /** Today's price per coin, major units. */
+  price: { perUnit: number; currency: string } | null
+  /** Identified rewards per month (UTC), oldest first. */
+  monthly: Array<{ month: string; paid: string; restaked: string; total: string; valueMinor: number | null }>
+  senders: Array<{ address: string; amount: string }>
+  /** Newest first, at most 200; `eventCount` counts them all. */
+  events: Array<{ id: string; at: string; kind: StakingEventKind; amount: string; counterparty: string | null; evidence: string }>
+  eventCount: number
+  /** Never estimated. */
+  unknown: { unpaidRewards: null; profit: null; apy: null }
+  /** What the sources can't tell, in English. */
+  notes: string[]
 }
 
 export interface Category {
@@ -229,6 +283,8 @@ export interface Overview {
   /** Connections whose consent expires within 14 days, or that failed or expired. */
   attention: ConnectionSummary[]
   recent: Transaction[]
+  /** Accounts in view that stake: staked coins and identified rewards, in coins; the value at today's price. */
+  staking: Array<{ accountId: string; accountName: string; symbol: string; staked: string; stakedValueMinor: number | null; rewards: string; validatorListed: boolean | null }>
   accountCount: number
 }
 

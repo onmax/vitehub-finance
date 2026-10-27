@@ -65,13 +65,23 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
       const provider = connect(id as ChainId, credentials as WalletCredentials, { userAgent: USER_AGENT })
       const holdings = await provider.balances()
       // History is a bonus: when it fails the balance still lands, and the next sync looks back far enough to catch up.
-      const history =
+      const read =
         options && provider.transactions
           ? await provider.transactions({ since: options.since }).catch((error) => {
               console.warn(`[finance] ${provider.name} history unavailable`, error)
               return null
             })
           : null
+      // Staking too: a read that fails leaves the last complete one in place rather than a partial history.
+      const staking = provider.staking
+        ? await provider.staking().catch((error) => {
+            console.warn(`[finance] ${provider.name} staking unavailable`, error)
+            return undefined
+          })
+        : undefined
+      // A payment from a known validator is a staking reward, not money someone sent.
+      const payouts = new Set(staking?.events.filter((event) => event.kind === "reward_paid").map((event) => event.id.replace(/:value$/, "")))
+      const history = read?.map((row) => (row.kind === "receive" && payouts.has(row.id) ? { ...row, kind: "reward" as const } : row)) ?? null
       return {
         accounts: [
           {
@@ -81,6 +91,7 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
             currency: "EUR",
             institution: provider.name,
             holdings: holdings.map(({ symbol, name, quantity }) => ({ symbol, name, quantity })),
+            ...(staking && { staking }),
             coinTransactions: (history ?? []).map(coinTransaction).filter((row) => row !== null),
             ...(history && {
               coinHistory: {

@@ -5,6 +5,8 @@ const PATTERNS: Record<Exclude<ChainId, "nimiq">, RegExp> = {
   // Legacy (1…), P2SH (3…), and bech32/bech32m (bc1…, lowercase or uppercase, not mixed).
   bitcoin: new RegExp(`^(?:[13]${BASE58}{25,34}|bc1[02-9ac-hj-np-z]{11,71}|BC1[02-9AC-HJ-NP-Z]{11,71})$`),
   ethereum: /^0x[0-9a-fA-F]{40}$/,
+  // An Ethereum address: the same key holds coins on every EVM chain.
+  polygon: /^0x[0-9a-fA-F]{40}$/,
   solana: new RegExp(`^${BASE58}{32,44}$`),
   xrpl: /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/,
 }

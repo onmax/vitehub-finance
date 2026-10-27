@@ -38,6 +38,7 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
   coinbase: { label: "Coinbase", kind: "exchange" },
   bitcoin: { label: "Bitcoin", kind: "wallet" },
   ethereum: { label: "Ethereum", kind: "wallet" },
+  polygon: { label: "Polygon", kind: "wallet" },
   solana: { label: "Solana", kind: "wallet" },
   xrpl: { label: "XRP Ledger", kind: "wallet" },
   nimiq: { label: "Nimiq", kind: "wallet" },

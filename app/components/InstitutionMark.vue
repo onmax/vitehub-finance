@@ -19,6 +19,7 @@ const PROVIDERS: Partial<Record<ProviderId, { icon: string; bg: string; fg: stri
   kraken: { icon: "i-finance-kraken", bg: "#7132f5", fg: "#ffffff" },
   bitcoin: { icon: "i-simple-icons-bitcoin", bg: "#f7931a", fg: "#ffffff" },
   ethereum: { icon: "i-simple-icons-ethereum", bg: "#627eea", fg: "#ffffff" },
+  polygon: { icon: "i-simple-icons-polygon", bg: "#6c00f6", fg: "#ffffff" },
   solana: { icon: "i-simple-icons-solana", bg: "#121212", fg: "#14f195" },
   xrpl: { icon: "i-simple-icons-xrp", bg: "#23292f", fg: "#ffffff" },
   nimiq: { icon: "i-finance-nimiq", bg: "#1f2348", fg: "#e9b213" },

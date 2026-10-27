@@ -10,6 +10,7 @@ import type { CoinHistory } from "./holdings-history"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
 import { replaceHoldings } from "./holdings"
+import { saveStaking } from "./staking"
 import { valueCoinTransactions, valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
 import { backfillDailyValues, backfillHoldingSnapshots, backfillSnapshots, recordSnapshot } from "./snapshots"
@@ -139,6 +140,7 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
       .where(eq(financialAccount.id, account.id))
   }
   if (hasHoldings) await replaceHoldings(account.id, holdings)
+  if (hasHoldings && remote.staking) await saveStaking(account.id, remote.staking)
   await recordSnapshot(account.id, balance ?? account.balanceMinor)
   // A broker's own daily values fill the chart's past; only days without a snapshot, so it runs every time.
   if (hasHoldings && remote.dailyValues?.length) await backfillDailyValues(account.id, currency, remote.dailyValues)

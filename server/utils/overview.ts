@@ -1,13 +1,14 @@
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import type { ConnectionSummary, Overview } from "#shared/api"
-import { category, connection, financialAccount, user as users } from "../databases/config"
+import { category, connection, financialAccount, stakingPosition, user as users } from "../databases/config"
 import { visibleAccounts, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts, type Converter } from "./accounts"
 import { bankLogos } from "./bank-logos"
 import { addDays, eachDay, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
 import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
+import { stakingView } from "./staking"
 import { netWorthSeries } from "./series"
 import { cashFlow, searchTransactions, spendingByCategory } from "./transactions"
 
@@ -43,6 +44,28 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
 
   const recent = (await searchTransactions(who, { scope, limit: 8 }, { totals: false })).items
 
+  // Staking on the accounts in view: what's staked and the rewards identified, in the household's currency at today's
+  // price. Both are already inside net worth; this only says how much of it is staked.
+  const staked = accounts.length
+    ? await db.select({ accountId: stakingPosition.accountId }).from(stakingPosition).where(inArray(stakingPosition.accountId, accounts.map((row) => row.account.id)))
+    : []
+  const staking: Overview["staking"] = []
+  for (const { accountId } of staked) {
+    const account = accounts.find((row) => row.account.id === accountId)!.account
+    const view = await stakingView(accountId, account.currency)
+    if (!view) continue
+    const inHousehold = (minor: number | null | undefined) => (minor === null || minor === undefined ? null : convert(minor, account.currency))
+    staking.push({
+      accountId,
+      accountName: account.name,
+      symbol: view.symbol,
+      staked: view.amounts.staked,
+      stakedValueMinor: inHousehold(view.values?.staked),
+      rewards: view.amounts.rewards,
+      validatorListed: view.validatorListed,
+    })
+  }
+
   return {
     currency,
     netWorthMinor,
@@ -59,6 +82,7 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
     upcoming,
     attention: await needsAttention(who, scope),
     recent,
+    staking,
     accountCount: accounts.length,
   }
 }

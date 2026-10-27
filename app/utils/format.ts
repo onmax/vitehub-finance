@@ -14,6 +14,19 @@ export function assetName(symbol: string, name: string | null) {
 /** A fund's code rather than a ticker: an ISIN, or Morningstar's id for a pension plan without one (MyInvestor). */
 export const isFundCode = (symbol: string) => /^[A-Z]{2}[A-Z0-9]{9}\d$/.test(symbol) || /^(F0|0P)[A-Z0-9]{8}$/.test(symbol)
 
+/**
+ * An exact decimal string of coins ("1234567.89012") with the language's grouping and decimal mark, every digit kept:
+ * a double would round a large stake's last decimals. `maxDecimals` trims (never rounds up) long fractions.
+ */
+export function formatCoins(amount: string, maxDecimals = 8) {
+  const [whole = "0", fraction = ""] = amount.replace(/^-/, "").split(".")
+  const parts = new Intl.NumberFormat(locale(), { minimumFractionDigits: 1 }).formatToParts(1.5)
+  const mark = parts.find((part) => part.type === "decimal")?.value ?? "."
+  const grouped = new Intl.NumberFormat(locale()).format(BigInt(whole))
+  const kept = fraction.slice(0, maxDecimals).replace(/0+$/, "")
+  return `${amount.startsWith("-") ? "−" : ""}${grouped}${kept ? `${mark}${kept}` : ""}`
+}
+
 /** A `YYYY-MM-DD` day as a local date, without the UTC shift `new Date("2026-10-12")` would apply. */
 export function parseDay(day: string) {
   const [year, month, date] = day.split("-").map(Number)

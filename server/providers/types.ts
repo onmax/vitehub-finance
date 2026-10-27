@@ -6,7 +6,7 @@ import { errorCode } from "../utils/error-codes"
 import type { CoinHistory } from "../utils/holdings-history"
 import { BankingError } from "@vitehub-finance/banking"
 import { BrokerError } from "@vitehub-finance/brokers"
-import { CryptoError } from "@vitehub-finance/crypto"
+import { CryptoError, type StakingLedger } from "@vitehub-finance/crypto"
 import type { AccountKind } from "../../shared/api"
 
 /** Sent on every outgoing API call. Workers send none by default, and some APIs refuse requests without one. */
@@ -68,6 +68,8 @@ export interface ProviderAccount {
    * broker's net asset value), for the engine to fill the balance chart's missing days with.
    */
   dailyValues?: Array<{ date: string; value: number; currency: string }>
+  /** Only with `holdings`: a complete, fresh read of the account's staking (a Nimiq wallet). Left out when it failed. */
+  staking?: StakingLedger
   /** Set when this one account failed; the others still sync. */
   error?: string
 }

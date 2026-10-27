@@ -38,6 +38,7 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
             <div class="flex flex-col gap-12">
               <OverviewSpending :overview="overview" />
               <OverviewUpcoming :overview="overview" />
+              <OverviewStaking v-if="overview.staking?.length" :overview="overview" />
             </div>
             <OverviewRecent :overview="overview" class="lg:col-span-2" />
           </div>
