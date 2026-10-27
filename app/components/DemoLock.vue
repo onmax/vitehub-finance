@@ -7,7 +7,7 @@
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{ block?: boolean }>()
 defineSlots<{ default(props: { locked: boolean }): unknown }>()
-const demo = useDemo()
+const demo = useDemoPerson()
 </script>
 
 <template>

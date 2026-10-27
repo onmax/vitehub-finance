@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import type { LegalInfo } from "#shared/api"
 
-// What this instance keeps, where, and who sees it. Public: Enable Banking's app registration links here.
+// What this instance keeps, where, who sees it, and how to delete it. Public: Enable Banking's app registration links
+// here. A public instance (`FINANCE_DEMO=1`) says it's a hosted demo that strangers keep real data in.
 definePageMeta({ layout: "auth", wide: true })
 useHead({ get title() { return translate('privacy') } })
-const demo = useDemo()
+const publicInstance = usePublicInstance()
 const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", default: () => ({ contactEmail: null, ai: false }) })
 </script>
 
 <template>
   <LegalPage :title="$t('privacy')" :updated="$t('october2026')">
-    <p> {{ $t('vitehubFinanceIsOpenSourceSoftwareThatAPersonOr') }} </p>
-    <p v-if="demo"> {{ $t('thisIsThePublicDemoItsHouseholdPeopleBanksAnd') }} </p>
+    <template v-if="publicInstance">
+      <p>{{ $t('privacyPublicIntro') }}</p>
+      <p>{{ $t('privacyPublicDemo') }}</p>
+    </template>
+    <p v-else> {{ $t('vitehubFinanceIsOpenSourceSoftwareThatAPersonOr') }} </p>
 
     <h2>{{ $t('whatItStores') }}</h2>
     <ul>
@@ -27,7 +31,8 @@ const { data: legal } = useFetch<LegalInfo>("/api/legal", { key: "legal", defaul
     <p> {{ $t('inThisInstanceSOwnDatabaseCloudflareD1WhenIt') }} </p>
 
     <h2>{{ $t('bankData') }}</h2>
-    <p> {{ $t('banksConnectThrough') }} <a href="https://enablebanking.com" target="_blank" rel="noopener">Enable Banking</a>{{ $t('aLicensedAccountInformationServiceProviderUnderPsd2YouGive') }} </p>
+    <p v-if="publicInstance">{{ $t('privacyPublicNoBanks') }}</p>
+    <p v-else> {{ $t('banksConnectThrough') }} <a href="https://enablebanking.com" target="_blank" rel="noopener">Enable Banking</a>{{ $t('aLicensedAccountInformationServiceProviderUnderPsd2YouGive') }} </p>
     <p> {{ $t('exchangesConnectWithReadOnlyApiKeysYouCreateInteractive') }} </p>
 
     <template v-if="legal?.ai">

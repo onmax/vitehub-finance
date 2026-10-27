@@ -18,10 +18,10 @@ const error = ref("")
 const validate = (values: typeof state) => (values.address.trim() ? [] : [{ name: "address", message: translate('pasteTheWalletSPublicAddress') }])
 
 // The demo links nothing real (the server refuses too).
-const demo = useDemo()
+const demo = useDemoPerson()
 
 async function submit() {
-  if (demo) return
+  if (demo.value) return
   pending.value = true
   error.value = ""
   try {

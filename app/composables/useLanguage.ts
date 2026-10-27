@@ -4,13 +4,13 @@ import { isLocale, type Locale } from "#shared/locale"
 export function useLanguage() {
   const { $auth } = useNuxtApp()
   const session = useAuthSession()
-  const demo = useDemo()
+  const demo = useDemoPerson()
   const pending = ref(false)
   const notify = useNotify()
   async function select(locale: Locale) {
     pending.value = true
     try {
-      if (!demo && session.user.value) {
+      if (!demo.value && session.user.value) {
         const result = await $auth.updateUser({ language: locale })
         if (result.error) throw result.error
         await session.refresh()
@@ -21,7 +21,7 @@ export function useLanguage() {
     finally { pending.value = false }
   }
   watch(() => session.user.value?.language, async (language) => {
-    if (!demo && isLocale(language)) await loadLocale(language)
+    if (!demo.value && isLocale(language)) await loadLocale(language)
   }, { immediate: true })
   return { locale: activeLocale, select, pending }
 }

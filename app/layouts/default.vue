@@ -13,7 +13,7 @@ const { data: overview } = useOverview()
 const attention = (to: string) => overview.value?.attention.filter((connection) => connectPageOf(connection.provider) === to).length ?? 0
 
 // The public demo's banner sits above the whole shell, which starts below it.
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => {
   const count = attention(page.to)

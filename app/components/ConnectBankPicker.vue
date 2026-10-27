@@ -9,7 +9,7 @@ import { bankMark } from "#shared/banks"
 const props = defineProps<{ error?: string | null }>()
 const emit = defineEmits<{ dismissError: [] }>()
 // The demo links no real banks (the server refuses); it says so instead of listing banks.
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const COUNTRIES = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "GB"]
 const names = computed(() => new Intl.DisplayNames(currentFormatLocale(), { type: "region" }))

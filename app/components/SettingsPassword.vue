@@ -5,7 +5,7 @@ const notify = useNotify()
 const state = reactive({ current: "", next: "", signOutOthers: true })
 const pending = ref(false)
 // The demo's people share one sign-in among every visitor, so its password never changes (the server refuses too).
-const demo = useDemo()
+const demo = useDemoPerson()
 const error = ref("")
 const form = useTemplateRef("form")
 
@@ -17,7 +17,7 @@ function validate(values: typeof state) {
 }
 
 async function submit() {
-  if (demo) return
+  if (demo.value) return
   pending.value = true
   error.value = ""
   try {

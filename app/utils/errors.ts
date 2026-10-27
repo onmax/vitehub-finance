@@ -58,6 +58,7 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
   YOU_CANNOT_LEAVE_THE_ORGANIZATION_AS_THE_ONLY_OWNER: "youReTheOnlyOwnerSoYouCanTLeave",
   PASSKEY_AUTH_FAILED: "thePasskeyDidnTWork", PASSKEY_NOT_FOUND: "thePasskeyDidnTWork", FAILED_TO_VERIFY_AUTHENTICATION: "thePasskeyDidnTWork",
   FAILED_TO_VERIFY_REGISTRATION: "couldnTAddThePasskey",
+  DEMO_LOCKED: "errorNotAvailableInTheDemo", HOUSEHOLD_NOT_EMPTY: "othersShareYourHouseholdLeaveItFirst",
 }
 
 export function providerErrorText(message: string | null | undefined, code?: string | null) {

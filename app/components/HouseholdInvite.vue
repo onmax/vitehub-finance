@@ -37,13 +37,13 @@ watch(
 )
 const sending = ref(false)
 // Nobody joins the demo household (the server refuses invitations there).
-const demo = useDemo()
+const demo = useDemoPerson()
 const error = ref("")
 const lastLink = ref<string | null>(null)
 const linkFor = (invitation: Invitation) => `${origin}/invite/${invitation.id}?email=${encodeURIComponent(invitation.email)}`
 
 async function invite() {
-  if (demo) return
+  if (demo.value) return
   error.value = ""
   lastLink.value = null
   const address = email.value.trim().toLowerCase()

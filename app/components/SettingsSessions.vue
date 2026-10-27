@@ -16,7 +16,7 @@ const confirm = useConfirm()
 const { session: current } = useAuthSession()
 // Every demo visitor signs in as the same people, so listing sessions would show strangers' devices; the demo turns it off
 // (and Better Auth's session endpoints with it).
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const { data: sessions, status, error, refresh } = useAsyncData<Session[]>(
   "settings:sessions",
@@ -25,7 +25,7 @@ const { data: sessions, status, error, refresh } = useAsyncData<Session[]>(
     if (failure) throw Object.assign(new Error(failure.message || translate('couldnTLoadYourSessions')), { code: failure.code })
     return (data ?? []) as Session[]
   },
-  { default: () => [], lazy: true, immediate: !demo },
+  { default: () => [], lazy: true, immediate: !demo.value },
 )
 const isCurrent = (session: Session) => session.token === current.value?.token
 const sorted = computed(() =>

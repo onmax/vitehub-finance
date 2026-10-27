@@ -8,14 +8,14 @@ const confirm = useConfirm()
 const notify = useNotify()
 const pending = ref<string | null>(null)
 // The demo household's people stay put for every visitor (the server refuses both too).
-const demo = useDemo()
+const demo = useDemoPerson()
 
 const isOwner = computed(() => me.value?.role === "owner")
 const owners = computed(() => me.value?.members.filter((person) => person.role === "owner").length ?? 0)
 const canLeave = computed(() => (me.value?.members.length ?? 1) > 1 && !(isOwner.value && owners.value <= 1))
 
 async function remove(person: Person) {
-  if (demo) return
+  if (demo.value) return
   const { confirmed } = await confirm({
     title: translate('remove', { value1: person.name }),
     description: translate('losesAccessToTheHouseholdSSharedAccountsTheirOwn', { value1: person.name }),
@@ -37,7 +37,7 @@ async function remove(person: Person) {
 }
 
 async function leave() {
-  if (demo) return
+  if (demo.value) return
   const { confirmed } = await confirm({
     title: translate('leave', { value1: me.value?.household.name ?? translate('theHousehold') }),
     get description() { return translate('youStopSeeingTheAccountsOthersShareYourOwnAccounts') },
