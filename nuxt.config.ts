@@ -238,6 +238,7 @@ export default defineNuxtConfig({
           "umbrella",
           "palmtree",
           "key-round",
+          "pencil-line",
           "bike",
         ].map((name) => `lucide:${name}`),
         // Our own brand marks (app/assets/icons), named in shared/banks.ts and InstitutionMark.

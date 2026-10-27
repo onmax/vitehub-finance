@@ -5,6 +5,7 @@
 import type { Component } from "vue"
 import ExchangeKey from "~/components/connect/ExchangeKey.vue"
 import IbkrConnect from "~/components/connect/IbkrConnect.vue"
+import MyInvestorFunds from "~/components/connect/MyInvestorFunds.vue"
 import WalletAddress from "~/components/connect/WalletAddress.vue"
 import type { ConnectionSummary, ProviderId, ProviderInfo } from "#shared/api"
 
@@ -12,7 +13,7 @@ export type ConnectKind = "bank" | "exchange" | "wallet" | "investment"
 export type ConnectPage = "/connect/banks" | "/connect/crypto" | "/connect/investments"
 
 /** How a provider lets ViteHub Finance in. */
-export type AuthMethod = "consent" | "api-key" | "address" | "flex-token"
+export type AuthMethod = "consent" | "api-key" | "address" | "flex-token" | "holdings"
 
 /** One screen of a connect dialog. Its component renders a UForm with the flow's `formId` (useConnectFlow). */
 export interface ConnectStep {
@@ -39,7 +40,7 @@ export interface CatalogProvider {
   auth: AuthMethod
   /** How it signs in, in a sentence. */
   readonly authDetail: string
-  /** Its guide in /docs (docs/2.providers/); null for platforms that can't be connected yet. */
+  /** Its guide in /docs (docs/2.providers/), also for platforms that can't be connected yet. */
   docs: string | null
   /** Can't be connected yet: its tile says "Coming soon" and offers a CSV import instead. */
   soon?: true
@@ -62,6 +63,7 @@ export const AUTH_METHODS: Record<AuthMethod, { readonly label: string; icon: st
   "api-key": { get label() { return translate('catalogAuthApiKey') }, icon: "i-lucide-key-round" },
   address: { get label() { return translate('catalogAuthAddress') }, icon: "i-lucide-eye" },
   "flex-token": { get label() { return translate('catalogAuthFlexToken') }, icon: "i-lucide-key-round" },
+  holdings: { get label() { return translate('catalogAuthHoldings') }, icon: "i-lucide-pencil-line" },
 }
 
 // Steps load with the catalog, not on demand: a step that arrives after the dialog opened makes it jump.
@@ -129,7 +131,7 @@ function comingSoon(id: string, name: string, domain: string, description: () =>
     get cannot() { return [] },
     auth: "api-key",
     authDetail: "",
-    docs: null,
+    docs: providerDocs(id),
     soon: true,
     steps: [],
   }
@@ -163,7 +165,20 @@ export const CATALOG: CatalogProvider[] = [
   comingSoon("trade-republic", "Trade Republic", "traderepublic.com", () => translate('catalogTradeRepublicDescription')),
   comingSoon("degiro", "DEGIRO", "degiro.com", () => translate('catalogDegiroDescription')),
   comingSoon("scalable-capital", "Scalable Capital", "scalable.capital", () => translate('catalogScalableDescription')),
-  comingSoon("myinvestor", "MyInvestor", "myinvestor.es", () => translate('catalogMyinvestorDescription')),
+  {
+    id: "myinvestor",
+    provider: "myinvestor",
+    name: "MyInvestor",
+    kind: "investment",
+    domain: "myinvestor.es",
+    get description() { return translate('catalogMyinvestorDescription') },
+    get reads() { return [translate('catalogReadsFundsAtNav'), translate('catalogReadsDaily')] },
+    get cannot() { return [translate('catalogCannotTradeOrMoveMoney'), translate('catalogCannotSeeMyinvestorBuys')] },
+    auth: "holdings",
+    get authDetail() { return translate('catalogHoldingsDetail') },
+    docs: providerDocs("myinvestor"),
+    steps: [step("funds", () => translate('catalogMyinvestorStepTitle'), MyInvestorFunds, () => translate('catalogCheckAndConnect'))],
+  },
 ]
 
 export const catalogFor = (page: ConnectPage) => CATALOG.filter((entry) => CONNECT_KINDS[entry.kind].page === page)

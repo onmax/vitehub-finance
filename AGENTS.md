@@ -75,7 +75,9 @@ A pnpm workspace: the app at the root, and three clients in `packages/` that kno
   `./fake` for tests.
 - `@vitehub-finance/brokers`: brokerage accounts. `ibkr({ token, queryId }).accounts()` runs an Activity Flex Query
   through IBKR's Flex Web Service and returns `BrokerAccount[]` (positions at IBKR's mark prices, cash per currency);
-  `parseXml` is its small XML reader (Workers have no DOMParser), `BrokerError`. `./fake` for tests.
+  `parseXml` is its small XML reader (Workers have no DOMParser), `BrokerError`. `myinvestor({ funds }).accounts()`
+  prices the funds someone says they hold at Morningstar's latest NAV (MyInvestor has no API for them; its current
+  account is a bank), and `morningstar().search()` finds a fund by ISIN or name. `./fake` for tests.
 
 Packages import with `.ts` extensions and only erasable TypeScript, so Node runs their source directly. Their errors
 become the app's `ProviderError` in `server/providers/types.ts` (`asProviderError`); `server/providers/*` are thin
@@ -87,7 +89,7 @@ crypto package, a new broker in the brokers package; the app only needs its id i
 
 Three pages, each listing the household's connections of its kind and then how to add more: `/connect/banks` (Enable
 Banking's country and bank picker, manual accounts, CSV import), `/connect/crypto` (exchanges and wallets), and
-`/connect/investments` (Interactive Brokers, plus platforms that can't be connected yet). `connectPageOf(provider)`
+`/connect/investments` (Interactive Brokers, MyInvestor, plus platforms that can't be connected yet). `connectPageOf(provider)`
 (app/utils/accounts.ts) says which page a connection belongs on; the sidebar badges each page for connections needing
 someone. `/connect` and `/connect/crypto#broker` redirect, keeping query and hash.
 

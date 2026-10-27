@@ -42,6 +42,7 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
   xrpl: { label: "XRP Ledger", kind: "wallet" },
   nimiq: { label: "Nimiq", kind: "wallet" },
   ibkr: { label: "Interactive Brokers", kind: "broker" },
+  myinvestor: { label: "MyInvestor", kind: "broker" },
   manual: { get label() { return translate('manual') }, kind: "manual" },
 }
 

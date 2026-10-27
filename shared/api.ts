@@ -16,6 +16,7 @@ export type ProviderId =
   | "xrpl"
   | "nimiq"
   | "ibkr"
+  | "myinvestor"
   | "manual"
 export type ConnectionStatus = "pending" | "active" | "expired" | "error" | "revoked"
 export type Cadence = "weekly" | "monthly" | "quarterly" | "yearly"
@@ -474,6 +475,15 @@ export interface Bank {
   logo: string | null
   /** Days a consent lasts at this bank. */
   maxConsentDays: number | null
+}
+
+/** A fund, ETF, or pension plan Morningstar prices (GET /api/connect/funds), with its Morningstar id. */
+export interface FundMatch {
+  id: string
+  isin: string | null
+  name: string
+  currency: string
+  category: string | null
 }
 
 export interface ProviderInfo {

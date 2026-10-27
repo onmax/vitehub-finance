@@ -1,7 +1,7 @@
 // The one data model every broker answers in: per account, what it holds and the cash it keeps at the broker's prices,
 // and, over the period the broker reports on, its trades, its cash movements, and what it was worth each day.
 
-export type BrokerId = "ibkr"
+export type BrokerId = "ibkr" | "myinvestor"
 export type BrokerProviderId = BrokerId | "fake"
 
 export interface Position {

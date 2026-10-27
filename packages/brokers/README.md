@@ -8,6 +8,7 @@ Cloudflare Workers, Node, Deno, and Bun.
 | Provider | Needs | Reads |
 | --- | --- | --- |
 | `ibkr` | Flex Web Service token and an Activity Flex Query id | open positions and ending cash per currency, and the period's trades, cash transactions, and net asset value per day |
+| `myinvestor` | the funds held and their units | each fund, ETF, or pension plan at its latest net asset value from Morningstar |
 
 ## Usage
 
@@ -48,6 +49,27 @@ In Client Portal:
    is in the query's info.
 2. Flex Web Service Configuration: turn the service on and generate a token. Leave "Valid For IP Address" empty
    (Workers have no fixed IP) and pick the longest expiry. A new token replaces the old one.
+
+## MyInvestor
+
+MyInvestor has no API for its funds, ETFs, and pension plans, and PSD2 only reaches its current account (connect that as a
+bank). So `myinvestor({ funds })` takes what the person holds, each fund with its units as MyInvestor's app shows them,
+and prices it at Morningstar's latest net asset value. `morningstar().search(term)` finds a fund by ISIN or name and
+answers its Morningstar id (`F000016CB6`), which pension plans without an ISIN also have, and the currency its NAV is
+published in; `morningstar().nav(id, currency)` answers the last NAV in three weeks, since NAVs arrive a day or two late.
+Both use Morningstar's public endpoints at `https://lt.morningstar.com/api/rest.svc`, without a key.
+
+```ts
+import { morningstar, myinvestor } from "@vitehub-finance/brokers"
+
+const [fund] = await morningstar().search("IE00B03HD191")
+// { id: "F0GBR052TN", isin: "IE00B03HD191", name: "Vanguard Glb Stk Idx € Acc", currency: "EUR", category: "RV Global Cap. Grande Blend" }
+const accounts = await myinvestor({ funds: [{ ...fund!, units: 120.5 }] }).accounts()
+// [{ id: "myinvestor", positions: [{ symbol: "IE00B03HD191", quantity: 120.5, markPrice: 64.47, … }], cash: [], … }]
+```
+
+The account has no trades, cash movements, or history: MyInvestor doesn't share them, so its balance chart starts the day
+it's connected.
 
 ## Model
 

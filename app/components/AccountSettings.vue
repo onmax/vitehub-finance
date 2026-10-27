@@ -4,7 +4,8 @@ import { fromMinor, parseAmount, toMinor } from "#shared/money"
 import { currentFormatLocale } from "~/lib/i18n"
 
 // An account's settings: its name and kind, who in the household sees it and what they may do (owner only), whether
-// it counts toward net worth, a manual account's balance (or, when it holds something like silver, each quantity), then
+// it counts toward net worth, a manual account's balance (or, when it holds something like silver, each quantity) or a
+// MyInvestor account's units, then
 // archive and delete. Switches save at once; text fields save with their button.
 const props = defineProps<{ account: AccountSummary; holdings?: Holding[] }>()
 const emit = defineEmits<{ updated: [account: AccountSummary] }>()
@@ -24,6 +25,11 @@ watch(
   },
 )
 const manual = computed(() => !props.account.connectionId)
+// Quantities its owner types: a manual account's holdings, or MyInvestor's funds, which MyInvestor can't report.
+const typed = computed(() => (manual.value || props.account.provider === "myinvestor") && Boolean(props.holdings?.length))
+// A fund goes by its name and counts units; a metal by its code (XAG), which reads the same in every language.
+const fund = computed(() => props.account.provider === "myinvestor")
+const holdingLabel = (entry: Holding) => (fund.value && entry.name ? entry.name : entry.symbol)
 const pending = ref<string | null>(null)
 const errors = reactive<Record<string, string>>({})
 
@@ -162,14 +168,14 @@ const permissionOptions = [
         <UFormField :label="$t('kind')" name="kind" :error="errors.kind || undefined">
           <USelect v-model="kind" :items="ACCOUNT_KIND_ITEMS" class="w-full" :loading="pending === 'kind'" />
         </UFormField>
-        <template v-if="manual && holdings?.length">
+        <template v-if="typed">
           <UFormField
             v-for="entry in holdings"
             :key="entry.symbol"
-            :label="$t('quantityOf', { value1: entry.symbol })"
+            :label="fund ? $t('unitsOf', { value1: holdingLabel(entry) }) : $t('quantityOf', { value1: holdingLabel(entry) })"
             :name="`quantity-${entry.symbol}`"
             :error="errors[`quantity-${entry.symbol}`] || undefined"
-            :help="$t('holdingNow', { value1: `${formatQuantity(entry.quantity)} ${entry.symbol}`, value2: format(entry.valueMinor, account.currency) })"
+            :help="$t('holdingNow', { value1: fund ? $t('unitsCount', { value1: formatQuantity(entry.quantity) }) : `${formatQuantity(entry.quantity)} ${entry.symbol}`, value2: format(entry.valueMinor, account.currency) })"
           >
             <div class="flex gap-2">
               <UInput

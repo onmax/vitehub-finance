@@ -11,6 +11,9 @@ export function assetName(symbol: string, name: string | null) {
   return metal ? metal.charAt(0).toLocaleUpperCase(locale()) + metal.slice(1) : name
 }
 
+/** A fund's code rather than a ticker: an ISIN, or Morningstar's id for a pension plan without one (MyInvestor). */
+export const isFundCode = (symbol: string) => /^[A-Z]{2}[A-Z0-9]{9}\d$/.test(symbol) || /^(F0|0P)[A-Z0-9]{8}$/.test(symbol)
+
 /** A `YYYY-MM-DD` day as a local date, without the UTC shift `new Date("2026-10-12")` would apply. */
 export function parseDay(day: string) {
   const [year, month, date] = day.split("-").map(Number)

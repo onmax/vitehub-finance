@@ -26,13 +26,25 @@ const columns: TableColumn<Holding>[] = [
     <UTable :data="holdings" :columns="columns" :ui="{ th: 'px-3 first:ps-0 last:pe-0', td: 'px-3 first:ps-0 last:pe-0' }">
       <template #symbol-cell="{ row }">
         <div class="flex min-w-0 items-center gap-2.5">
-          <span class="grid size-7 shrink-0 place-items-center rounded-md bg-elevated text-[10px] font-semibold text-toned">
-            {{ row.original.symbol.slice(0, 4) }}
-          </span>
-          <div class="min-w-0">
-            <p class="truncate font-medium text-highlighted">{{ row.original.symbol }}</p>
-            <p v-if="assetName(row.original.symbol, row.original.name)" class="truncate text-xs text-muted">{{ assetName(row.original.symbol, row.original.name) }}</p>
-          </div>
+          <!-- A fund goes by its name, its ISIN under it; a ticker or a coin by its symbol. -->
+          <template v-if="isFundCode(row.original.symbol) && row.original.name">
+            <span class="grid size-7 shrink-0 place-items-center rounded-md bg-elevated text-toned">
+              <UIcon name="i-lucide-chart-pie" class="size-3.5" />
+            </span>
+            <div class="min-w-0">
+              <p class="truncate font-medium text-highlighted">{{ row.original.name }}</p>
+              <p class="truncate font-mono text-xs text-muted">{{ row.original.symbol }}</p>
+            </div>
+          </template>
+          <template v-else>
+            <span class="grid size-7 shrink-0 place-items-center rounded-md bg-elevated text-[10px] font-semibold text-toned">
+              {{ row.original.symbol.slice(0, 4) }}
+            </span>
+            <div class="min-w-0">
+              <p class="truncate font-medium text-highlighted">{{ row.original.symbol }}</p>
+              <p v-if="assetName(row.original.symbol, row.original.name)" class="truncate text-xs text-muted">{{ assetName(row.original.symbol, row.original.name) }}</p>
+            </div>
+          </template>
         </div>
       </template>
       <template #quantity-cell="{ row }">

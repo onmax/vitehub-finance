@@ -23,6 +23,7 @@ const PROVIDERS: Partial<Record<ProviderId, { icon: string; bg: string; fg: stri
   xrpl: { icon: "i-simple-icons-xrp", bg: "#23292f", fg: "#ffffff" },
   nimiq: { icon: "i-finance-nimiq", bg: "#1f2348", fg: "#e9b213" },
   ibkr: { icon: "i-finance-ibkr", bg: "#141414", fg: "#ffffff" },
+  myinvestor: { icon: "i-finance-myinvestor", bg: "#ffffff", fg: "#000000" },
 }
 
 const mark = computed(() => {

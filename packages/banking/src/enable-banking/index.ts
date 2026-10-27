@@ -21,6 +21,20 @@ export interface EnableBankingOptions extends ClientOptions {
 
 const MAX_CONSENT_DAYS = 180
 
+/**
+ * A bank refused the consent's length. Enable Banking's list can promise more than the bank takes (MyInvestor: 180 days
+ * listed, 90 accepted), and the bank's answer names its limit: "ASPSP does not support consent validity more than
+ * 7776000 seconds in the future".
+ */
+class ConsentTooLong extends BankingError {
+  constructor(
+    readonly seconds: number,
+    message: string,
+  ) {
+    super("unavailable", message, "enable_banking")
+  }
+}
+
 const tokens = new Map<string, { jwt: string; exp: number }>()
 
 /** An app JWT, reused while it has more than five minutes left. */
@@ -65,6 +79,8 @@ export function enableBanking(options: EnableBankingOptions): BankingProvider {
     if (response.status === 429 || /RATE_LIMIT/i.test(text))
       throw fail("rate_limited", options.rateLimitMessage ?? "Your bank allows about 4 syncs a day. Try again in a few hours.")
     if (response.status >= 500) throw fail("unavailable", `The bank or Enable Banking isn't answering. Try again later. Details: ${message}`)
+    const limit = /consent validity more than (\d+) seconds/i.exec(text)
+    if (limit) throw new ConsentTooLong(Number(limit[1]), `Enable Banking returned an error. Try again later. Details: ${message}`)
     throw fail("unavailable", `Enable Banking returned an error. Try again later. Details: ${message}`)
   }
 
@@ -79,12 +95,18 @@ export function enableBanking(options: EnableBankingOptions): BankingProvider {
 
     async authorize(input) {
       const days = Math.min(input.validDays || MAX_CONSENT_DAYS, MAX_CONSENT_DAYS)
-      const body = await call<{ url?: string }>("POST", "/auth", {
-        access: { valid_until: new Date(Date.now() + days * 86_400_000).toISOString() },
-        aspsp: input.institution,
-        state: input.state,
-        redirect_url: input.redirectUrl,
-        psu_type: "personal",
+      const start = (ms: number) =>
+        call<{ url?: string }>("POST", "/auth", {
+          access: { valid_until: new Date(Date.now() + ms).toISOString() },
+          aspsp: input.institution,
+          state: input.state,
+          redirect_url: input.redirectUrl,
+          psu_type: "personal",
+        })
+      const body = await start(days * 86_400_000).catch((error) => {
+        // Once, at the bank's own limit less an hour, so the clocks' drift can't push it over.
+        if (error instanceof ConsentTooLong && error.seconds > 7200) return start((error.seconds - 3600) * 1000)
+        throw error
       })
       if (!body.url) throw fail("unavailable", "Enable Banking didn't return a link to your bank. Try again.")
       return body.url

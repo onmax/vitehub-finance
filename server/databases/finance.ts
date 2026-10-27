@@ -50,7 +50,7 @@ export const connection = sqliteTable(
     householdId: householdId(),
     ownerId: ownerId(),
     provider: text("provider", {
-      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "solana", "xrpl", "nimiq", "ibkr", "manual"],
+      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "solana", "xrpl", "nimiq", "ibkr", "myinvestor", "manual"],
     }).notNull(),
     name: text("name").notNull(),
     institution: text("institution"),

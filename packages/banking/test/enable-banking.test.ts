@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { accountKind, appToken, importRsaKey, mapTransactions, normalizePem, pickBalance, signRs256, type EbTransaction } from "../src/enable-banking/index.ts"
+import { accountKind, appToken, enableBanking, importRsaKey, mapTransactions, normalizePem, pickBalance, signRs256, type EbTransaction } from "../src/enable-banking/index.ts"
 import { toBase64 } from "../src/enable-banking/jwt.ts"
 
 const utf8 = (text: string) => new TextEncoder().encode(text)
@@ -106,5 +106,29 @@ describe("RS256 app JWT", () => {
     await expect(importRsaKey("-----BEGIN RSA PRIVATE KEY-----\nMIIB\n-----END RSA PRIVATE KEY-----")).rejects.toThrow(
       /openssl pkcs8 -topk8 -nocrypt/,
     )
+  })
+})
+
+describe("Enable Banking consents", () => {
+  it("asks again at the bank's own limit when it refuses the listed one", async () => {
+    const { pem } = await rsaPem()
+    const asked: string[] = []
+    const stub = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const until = JSON.parse(String(init!.body)).access.valid_until as string
+      asked.push(until)
+      if (asked.length === 1)
+        return Response.json(
+          { code: 422, message: "Wrong request parameters provided", detail: "ASPSP does not support consent validity more than 7776000 seconds in the future" },
+          { status: 422 },
+        )
+      return Response.json({ url: "https://bank.example/consent" })
+    }) as typeof fetch
+    const bank = enableBanking({ appId: "app-123", privateKey: pem, fetch: stub })
+    const input = { institution: { name: "MyInvestor Banco", country: "ES" }, state: "s", redirectUrl: "https://app.example/cb", validDays: 180 }
+    expect(await bank.authorize(input)).toBe("https://bank.example/consent")
+    const days = asked.map((until) => (Date.parse(until) - Date.now()) / 86_400_000)
+    expect(days[0]).toBeCloseTo(180, 1)
+    expect(days[1]).toBeLessThan(90)
+    expect(days[1]).toBeGreaterThan(89.9)
   })
 })
