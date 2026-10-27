@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui"
 
-// The signed-in shell: shadcn's sidebar (household header, main pages, Household and Settings, what's syncing, the
+// The signed-in shell: shadcn's sidebar (household header, main pages, what's syncing, Household and Settings, the
 // account menu) on Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
 // a letter jumps to a page.
 const route = useRoute()
@@ -86,16 +86,18 @@ defineShortcuts(
           :aria-label="$t('connect2')"
           :ui="{ link: 'h-9', linkLabel: 'text-sm', label: 'px-2.5 pt-2 pb-1 text-xs font-medium text-dimmed' }"
         />
-        <UNavigationMenu
-          :collapsed="collapsed"
-          :items="secondary"
-          orientation="vertical"
-          tooltip
-          class="mt-auto"
-          :aria-label="$t('householdAndSettings')"
-          :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
-        />
-        <SidebarSyncStatus :collapsed="collapsed" />
+        <!-- Pinned to the bottom, so the sync line appearing late grows into the empty space instead of moving the links. -->
+        <div class="mt-auto flex flex-col gap-2">
+          <SidebarSyncStatus :collapsed="collapsed" />
+          <UNavigationMenu
+            :collapsed="collapsed"
+            :items="secondary"
+            orientation="vertical"
+            tooltip
+            :aria-label="$t('householdAndSettings')"
+            :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
+          />
+        </div>
       </template>
 
       <template #footer="{ collapsed }">
