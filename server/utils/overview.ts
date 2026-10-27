@@ -146,6 +146,7 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
       consentExpiresAt: row.consentExpiresAt?.toISOString() ?? null,
       lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
       lastError: row.lastError,
+      lastErrorCode: row.lastErrorCode,
       accountCount: counts.get(row.id) ?? 0,
       canManage: row.ownerId === who.userId,
     }))

@@ -495,3 +495,43 @@ export interface MoneyFlow {
   /** Moved between the household's accounts, left out of both sides. */
   movedMinor: number
 }
+
+/** How soon an alert wants someone: `critical` stops something working (a bank stopped syncing), `info` is worth a look. */
+export type AlertSeverity = "critical" | "warning" | "info"
+
+interface AlertBase {
+  /** What the alert is about; dismissing remembers it, and a change (a new month, a higher price) makes a new key. */
+  key: string
+  severity: AlertSeverity
+  /** The day it's about, or when it started, for sorting: newest first. */
+  date: string
+  dismissedAt: string | null
+}
+
+/** Something someone should look at: a bank to reconnect, a budget running out, a low balance ahead. */
+export type Alert = AlertBase &
+  (
+    | { kind: "connection"; connection: ConnectionSummary }
+    | { kind: "budget"; budgetId: string; categoryId: string; spentMinor: number; amountMinor: number; currency: string; month: string }
+    | { kind: "low_balance"; balanceMinor: number; thresholdMinor: number; currency: string }
+    | { kind: "large_transaction"; transactionId: string; description: string; amountMinor: number; currency: string; account: string }
+    | { kind: "price_increase"; recurringIds: string[]; name: string; previousMinor: number; latestMinor: number; currency: string; percent: number }
+  )
+
+export type AlertKind = Alert["kind"]
+
+export interface AlertsResponse {
+  alerts: Alert[]
+  /** Open alerts, and the most urgent one's severity, for the sidebar's badge. */
+  open: number
+  severity: AlertSeverity | null
+}
+
+/** What someone is alerted about. Amounts are in the household's currency, which `currency` names. */
+export interface AlertSettings {
+  currency: string
+  budget: { enabled: boolean; percent: number }
+  lowBalance: { enabled: boolean; thresholdMinor: number }
+  largeTransaction: { enabled: boolean; thresholdMinor: number }
+  priceIncrease: { enabled: boolean }
+}

@@ -31,7 +31,6 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
         <OverviewSkeleton v-else-if="!overview && status !== 'error'" />
         <OverviewEmpty v-else-if="empty" />
         <template v-else-if="overview">
-          <OverviewAttention v-if="overview.attention.length" :connections="overview.attention" />
           <div class="grid gap-x-10 gap-y-12 lg:grid-cols-3">
             <OverviewNetWorth :overview="overview" class="lg:col-span-2" />
             <OverviewMonth :overview="overview" />

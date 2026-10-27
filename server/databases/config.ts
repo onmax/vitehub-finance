@@ -13,6 +13,8 @@ import {
   verification,
 } from "./auth"
 import {
+  alertDismissal,
+  alertPreference,
   balanceSnapshot,
   budget,
   category,
@@ -67,6 +69,8 @@ export default defineDatabase({
     connection,
     financialAccount,
     goal,
+    alertPreference,
+    alertDismissal,
     holding,
     householdSettings,
     recurring,

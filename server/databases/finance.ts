@@ -1,7 +1,7 @@
 // ViteHub Finance's own tables. Money is stored in minor units (cents) as integers, in the row's own currency.
 // Every row carries its household; every account carries its owner, and only the owner sees a private account.
 import { sql } from "drizzle-orm"
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
 import { organization, user } from "./auth"
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`
@@ -302,4 +302,26 @@ export const syncRun = sqliteTable(
     finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
   },
   (table) => [index("sync_run_connection_idx").on(table.connectionId, table.startedAt)],
+)
+
+/** What each person wants to be alerted about, and at which thresholds (server/utils/alerts.ts `AlertSettings`). */
+export const alertPreference = sqliteTable("alert_preference", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  settings: text("settings", { mode: "json" }).notNull(),
+  updatedAt: updatedAt(),
+})
+
+/** Alerts someone dismissed. The key names what the alert is about, so a new one about the same thing still shows. */
+export const alertDismissal = sqliteTable(
+  "alert_dismissal",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    dismissedAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.key] })],
 )

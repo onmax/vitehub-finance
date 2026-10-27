@@ -11,18 +11,22 @@ const isActive = (to: string) => (to === "/" ? route.path === "/" : route.path =
 // makes.
 const { data: overview } = useOverview()
 const attention = (to: string) => overview.value?.attention.filter((connection) => connectPageOf(connection.provider) === to).length ?? 0
+// Open alerts badge their page, in the color of the most urgent one.
+const { data: alerts } = useAlerts()
+const ALERT_COLOR = { critical: "error", warning: "warning", info: "neutral" } as const
 
 // The public demo's banner sits above the whole shell, which starts below it.
 const demo = useDemoPerson()
 
 const toItem = (page: { label: string; icon: string; to: string }): NavigationMenuItem => {
-  const count = attention(page.to)
+  const count = page.to === "/alerts" ? (alerts.value?.open ?? 0) : attention(page.to)
+  const color = page.to === "/alerts" ? ALERT_COLOR[alerts.value?.severity ?? "info"] : "warning"
   return {
     label: page.label,
     icon: page.icon,
     to: page.to,
     active: isActive(page.to),
-    badge: count ? { label: String(count), color: "warning", variant: "subtle" } : undefined,
+    badge: count ? { label: String(count), color, variant: "subtle" } : undefined,
     onSelect: () => (open.value = false),
   }
 }

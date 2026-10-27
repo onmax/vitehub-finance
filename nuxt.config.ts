@@ -188,6 +188,14 @@ export default defineNuxtConfig({
           "x",
           // Navigation (app/utils/navigation.ts).
           "layout-dashboard",
+          "bell",
+          "badge-percent",
+          "trending-down",
+          "chart-pie",
+          "sliders-horizontal",
+          "archive",
+          "undo-2",
+          "coins",
           "settings",
           "wallet-cards",
           // Account kinds (shared/accounts.ts).

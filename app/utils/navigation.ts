@@ -6,6 +6,7 @@ export function safeRedirect(value: unknown) {
 /** The app's pages, for the sidebar and the ⌘K palette. `key` is the `g` shortcut's second key. */
 export const MAIN_PAGES = [
   { get label() { return translate('overview') }, icon: "i-lucide-layout-dashboard", to: "/", key: "o" },
+  { get label() { return translate('alerts') }, icon: "i-lucide-bell", to: "/alerts", key: "n" },
   { get label() { return translate('transactions') }, icon: "i-lucide-arrow-left-right", to: "/transactions", key: "t" },
   { get label() { return translate('accounts') }, icon: "i-lucide-wallet-cards", to: "/accounts", key: "a" },
   { get label() { return translate('recurring') }, icon: "i-lucide-repeat", to: "/recurring", key: "r" },
