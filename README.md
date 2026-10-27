@@ -68,9 +68,10 @@ npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json
 npx wrangler deploy --config .output/server/wrangler.json
 ```
 
-The Worker gets D1, KV, a daily Cron Trigger, a Queue that syncs one connection per message, a rate limit for browser
-error reports, and Workers Logs. Every request, sync, and browser error is one structured log event; AGENTS.md ("Logs and
-errors") says how to read them.
+The Worker gets D1, KV, a daily Cron Trigger, a Queue that syncs one connection per message, rate limits (browser error
+reports, demo sessions, AI categories, manual syncs), and Workers Logs. Every request, sync, and browser error is one
+structured log event; AGENTS.md ("Logs and errors") says how to read them. `FINANCE_DOMAIN` is read at build time: it
+routes the domain to the Worker, and links in emails always point at `https://<FINANCE_DOMAIN>`.
 
 ### Any Node host (VPS, Docker, a home server)
 
@@ -83,6 +84,10 @@ docker run -p 3000:3000 -v finance-data:/app/.data \
 Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server/index.mjs` with
 `server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process. Logs are
 JSON lines on stdout.
+
+Set `FINANCE_ORIGIN=https://finance.example.com` (or build with `FINANCE_DOMAIN`) so reminder emails link to your
+public address. Without either, they use the first address someone connected a bank, exchange, or wallet from, and no
+later request changes it; to change it, set `FINANCE_ORIGIN`.
 
 ## AI categories
 
@@ -142,11 +147,11 @@ npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json
 npx wrangler deploy --config .output/server/wrangler.json
 ```
 
-- **Locked** for the demo's people, on the server and in the UI: every sign-in or account change, inviting or removing
-  people, leaving or renaming the household, connecting, syncing, or removing banks, exchanges, and wallets, and
-  deleting accounts. They answer "Not available in the demo."
-- **Open**: categorizing, notes, hiding transactions, rules, budgets, goals, recurring confirm/dismiss, manual accounts,
-  CSV import, API keys, and MCP.
+- **Read-only** for the demo's people, on the server and in the UI, since every visitor shares them: no edits,
+  imports, rules, budgets, goals, API keys, agent consents, sign-in or account changes, people, household, or
+  connection changes. They answer "Not available in the demo."; the UI disables create and save buttons and says so.
+- **Open**: looking at everything as Lucía or Pablo, switching between them, and choosing language, currency, and
+  appearance (kept in the browser).
 - **Nightly reset**: the daily Schedule (05:00 UTC) wipes the demo household and seeds it again as of that day
   (server/demo). The first visit seeds it too when it's missing.
 

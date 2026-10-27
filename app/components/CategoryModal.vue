@@ -101,7 +101,9 @@ const iconLabel = (icon: string) => translate(`icon_${icon.replace("i-lucide-", 
     <template #footer>
       <div class="flex w-full justify-end gap-2">
         <UButton color="neutral" variant="outline" :label="$t('cancel')" @click="emit('close')" />
-        <UButton type="submit" form="category-form" :label="category ? $t('save') : $t('addCategory')" :loading="pending" />
+        <DemoLock v-slot="{ locked }">
+          <UButton type="submit" form="category-form" :label="category ? $t('save') : $t('addCategory')" :loading="pending" :disabled="locked" />
+        </DemoLock>
       </div>
     </template>
   </UModal>

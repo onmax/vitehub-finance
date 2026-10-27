@@ -1,8 +1,9 @@
-import { and, eq, inArray, min } from "drizzle-orm"
+import { and, eq, inArray, isNull, lt, min, or } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { balanceSnapshot, connection, financialAccount, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { dedupeKeys, isDate, ruleActions, type Rule } from "../providers/dedupe"
+import { sessionDigest, type EnableBankingCredentials } from "../providers/enable-banking"
 import { providerFor, WALLET_PROVIDERS } from "../providers/index"
 import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
@@ -224,8 +225,31 @@ export async function syncConnection(connectionId: string, trigger: SyncTrigger)
     log.set({ sync: { retry: true } })
     throw error
   } finally {
+    // The request that started a manual sync reserved the connection (`reserveSync`); the next one may start now.
+    if (trigger === "manual") await releaseSync(connectionId).catch(() => undefined)
     log.emit()
   }
+}
+
+// Long enough for a wallet's whole history; a sync that dies without releasing holds the connection this long.
+const RESERVATION = 10 * 60 * 1000
+
+/**
+ * Holds a connection for one manual sync. A single conditional UPDATE, so of two requests at once only one gets it,
+ * on D1 and SQLite alike. False while another manual sync holds it.
+ */
+export async function reserveSync(connectionId: string) {
+  const now = new Date()
+  const held = await db
+    .update(connection)
+    .set({ syncReservedUntil: new Date(now.getTime() + RESERVATION) })
+    .where(and(eq(connection.id, connectionId), or(isNull(connection.syncReservedUntil), lt(connection.syncReservedUntil, now))))
+    .returning({ id: connection.id })
+  return held.length > 0
+}
+
+export async function releaseSync(connectionId: string) {
+  await db.update(connection).set({ syncReservedUntil: null }).where(eq(connection.id, connectionId))
 }
 
 async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestLogger) {
@@ -245,6 +269,8 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
       throw new ProviderError("expired", "Couldn't read this connection's saved credentials. Reconnect it. If you run this server, check whether FINANCE_ENCRYPTION_KEY changed.")
     })
     if (!credentials) throw new ProviderError("expired", "This connection has no credentials. Reconnect it.")
+    // Bank links made before the digest kept the raw session id in `externalId`; replace it with the digest.
+    if (row.provider === "enable_banking") await replaceRawSessionId(row, credentials as EnableBankingCredentials)
     const initial = trigger === "link" || !row.lastSyncedAt
     // A wallet reads its whole history (up to the crypto package's page caps) until it has it; then the last few days.
     const wallet = (WALLET_PROVIDERS as readonly string[]).includes(row.provider)
@@ -357,6 +383,12 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     if (retryable(error)) throw error
     return { added: 0, error: message }
   }
+}
+
+async function replaceRawSessionId(row: typeof connection.$inferSelect, credentials: EnableBankingCredentials) {
+  if (!credentials.sessionId) return
+  const digest = await sessionDigest(credentials.sessionId)
+  if (row.externalId !== digest) await db.update(connection).set({ externalId: digest }).where(eq(connection.id, row.id))
 }
 
 /**

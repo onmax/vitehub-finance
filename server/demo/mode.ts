@@ -9,17 +9,19 @@ import { isDemoEmail } from "../../shared/demo"
  */
 export const isDemo = () => Boolean(useRuntimeConfig().public.demo)
 
-/** Lucía or Pablo, on the demo build: the only people there, locked out of account, bank, and household management. */
+/** Lucía or Pablo, on the demo build: the only people there, and read-only. */
 export const isDemoPerson = (email: string | null | undefined) => isDemo() && isDemoEmail(email)
 
 export const DEMO_LOCKED = "Not available in the demo."
 
 /**
- * Account, bank, and household management answer 403 for the demo's people, whoever drives them (the browser, an agent,
- * an API key); data edits stay open. Call it after `requireMember`.
+ * A 403 for the demo's people, whoever drives them (the browser, an agent, an API key). server/middleware/demo-read-only.ts
+ * calls it for every write under `/api/`; MCP tools that write, and routes that manage banks, connections, people, or
+ * the household, call it too, after `requireMember`. The top-level `code` is Better Auth's error shape, so its client
+ * reads it like its own (app/utils/errors.ts maps `DEMO_LOCKED`).
  */
 export function refuseDemoPerson(who: { email: string }) {
-  if (isDemoPerson(who.email)) throw new HTTPError({ status: 403, statusText: DEMO_LOCKED, message: DEMO_LOCKED })
+  if (isDemoPerson(who.email)) throw new HTTPError({ status: 403, statusText: DEMO_LOCKED, message: DEMO_LOCKED, body: { code: "DEMO_LOCKED" } })
 }
 
 /**

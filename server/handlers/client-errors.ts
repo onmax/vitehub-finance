@@ -4,19 +4,23 @@ import { defineHandler, noContent } from "h3"
 import * as v from "valibot"
 import { requireRateLimit } from "vite-hub/rate-limit"
 import { identify } from "../utils/identity"
+import { scrubLogText } from "../utils/log-text"
 
-const Text = (max: number) => v.optional(v.pipe(v.string(), v.transform((text) => text.slice(0, max))))
+// The browser already caps and cleans what it sends; the server doesn't count on it. Every field loses URL queries
+// and fragments, emails, IBANs, and long digit runs, then gets cut to size.
+const Scrubbed = (max: number) => v.pipe(v.string(), v.transform((text) => scrubLogText(text, max)))
+const Text = (max: number) => v.optional(Scrubbed(max))
 
-/** What app/utils/client-errors.ts sends through evlog's client transport: one error, already capped in the browser. */
+/** What app/utils/client-errors.ts sends through evlog's client transport: one error. */
 const Body = v.object({
   level: v.picklist(["error", "warn"]),
   clientError: v.object({
     kind: v.picklist(["vue", "unhandled", "toast", "load"]),
     // The page's path, never its query (a search, a filter, an OAuth code).
-    path: v.pipe(v.string(), v.startsWith("/"), v.transform((path) => path.split(/[?#]/)[0]!.slice(0, 300))),
+    path: v.pipe(v.string(), v.startsWith("/"), v.transform((path) => scrubLogText(path.split(/[?#]/)[0]!, 300))),
     name: Text(120),
-    message: v.pipe(v.string(), v.transform((text) => text.slice(0, 1000))),
-    stack: Text(4000),
+    message: Scrubbed(500),
+    stack: Text(2000),
     // Vue's lifecycle hint ("setup function", "render function"), a toast's title, the failed request.
     info: Text(200),
     title: Text(200),

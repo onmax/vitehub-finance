@@ -85,6 +85,13 @@
       "when": 1793129980179,
       "tag": "0011_staking",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793132154241,
+      "tag": "0012_sync_reservation",
+      "breakpoints": true
     }
   ]
 }

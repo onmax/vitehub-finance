@@ -396,13 +396,14 @@ function back() {
         <div class="flex gap-2">
           <UButton color="neutral" variant="outline" :label="$t('cancel')" :disabled="importing" @click="emit('close')" />
           <UButton v-if="step === 'map'" :label="$t('preview')" trailing-icon="i-lucide-arrow-right" :disabled="!ready" @click="step = 'preview'" />
-          <UButton
-            v-else-if="step === 'preview'"
-            :label="$t('importRows', { value1: formatCount(good.length) })"
-            :loading="importing"
-            :disabled="good.length === 0"
-            @click="runImport"
-          />
+          <DemoLock v-else-if="step === 'preview'" v-slot="{ locked }">
+            <UButton
+              :label="$t('importRows', { value1: formatCount(good.length) })"
+              :loading="importing"
+              :disabled="locked || good.length === 0"
+              @click="runImport"
+            />
+          </DemoLock>
         </div>
       </div>
     </template>

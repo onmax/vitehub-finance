@@ -139,6 +139,18 @@ get categories from rules, or the transfer category when the provider marks them
 category, so they leave spending; `detectRecurring` (server/utils/recurring.ts) runs on the touched accounts. The daily
 Schedule (`server/schedules/daily.ts`) dispatches every active connection through `#dispatch`.
 
+A manual sync (`POST /api/connections/:id/sync`) first takes `reserveSync`, one conditional UPDATE of
+`connection.syncReservedUntil`, so of two at once only one runs; the sync releases it when it ends (or it lapses after ten
+minutes). Rate limits use ViteHub's `checkRateLimit` with literal options at the call site (ViteHub reads them at build
+time; Cloudflare windows are `10s` or `1m`), then `refuseOverLimit` (server/utils/rate-limit.ts) for a translated 429.
+
+A bank connection's `externalId` is `sessionDigest(sessionId)` (`sha256:<hex>`, server/providers/enable-banking.ts);
+the session id itself lives only in the sealed credentials. The sync replaces a raw id it still finds.
+
+The reconnect reminders' links use `knownOrigin()` (server/utils/connections.ts, rules in server/utils/origin.ts):
+`https://<FINANCE_DOMAIN>` when the build has one, else `FINANCE_ORIGIN`, else the first origin anyone connected from.
+A request's Host header never replaces one the server has.
+
 An account with holdings (crypto, investment) is worth its holdings in the household's currency (`valueHoldings` in
 server/utils/prices.ts): coins at CoinGecko's price, and a holding with the provider's own `quote` (IBKR's mark price) at
 that price, converted with fx.ts. A wallet's `coinTransactions` become transactions valued at the coin's price on their
@@ -187,10 +199,17 @@ The locks are per person. The demo's people are Lucía and Pablo, emails under `
 rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()` (the build), `isDemoPerson(email)`,
 `refuseDemoPerson(who)` (403 "Not available in the demo."), and `DEMO_LOCKED_PATHS`, the Better Auth endpoints that
 server/auth.ts's `hooks.before` refuses for a demo person's session or for a request naming a demo email (sign-up, magic
-links, password resets, invitations). Routes that manage banks, connections, people, the household, or delete accounts
-call `refuseDemoPerson(await requireMember(event))` first; data edits never do. In the UI, `useDemoPerson()` and
-`<DemoLock>` disable the same controls; `useDemoBuild()` is the build. AI categories never run for the demo's
-household. The daily Schedule reseeds it and skips the demo's fake connections.
+links, password resets, invitations).
+
+Every visitor shares those two people, so the demo is read-only for them: server/middleware/demo-read-only.ts answers
+every write under `/api/` (any method but GET, HEAD, OPTIONS) with `refuseDemoPerson`, whoever drives them, except
+`demoPersonMay`'s list in server/demo/read-only.ts: `/api/demo/session` (entering, switching), `/api/auth/sign-out`,
+and `/api/_evlog/ingest`. Their language, display currency, and appearance stay in the browser. `/mcp` isn't under
+`/api/`, so an MCP tool that writes calls `refuseDemoPerson(who)` itself; routes that manage banks, connections,
+people, or the household also still call it first. In the UI, `useDemoPerson()` and `<DemoLock>` disable create and
+save buttons with the reason, and `useNotify().error` shows any other refused edit as a calm "Not available in the
+demo." (`isDemoLocked` in app/utils/errors.ts), without reporting it as an error. `useDemoBuild()` is the build. AI
+categories never run for the demo's household. The daily Schedule reseeds it and skips the demo's fake connections.
 
 Erasing goes through server/utils/erase.ts: `erasePeople` deletes people and only the households whose every member is
 being erased (`splitHouseholds` in erase-core.ts, tested in test/privacy). The nightly reset erases the demo domain's
@@ -217,7 +236,10 @@ text in an event.
 Browser errors reach the server through evlog's client transport (`evlog/client`, app/plugins/errors.client.ts) at
 `POST /api/_evlog/ingest` (server/handlers/client-errors.ts, 20 per minute per IP): Vue errors, unhandled rejections,
 `useNotify().error` toasts, and `<PageError>`. Call `reportClientError(kind, error)` (app/utils/client-errors.ts) for
-anything else people see fail.
+anything else people see fail. The server cleans every field again (`scrubLogText` in server/utils/log-text.ts: URL
+queries and fragments out, emails, IBANs, and runs of six or more digits masked, lengths capped) and never trusts the
+browser's own cleaning. evlog's `redact` drops the query of any URL in any event (`URL_QUERY`). Cloudflare's invocation
+logs are off: they keep each request's full URL, and a bank's redirect carries an authorization code.
 
 Production on Cloudflare (Workers Logs keeps 3 days on Free, 7 on Paid). The service is the Worker's name
 (`CLOUDFLARE_WORKER_NAME`, default `vitehub-finance`):
@@ -262,7 +284,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `GET /api/me` | | `MeResponse` |
 | `GET /api/legal` (public) | | `LegalInfo` — the contact email and the AI categories route (the caller's household's, else the server's), for /privacy |
 | `POST /api/_evlog/ingest` (public, same origin, rate limited) | evlog client event with `clientError` | 204 — logs a browser error |
-| `POST /api/demo/session` (public, public builds only; 404 otherwise) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
+| `POST /api/demo/session` (public, public builds only; 404 otherwise; 10 a minute per IP) | `{ as: "lucia" \| "pablo" }` | `{ ok }` and a session cookie |
 | `PATCH /api/household` (owner) | `{ name?, currency?, shareNewAccounts?, aiCategorize? }` | `MeResponse["household"]` |
 | `GET /api/household/ai` (owner) | | `AiGatewaySettings` — the household's route for AI categories; secrets only as `{ last4 }` |
 | `PUT /api/household/ai` (owner) | `AiGatewayInput`: `{ gateway: "server" }`, `{ gateway: "typesafe" \| "vercel", apiKey? }`, or `{ gateway: "cloudflare", apiKey?, accountId, gatewayId, token?, slug? }` (empty secret keeps the stored one, `token: null` removes it) | `AiGatewaySettings` |
@@ -277,7 +299,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `DELETE /api/accounts/:id` | | `{ ok }` (owner) |
 | `POST /api/accounts/:id/import` | `{ rows: [{ date, amount, description, counterparty? }] }` (amount in major units) | `{ added, skipped }` |
 | `GET /api/transactions` | `scope, q, account, category (id or "none"), from, to, direction (in/out), cursor, limit` | `TransactionPage` |
-| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, visible, uncategorized rows; 404 without a key (household or server), 409 when the household turned it off |
+| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, visible, uncategorized rows; 404 without a key (household or server), 409 when the household turned it off, 429 past 10 a minute per person |
 | `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, hidden?, applyToSimilar? }` (`hidden`: the account's owner, in the browser) | `Transaction` |
 | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` | `{ name, kind, icon, color }` | `Category[]` / `Category` |
 | `GET/POST /api/rules`, `DELETE /api/rules/:id` | `{ match, categoryId }` | `{ id, match, categoryId }[]` |
@@ -295,7 +317,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `POST /api/connect/wallet` | `{ chain: bitcoin/ethereum/solana/xrpl/nimiq, address, name? }` | `ConnectionSummary` |
 | `POST /api/connect/broker` | `{ provider: ibkr, token, queryId, name? }` (a Flex token and an Activity Flex Query id) | `ConnectionSummary` |
 | `GET /api/connections` | | `ConnectionSummary[]` |
-| `POST /api/connections/:id/sync` | | `{ ok }` |
+| `POST /api/connections/:id/sync` | | `{ ok }` — 429 past 3 a minute per connection (a bank: one per 6 hours), 409 while another manual sync of it runs |
 | `POST /api/connections/:id/reconnect` | | `{ url }` (bank connections) |
 | `DELETE /api/connections/:id` | `keepAccounts=1` | `{ ok }` |
 | `GET /api/connections/:id/runs` | | `SyncRun[]` |

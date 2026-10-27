@@ -34,6 +34,15 @@ export function errorText(error: unknown, fallback = translate('somethingWentWro
   return found ?? fallback
 }
 
+/**
+ * Whether the server refused it because the demo is read-only for its people (server/demo/read-only.ts): an /api
+ * route's `data.code`, or Better Auth's `code`.
+ */
+export function isDemoLocked(error: unknown) {
+  const value = error as { code?: string; data?: { code?: string; data?: { code?: string } } } | null
+  return [value?.data?.data?.code, value?.data?.code, value?.code].some((code) => code === "errorNotAvailableInTheDemo" || code === "DEMO_LOCKED")
+}
+
 /** The HTTP status of a fetch error, if it has one. */
 export function errorStatus(error: unknown): number | undefined {
   const value = error as { status?: number; statusCode?: number; response?: { status?: number } } | null

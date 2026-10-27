@@ -17,6 +17,15 @@ export interface EnableBankingCredentials {
   details?: Record<string, BankAccount>
 }
 
+/**
+ * What `connection.externalId` holds for a bank: a one-way digest of the session id, never the id itself, which only
+ * lives sealed in the credentials. It still tells two links of the same session apart from different ones.
+ */
+export async function sessionDigest(sessionId: string) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sessionId)))
+  return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`
+}
+
 export const bankClient = (config: EnableBankingConfig) =>
   enableBankingClient({
     ...config,
