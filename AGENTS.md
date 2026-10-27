@@ -131,13 +131,13 @@ answers, thresholds, the HTTP call), tested in test/ai with a stubbed fetch. It 
 the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has counts, tokens, and cost.
 
-## Public instance and demo
+## Demo
 
-`FINANCE_DEMO=1` (scripts/deployment.ts) builds a public instance (finance.vitehub.dev) and sets
-`runtimeConfig.public.demo`. Anyone signs up (`FINANCE_ALLOWED_EMAILS` is ignored) and uses the real product with their
-own data; the login and sign-up pages also offer the demo household. No bank connections there (`banksUnavailable()` in
-server/utils/connections.ts answers `public`): Enable Banking's restricted apps only reach their owner's accounts. On
-Cloudflare it has no Queue (`#dispatch` is inline), so it can share an account with a private instance's queue.
+`FINANCE_DEMO=1` (scripts/deployment.ts) builds the demo (finance.vitehub.dev) and sets `runtimeConfig.public.demo`.
+It has no accounts: sign-up is refused for everyone but the seed (server/auth.ts `user.create.before`), and a signed-out
+visitor enters the demo household wherever they arrive (app/middleware/auth.global.ts, `enterDemo()` in
+app/composables/useDemo.ts). So it never holds anyone's real data; keep it that way. No bank connections there
+(`banksUnavailable()` in server/utils/connections.ts answers `public`), and on Cloudflare no Queue.
 
 The locks are per person. The demo's people are Lucía and Pablo, emails under `DEMO_DOMAIN` (shared/demo.ts,
 `isDemoEmail`). server/demo: `scenario.ts` is the pure, date-seeded household (tested in test/demo), `seed.ts` wipes and
@@ -146,8 +146,8 @@ rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()` (the build), `i
 server/auth.ts's `hooks.before` refuses for a demo person's session or for a request naming a demo email (sign-up, magic
 links, password resets, invitations). Routes that manage banks, connections, people, the household, or delete accounts
 call `refuseDemoPerson(await requireMember(event))` first; data edits never do. In the UI, `useDemoPerson()` and
-`<DemoLock>` disable the same controls; `usePublicInstance()` is the build. AI categories never run for the demo's
-household. The daily Schedule reseeds first, then runs as usual for everyone else, skipping the demo's connections.
+`<DemoLock>` disable the same controls; `useDemoBuild()` is the build. AI categories never run for the demo's
+household. The daily Schedule reseeds it and skips the demo's fake connections.
 
 Erasing goes through server/utils/erase.ts: `erasePeople` deletes people and only the households whose every member is
 being erased (`splitHouseholds` in erase-core.ts, tested in test/privacy). The nightly reset erases the demo domain's

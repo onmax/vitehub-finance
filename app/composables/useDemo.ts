@@ -4,17 +4,23 @@ import { isDemoEmail } from "#shared/demo"
 export const demoLocked = () => translate("notAvailableInTheDemo")
 
 /**
- * Whether this is a public instance (`FINANCE_DEMO=1`): anyone can sign up, and the login page also opens the demo
- * household.
+ * Whether this is the demo build (`FINANCE_DEMO=1`, finance.vitehub.dev): a made-up household anyone can open, with no
+ * sign-up, so it never holds anyone's real data.
  */
-export const usePublicInstance = () => Boolean(useRuntimeConfig().public.demo)
+export const useDemoBuild = () => Boolean(useRuntimeConfig().public.demo)
 
 /**
- * Whether the signed-in person is one of the demo's, Lucía or Pablo. Only they are locked (`<DemoLock>`, and the
- * server's `refuseDemoPerson`); everyone else on a public instance gets the whole product.
+ * Whether the signed-in person is one of the demo's, Lucía or Pablo. They're locked out of account, bank, and household
+ * management (`<DemoLock>`, and the server's `refuseDemoPerson`); data edits stay open.
  */
 export function useDemoPerson() {
   const { user } = useAuthSession()
-  const instance = usePublicInstance()
-  return computed(() => instance && isDemoEmail(user.value?.email))
+  const demo = useDemoBuild()
+  return computed(() => demo && isDemoEmail(user.value?.email))
+}
+
+/** Signs a visitor in as one of the demo's people (the server seeds the household when it's missing). */
+export async function enterDemo(as: "lucia" | "pablo" = "lucia") {
+  await $fetch("/api/demo/session", { method: "POST", body: { as } })
+  await useAuthSession().refresh()
 }

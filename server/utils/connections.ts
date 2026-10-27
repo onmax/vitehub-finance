@@ -49,7 +49,7 @@ export function bankConfig(): EnableBankingConfig | null {
 }
 
 /**
- * A public instance (`FINANCE_DEMO=1`) links no banks for anyone: Enable Banking's restricted apps only reach the accounts
+ * The demo (`FINANCE_DEMO=1`) links no banks for anyone: Enable Banking's restricted apps only reach the accounts
  * their owner linked in its control panel, so a stranger's bank would fail at the consent screen.
  */
 export const PUBLIC_NO_BANKS = "Bank connections aren't available on this public server. Import a CSV, or connect a wallet, an exchange, or Interactive Brokers."

@@ -19,7 +19,7 @@ export const aiConfigured = () => Boolean(apiKey())
 /** AI categories need a TypeSafe key and are never for the demo's people, whose data is fictional anyway. */
 export const aiAvailable = (who: { email: string }) => aiConfigured() && !isDemoPerson(who.email)
 
-/** Whether the demo's people are in this household (a public instance only). */
+/** Whether the demo's people are in this household (the demo build only). */
 async function demoHousehold(householdId: string) {
   if (!isDemo()) return false
   const people = await db

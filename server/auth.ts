@@ -23,7 +23,7 @@ import { createHousehold } from "./utils/household"
  *
  * Email and password, a passkey, or (when the build has Email) a magic link; two-factor is optional per person.
  * `FINANCE_ALLOWED_EMAILS` keeps a private ViteHub Finance private: only those emails, plus anyone a household invited, can sign up.
- * A public instance (`FINANCE_DEMO=1`) ignores it: anyone can sign up, with or without email.
+ * The demo (`FINANCE_DEMO=1`) takes no sign-ups at all: only its seed creates its two made-up people.
  *
  * A household is a Better Auth organization. Signing up makes your own, unless an invitation is waiting for your
  * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in.
@@ -78,9 +78,10 @@ export default defineAuth(({ env, requestOrigin }) => ({
       create: {
         before: async (person, context) => {
           if (isDemoEmail(person.email)) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
-          // A public instance is open to anyone; a private one to its allowed emails and the people a household invited.
-          if (!isDemo() && !isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email)))
-            return false
+          // The demo has only its two made-up people, so it never holds anyone's real data. A private instance is open to
+          // its allowed emails and the people a household invited.
+          if (isDemo()) return false
+          if (!isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email))) return false
           const language = "language" in person && isLocale(person.language) ? person.language : requestLanguage(context?.headers)
           return { data: { ...person, language } }
         },

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Sign in: email and password, a passkey (also offered by the browser's autofill on the email field), a magic link when
-// this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code. A
-// public instance also opens the demo household, and points newcomers at sign-up, which is open to anyone there.
+// this ViteHub Finance can send email, and the two-factor step (?step=2fa) with an authenticator or a backup code. The
+// demo build never shows it: visitors go straight into the demo household (middleware/auth.global.ts).
 definePageMeta({ layout: "auth" })
 useHead({ get title() { return translate('signIn') } })
 
@@ -9,14 +9,13 @@ const route = useRoute()
 const { $auth } = useNuxtApp()
 const session = useAuthSession()
 const emailWorks = useRuntimeConfig().public.email
-const publicInstance = usePublicInstance()
 const step = computed(() => (route.query.step === "2fa" ? "2fa" : "sign-in"))
 const redirect = computed(() => safeRedirect(route.query.redirect))
 
 const state = reactive({ email: "", password: "", code: "", trust: true })
 const backup = ref(false)
 const reveal = ref(false)
-const pending = ref<"demo" | "password" | "passkey" | "magic" | "code" | null>(null)
+const pending = ref<"password" | "passkey" | "magic" | "code" | null>(null)
 const error = ref("")
 const magicSent = ref(false)
 const lastUsed = ref<string | null>(null)
@@ -150,8 +149,6 @@ watch(step, () => {
       <h1 class="text-lg font-semibold text-highlighted">{{ $t('signInToVitehubFinance') }}</h1>
       <p class="mt-1 text-sm text-muted">{{ $t('yourHouseholdSMoneyInOnePlace') }}</p>
 
-      <DemoEntry v-if="publicInstance" class="mt-6" :disabled="pending !== null" @pending="(value) => (pending = value ? 'demo' : null)" />
-
       <UForm :state="state" class="mt-6 flex flex-col gap-4" @submit="signIn">
         <UFormField :label="$t('email')" name="email" :hint="lastUsed === 'email' ? $t('lastUsed') : undefined">
           <UInput
@@ -161,7 +158,7 @@ watch(step, () => {
             :placeholder="$t('youExampleCom')"
             class="w-full"
             required
-            :autofocus="!publicInstance"
+            autofocus
           />
         </UFormField>
         <UFormField :label="$t('password')" name="password">

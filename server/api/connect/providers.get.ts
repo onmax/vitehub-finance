@@ -5,7 +5,7 @@ import { banksUnavailable } from "../../utils/connections"
 import { requireMember } from "../../utils/identity"
 
 /**
- * What can be connected here. Banks need Enable Banking's app id and key, and no public instance offers them;
+ * What can be connected here. Banks need Enable Banking's app id and key, and the demo offers none;
  * exchanges, wallets, and brokers need nothing.
  */
 export default defineHandler(async (event): Promise<ProviderInfo[]> => {

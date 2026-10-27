@@ -5,7 +5,7 @@ import type { Bank, ProviderInfo } from "#shared/api"
 import { bankMark } from "#shared/banks"
 
 // Banks over PSD2 through Enable Banking: pick a country, find the bank, and go to its consent page. On a ViteHub Finance without
-// Enable Banking's credentials it explains the setup instead; on a public instance, which links no banks, it says so and
+// Enable Banking's credentials it explains the setup instead; on the demo, which links no banks, it says so and
 // points at what works there.
 const props = defineProps<{ error?: string | null }>()
 const emit = defineEmits<{ dismissError: [] }>()

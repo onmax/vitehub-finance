@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Create an account. A new account gets its own household; people invited to one join it from /invite/<id> instead.
-// A public instance takes anyone, and offers the demo household beside it.
+// The demo build has no sign-up: visitors go straight into the demo household (middleware/auth.global.ts).
 definePageMeta({ layout: "auth" })
 useHead({ get title() { return translate('createAnAccount') } })
 
@@ -13,7 +13,6 @@ const reveal = ref(false)
 const pending = ref(false)
 const error = ref("")
 const refused = ref(false)
-const publicInstance = usePublicInstance()
 
 function validate(values: typeof state) {
   const errors: Array<{ name: string; message: string }> = []
@@ -94,14 +93,10 @@ async function submit() {
         :description="$t('onlyAllowedEmailsCanSignUpHereIfSomeoneInvited')"
       />
       <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
-      <p v-if="publicInstance" class="text-xs text-pretty text-muted">
-        {{ $t('thisIsAPublicInstanceOfOpenSourceSoftware') }} <ULink to="/terms" class="font-medium text-highlighted underline underline-offset-4">{{ $t('terms') }}</ULink> · <ULink to="/privacy" class="font-medium text-highlighted underline underline-offset-4">{{ $t('privacy') }}</ULink>
-      </p>
       <UButton type="submit" block :label="$t('createAccount')" :loading="pending" />
     </UForm>
-    <DemoEntry v-if="publicInstance" class="mt-6" :disabled="pending" />
   </div>
   <p class="mt-6 text-center text-sm text-muted"> {{ $t('alreadyHaveAnAccount') }} <ULink :to="{ path: '/login', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="font-medium text-highlighted underline-offset-4 hover:underline">{{ $t('signIn') }}</ULink>
   </p>
-  <LegalLinks v-if="!publicInstance" class="mt-4" />
+  <LegalLinks class="mt-4" />
 </template>

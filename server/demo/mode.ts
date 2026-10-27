@@ -4,12 +4,12 @@ import { useRuntimeConfig } from "nitro/runtime-config"
 import { isDemoEmail } from "../../shared/demo"
 
 /**
- * A public instance (`FINANCE_DEMO=1`, scripts/deployment.ts): anyone can sign up and use it with their own data, and the
- * login page also lets visitors into a fictional household (server/demo/seed.ts), reset every night.
+ * The demo build (`FINANCE_DEMO=1`, scripts/deployment.ts): visitors enter a made-up household (server/demo/seed.ts),
+ * reset every night, without an account. Nobody signs up, so it never holds anyone's real data.
  */
 export const isDemo = () => Boolean(useRuntimeConfig().public.demo)
 
-/** Lucía or Pablo, on a public instance. Only they are locked; everyone else gets the whole product. */
+/** Lucía or Pablo, on the demo build: the only people there, locked out of account, bank, and household management. */
 export const isDemoPerson = (email: string | null | undefined) => isDemo() && isDemoEmail(email)
 
 export const DEMO_LOCKED = "Not available in the demo."

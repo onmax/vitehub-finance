@@ -19,9 +19,8 @@ const DAY = 24 * 60 * 60 * 1000
  * Every morning: expire consents that ran out, remind owners a week before one does, drop bank links nobody finished,
  * then sync every active (or failed) connection one at a time. One failure never stops the rest.
  *
- * A public instance (`FINANCE_DEMO=1`) first rebuilds the demo household as of today, wiping whatever visitors changed
- * as Lucía and Pablo, then does the rest for everyone else. The demo's connections are fakes: they never sync, expire,
- * or get reminders.
+ * The demo (`FINANCE_DEMO=1`) first rebuilds the demo household as of today, wiping whatever visitors changed
+ * as Lucía and Pablo. The demo's connections are fakes: they never sync, expire, or get reminders.
  *
  * The run is one wide event (`action: "schedule"`) with what it did and each step that failed; every sync it starts
  * inline (Node) logs its own.

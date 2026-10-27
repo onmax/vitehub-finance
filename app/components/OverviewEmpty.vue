@@ -3,7 +3,7 @@ import type { ProviderInfo } from "#shared/api"
 import { AccountCreateModal } from "#components"
 
 // A new household: a still, dimmed chart behind one call to action (Midday's empty dashboard), with the other ways in
-// underneath. Where this server links no banks (a public instance, or no Enable Banking keys), the call is crypto and
+// underneath. Where this server links no banks (the demo, or no Enable Banking keys), the call is crypto and
 // investments instead.
 const overlay = useOverlay()
 const addAccount = overlay.create(AccountCreateModal, { destroyOnClose: true })
