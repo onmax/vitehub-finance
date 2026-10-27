@@ -7,10 +7,10 @@ import { addDays } from "./dates"
 import { rates } from "./fx"
 
 /**
- * What one unit of a coin or a fiat currency is worth, for crypto holdings and wallet transactions. Coins come from CoinGecko's simple price API
- * (cached in KV for 10 minutes), and from Kraken's public ticker for the ones CoinGecko can't answer; fiat balances on
- * exchanges (EUR, USD…) from the ECB rates in fx.ts. A symbol nobody knows prices at null and counts as 0: a sync never
- * fails over a price.
+ * What one unit of a coin, a precious metal, or a fiat currency is worth, for holdings and wallet transactions. Coins come from CoinGecko's simple price API
+ * (cached in KV for 10 minutes), and from Kraken's public ticker for the ones CoinGecko can't answer; metals (a troy
+ * ounce) from gold-api.com's spot price in USD; fiat balances on exchanges (EUR, USD…) and the metals' USD from the
+ * ECB rates in fx.ts. A symbol nobody knows prices at null and counts as 0: a sync never fails over a price.
  */
 const TTL = 10 * 60 * 1000
 
@@ -22,6 +22,9 @@ const FIAT = new Set(
 )
 
 export const isFiat = (symbol: string) => FIAT.has(symbol.toUpperCase())
+
+/** Precious metals by their ISO 4217 code, priced per troy ounce. CoinGecko's symbol lookup would answer some token. */
+export const METALS: Record<string, string> = { XAU: "Gold", XAG: "Silver", XPT: "Platinum", XPD: "Palladium" }
 
 interface Cached {
   at: number
@@ -80,6 +83,28 @@ async function kraken(symbols: string[], currency: string): Promise<Record<strin
   return result
 }
 
+/** Spot prices per troy ounce from gold-api.com (no key), in USD, converted to `currency` at the ECB rate. */
+async function metals(symbols: string[], currency: string): Promise<Record<string, number | null> | null> {
+  const usd = currency === "USD" ? 1 : (await rates(currency)).USD
+  if (!usd) return null
+  const result: Record<string, number | null> = {}
+  for (const symbol of symbols) {
+    try {
+      const response = await fetch(`https://api.gold-api.com/price/${symbol}`, {
+        headers: { accept: "application/json", "user-agent": USER_AGENT },
+        signal: AbortSignal.timeout(6000),
+      })
+      if (!response.ok) throw new Error(`gold-api.com answered ${response.status}`)
+      const body = (await response.json()) as { price?: number }
+      result[symbol] = typeof body.price === "number" && body.price > 0 ? body.price / usd : null
+    } catch (error) {
+      log.warn({ action: "metal-prices", provider: "gold-api", error: String(error) })
+      return null
+    }
+  }
+  return result
+}
+
 /** Prices per unit in major units of `currency` (12345.67), keyed by the symbols as given. */
 export async function quotes(symbols: string[], currency: string): Promise<Record<string, number | null>> {
   const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()))]
@@ -103,13 +128,17 @@ export async function quotes(symbols: string[], currency: string): Promise<Recor
       missing.push(symbol)
     }
   }
+  const missingMetals = missing.filter((symbol) => symbol in METALS)
+  const missingCoins = missing.filter((symbol) => !(symbol in METALS))
   if (missing.length) {
-    const fresh = await coingecko(missing, currency)
-    const unanswered = missing.filter((symbol) => fresh?.[symbol] == null)
+    const metal = missingMetals.length ? await metals(missingMetals, currency) : {}
+    const fresh = missingCoins.length ? await coingecko(missingCoins, currency) : {}
+    const unanswered = missingCoins.filter((symbol) => fresh?.[symbol] == null)
     const fallback = unanswered.length ? await kraken(unanswered, currency) : {}
     for (const symbol of missing) {
-      const price = fresh?.[symbol] ?? fallback[symbol] ?? null
-      if (price !== null || fresh) {
+      const answered = symbol in METALS ? metal : fresh
+      const price = answered?.[symbol] ?? fallback[symbol] ?? null
+      if (price !== null || answered) {
         out[symbol] = price
         await kv.set(`price:${currency}:${symbol}`, { at: Date.now(), price } satisfies Cached)
       } else {
@@ -158,8 +187,18 @@ export async function valueHoldings<H extends { symbol: string; quantity: number
   })
 }
 
-// CoinGecko's ids for the coins wallets hold. Its keyless API serves a year of daily prices per coin.
-const COINGECKO_IDS: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", XRP: "ripple", NIM: "nimiq-2" }
+// CoinGecko's ids for the coins wallets hold. Its keyless API serves a year of daily prices per coin. Gold and silver
+// take tokens backed by one troy ounce each (PAX Gold, Kinesis Silver), which follow spot within about 1%:
+// gold-api.com's history needs a key.
+const COINGECKO_IDS: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  XRP: "ripple",
+  NIM: "nimiq-2",
+  XAU: "pax-gold",
+  XAG: "kinesis-silver",
+}
 const HISTORY_TTL = 12 * 60 * 60 * 1000
 
 /** A coin's daily price in `currency` over the last year, by `YYYY-MM-DD` (the price at 00:00 UTC), cached in KV. */

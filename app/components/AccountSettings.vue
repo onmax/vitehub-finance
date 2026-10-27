@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { AccountKind, AccountSummary } from "#shared/api"
+import type { AccountKind, AccountSummary, Holding } from "#shared/api"
 import { fromMinor, parseAmount, toMinor } from "#shared/money"
+import { currentFormatLocale } from "~/lib/i18n"
 
 // An account's settings: its name and kind, who in the household sees it and what they may do (owner only), whether
-// it counts toward net worth, a manual account's balance, then archive and delete. Switches save at once; text
-// fields save with their button.
-const props = defineProps<{ account: AccountSummary }>()
+// it counts toward net worth, a manual account's balance (or, when it holds something like silver, each quantity), then
+// archive and delete. Switches save at once; text fields save with their button.
+const props = defineProps<{ account: AccountSummary; holdings?: Holding[] }>()
 const emit = defineEmits<{ updated: [account: AccountSummary] }>()
 const shared = useShared()
 const notify = useNotify()
@@ -61,6 +62,24 @@ async function saveBalance() {
     return
   }
   if (await save("balance", { balanceMinor: toMinor(amount, props.account.currency) }, translate('balanceUpdated'))) balance.value = ""
+}
+
+// A quantity rarely runs into thousands and often has three decimals (1.234 oz): its one separator is the decimal point.
+const quantities = reactive<Record<string, string>>({})
+const parseQuantity = (input: string) => {
+  const value = Number(input.trim().replace(/\s/g, "").replace(",", "."))
+  return input.trim() && Number.isFinite(value) && value >= 0 ? value : null
+}
+const formatQuantity = (value: number) => new Intl.NumberFormat(currentFormatLocale(), { maximumSignificantDigits: 8 }).format(value)
+
+async function saveQuantity(symbol: string) {
+  const quantity = parseQuantity(quantities[symbol] ?? "")
+  if (quantity === null) {
+    errors[`quantity-${symbol}`] = translate('enterAQuantityLike125')
+    return
+  }
+  const holdings = (props.holdings ?? []).map((entry) => ({ symbol: entry.symbol, quantity: entry.symbol === symbol ? quantity : entry.quantity }))
+  if (await save(`quantity-${symbol}`, { holdings }, translate('quantityUpdated'))) quantities[symbol] = ""
 }
 
 const visibility = computed({
@@ -143,8 +162,37 @@ const permissionOptions = [
         <UFormField :label="$t('kind')" name="kind" :error="errors.kind || undefined">
           <USelect v-model="kind" :items="ACCOUNT_KIND_ITEMS" class="w-full" :loading="pending === 'kind'" />
         </UFormField>
+        <template v-if="manual && holdings?.length">
+          <UFormField
+            v-for="entry in holdings"
+            :key="entry.symbol"
+            :label="$t('quantityOf', { value1: entry.symbol })"
+            :name="`quantity-${entry.symbol}`"
+            :error="errors[`quantity-${entry.symbol}`] || undefined"
+            :help="$t('holdingNow', { value1: `${formatQuantity(entry.quantity)} ${entry.symbol}`, value2: format(entry.valueMinor, account.currency) })"
+          >
+            <div class="flex gap-2">
+              <UInput
+                v-model="quantities[entry.symbol]"
+                inputmode="decimal"
+                :placeholder="formatQuantity(entry.quantity)"
+                class="min-w-0 flex-1"
+                :ui="{ base: 'tabular-nums' }"
+                @keydown.enter="saveQuantity(entry.symbol)"
+              />
+              <UButton
+                color="neutral"
+                variant="outline"
+                :label="$t('update')"
+                :loading="pending === `quantity-${entry.symbol}`"
+                :disabled="!quantities[entry.symbol]?.trim()"
+                @click="saveQuantity(entry.symbol)"
+              />
+            </div>
+          </UFormField>
+        </template>
         <UFormField
-          v-if="manual"
+          v-else-if="manual"
           :label="$t('updateBalance')"
           name="balance"
           :error="errors.balance || undefined"

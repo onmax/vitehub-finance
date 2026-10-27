@@ -31,7 +31,7 @@ const columns: TableColumn<Holding>[] = [
           </span>
           <div class="min-w-0">
             <p class="truncate font-medium text-highlighted">{{ row.original.symbol }}</p>
-            <p v-if="row.original.name" class="truncate text-xs text-muted">{{ row.original.name }}</p>
+            <p v-if="assetName(row.original.symbol, row.original.name)" class="truncate text-xs text-muted">{{ assetName(row.original.symbol, row.original.name) }}</p>
           </div>
         </div>
       </template>

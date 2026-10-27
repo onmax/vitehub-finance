@@ -1,7 +1,7 @@
 import { and, eq, inArray, min } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
-import { balanceSnapshot, connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
+import { balanceSnapshot, connection, financialAccount, householdSettings, rule, syncRun, transaction } from "../databases/config"
 import { dedupeKeys, isDate, ruleActions, type Rule } from "../providers/dedupe"
 import { providerFor, WALLET_PROVIDERS } from "../providers/index"
 import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
@@ -9,6 +9,7 @@ import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import type { CoinHistory } from "./holdings-history"
 import { bankConfig, errorMessage } from "./connections"
 import { seal, unseal } from "./crypto"
+import { replaceHoldings } from "./holdings"
 import { valueCoinTransactions, valueHoldings } from "./prices"
 import { detectRecurring } from "./recurring"
 import { backfillDailyValues, backfillHoldingSnapshots, backfillSnapshots, recordSnapshot } from "./snapshots"
@@ -21,9 +22,8 @@ type AccountRow = typeof financialAccount.$inferSelect
 const DAY = 24 * 60 * 60 * 1000
 const dayString = (time: number) => new Date(time).toISOString().slice(0, 10)
 
-// D1 binds at most 100 parameters per statement: a transaction row binds up to 22 (one per column), a holding 7.
+// D1 binds at most 100 parameters per statement: a transaction row binds up to 22 (one per column).
 const TRANSACTION_CHUNK = 4
-const HOLDING_CHUNK = 12
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
   return db.select({ match: rule.match, categoryId: rule.categoryId, exclude: rule.exclude }).from(rule).where(eq(rule.householdId, householdId))
@@ -76,23 +76,6 @@ export async function insertTransactions(
     added += inserted.length
   }
   return added
-}
-
-type PricedHolding = ProviderHolding & { priceMinor: number | null; valueMinor: number }
-
-async function replaceHoldings(accountId: string, holdings: PricedHolding[]) {
-  await db.delete(holding).where(eq(holding.accountId, accountId))
-  const values = holdings.map((entry) => ({
-    id: crypto.randomUUID(),
-    accountId,
-    symbol: entry.symbol.toUpperCase(),
-    name: entry.name ?? undefined,
-    quantity: entry.quantity,
-    priceMinor: entry.priceMinor ?? undefined,
-    valueMinor: entry.valueMinor,
-  }))
-  for (let index = 0; index < values.length; index += HOLDING_CHUNK)
-    await db.insert(holding).values(values.slice(index, index + HOLDING_CHUNK)).onConflictDoNothing()
 }
 
 /** What a holdings account held now and how it changed, in the currency its value is kept in. */

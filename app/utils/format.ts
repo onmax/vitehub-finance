@@ -5,6 +5,12 @@ import { translate } from "./translate"
 
 import { activeLocale, currentFormatLocale as locale } from "../lib/i18n"
 
+/** An asset's name for people: a metal's in the active language (XAG is "Plata" in Spanish), otherwise the provider's. */
+export function assetName(symbol: string, name: string | null) {
+  const metal = /^X(AU|AG|PT|PD)$/.test(symbol) ? new Intl.DisplayNames([locale()], { type: "currency", fallback: "none" }).of(symbol) : undefined
+  return metal ? metal.charAt(0).toLocaleUpperCase(locale()) + metal.slice(1) : name
+}
+
 /** A `YYYY-MM-DD` day as a local date, without the UTC shift `new Date("2026-10-12")` would apply. */
 export function parseDay(day: string) {
   const [year, month, date] = day.split("-").map(Number)

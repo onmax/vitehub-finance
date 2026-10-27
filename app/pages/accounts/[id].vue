@@ -209,7 +209,7 @@ function updated(next: AccountSummary) {
               <AccountTransactions :account-id="account.id" :currency="account.currency" />
             </div>
 
-            <AccountSettings :account="account" @updated="updated" />
+            <AccountSettings :account="account" :holdings="account.holdings" @updated="updated" />
           </div>
         </template>
       </div>

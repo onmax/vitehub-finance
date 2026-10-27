@@ -9,7 +9,8 @@ import { financialAccount } from "../../databases/config"
 import { requireAccount } from "../../utils/access"
 import { accountSummary } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"
-import { Kind, Minor, Name, param, Permission, readInput, Visibility } from "../../utils/input"
+import { setManualHoldings } from "../../utils/holdings"
+import { Holdings, Kind, Minor, Name, param, Permission, readInput, Visibility } from "../../utils/input"
 import { recordSnapshot } from "../../utils/snapshots"
 
 const Body = v.object({
@@ -20,11 +21,13 @@ const Body = v.object({
   includeInNetWorth: v.optional(v.boolean()),
   archived: v.optional(v.boolean()),
   balanceMinor: v.optional(Minor),
+  holdings: v.optional(Holdings),
 })
 
 /**
  * Who sees an account and what others may do with it is the owner's call (`canManage`); renaming, archiving, and the
- * rest need `canEdit`. A synced account's balance comes from its provider, so only manual ones take `balanceMinor`.
+ * rest need `canEdit`. A synced account's balance comes from its provider, so only manual ones take `balanceMinor`, or
+ * `holdings` (what it holds, which then sets the balance at today's prices).
  */
 export default defineHandler(async (event): Promise<AccountSummary> => {
   const who = await requireMember(event)
@@ -32,11 +35,14 @@ export default defineHandler(async (event): Promise<AccountSummary> => {
   const body = await readInput(event, Body)
   if ((body.visibility !== undefined || body.householdPermission !== undefined) && !canManage(account, who.userId))
     throw new HTTPError({ status: 403, statusText: "Only the account's owner can change who sees it." })
-  const { visibility, householdPermission, balanceMinor, ...rest } = body
-  if ((Object.keys(rest).length || balanceMinor !== undefined) && !canEdit(account, who.userId))
+  const { visibility, householdPermission, balanceMinor, holdings, ...rest } = body
+  const values = balanceMinor !== undefined || holdings !== undefined
+  if ((Object.keys(rest).length || values) && !canEdit(account, who.userId))
     throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
-  if (balanceMinor !== undefined && account.connectionId)
+  if (values && account.connectionId)
     throw new HTTPError({ status: 400, statusText: "You can't edit a connected account's balance. It updates when the connection syncs." })
+  if (balanceMinor !== undefined && holdings !== undefined)
+    throw new HTTPError({ status: 400, statusText: "Send holdings or a balance, not both: holdings set the balance." })
   const set = {
     ...rest,
     ...(visibility ? { visibility } : {}),
@@ -45,5 +51,6 @@ export default defineHandler(async (event): Promise<AccountSummary> => {
   }
   if (Object.keys(set).length) await db.update(financialAccount).set(set).where(eq(financialAccount.id, account.id))
   if (balanceMinor !== undefined) await recordSnapshot(account.id, balanceMinor)
+  if (holdings !== undefined) await setManualHoldings(account, holdings)
   return (await accountSummary(who, account.id))!
 })

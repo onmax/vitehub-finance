@@ -6,7 +6,8 @@ import type { AccountSummary } from "#shared/api"
 import { financialAccount, householdSettings } from "../../databases/config"
 import { accountSummary } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"
-import { Currency, Kind, Minor, Name, Permission, readInput, Visibility } from "../../utils/input"
+import { setManualHoldings } from "../../utils/holdings"
+import { Currency, Holdings, Kind, Minor, Name, Permission, readInput, Visibility } from "../../utils/input"
 import { recordSnapshot } from "../../utils/snapshots"
 
 const Body = v.object({
@@ -14,12 +15,16 @@ const Body = v.object({
   kind: Kind,
   currency: Currency,
   balanceMinor: v.optional(Minor, 0),
+  holdings: v.optional(Holdings),
   visibility: v.optional(Visibility),
   householdPermission: v.optional(Permission),
   institution: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.maxLength(120)))),
 })
 
-/** A manual account (cash, a loan, a bank without PSD2): no connection; its balance is typed in or imported. */
+/**
+ * A manual account (cash, a loan, a bank without PSD2): no connection; its balance is typed in or imported. With
+ * `holdings` (silver bought in Revolut's app) it's worth what they're worth, priced every morning.
+ */
 export default defineHandler(async (event): Promise<AccountSummary> => {
   const who = await requireMember(event)
   const body = await readInput(event, Body)
@@ -43,6 +48,7 @@ export default defineHandler(async (event): Promise<AccountSummary> => {
     householdPermission: body.householdPermission ?? "edit",
     balanceUpdatedAt: new Date(),
   })
-  await recordSnapshot(id, body.balanceMinor)
+  if (body.holdings) await setManualHoldings({ id, currency: body.currency }, body.holdings)
+  else await recordSnapshot(id, body.balanceMinor)
   return (await accountSummary(who, id))!
 })

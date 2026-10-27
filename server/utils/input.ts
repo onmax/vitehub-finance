@@ -47,3 +47,13 @@ export const Color = v.picklist(CATEGORY_COLORS)
 export const Kind = v.picklist(ACCOUNT_KINDS)
 export const Visibility = v.picklist(["private", "household"])
 export const Permission = v.picklist(["view", "edit"])
+/** What a manual account holds: every asset with its quantity (a troy ounce for metals). It replaces the list. */
+export const Holdings = v.pipe(
+  v.array(
+    v.object({
+      symbol: v.pipe(v.string(), v.trim(), v.toUpperCase(), v.regex(/^[A-Z0-9]{1,12}$/, "Use a ticker like XAG.")),
+      quantity: v.pipe(v.number(), v.finite(), v.minValue(0)),
+    }),
+  ),
+  v.maxLength(50),
+)

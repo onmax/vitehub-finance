@@ -10,6 +10,7 @@ import { connection, householdSettings, user as users } from "../databases/confi
 import { isDemo } from "../demo/mode"
 import { seedDemo } from "../demo/seed"
 import { errorMessage, knownOrigin } from "../utils/connections"
+import { revalueManualHoldings } from "../utils/holdings"
 import { detectTransfers } from "../utils/transfers"
 import { DEMO_DOMAIN } from "../../shared/demo"
 
@@ -17,7 +18,8 @@ const DAY = 24 * 60 * 60 * 1000
 
 /**
  * Every morning: expire consents that ran out, remind owners a week before one does, drop bank links nobody finished,
- * then sync every active (or failed) connection one at a time. One failure never stops the rest.
+ * price what manual accounts hold, then sync every active (or failed) connection one at a time. One failure never
+ * stops the rest.
  *
  * The demo (`FINANCE_DEMO=1`) first rebuilds the demo household as of today, wiping whatever visitors changed
  * as Lucía and Pablo. The demo's connections are fakes: they never sync, expire, or get reminders.
@@ -104,6 +106,9 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
   // Pairs moves between accounts again, so rows imported or recategorized since yesterday can still pair.
   for (const { householdId } of await db.select({ householdId: householdSettings.householdId }).from(householdSettings))
     await step(() => detectTransfers(householdId))
+
+  // Silver and other assets typed into a manual account follow today's price.
+  await step(() => revalueManualHoldings())
 
   // Connections in `error` retry too: most errors (a bank or an API down) pass. Expired ones wait for their owner.
   const active = await db.select({ id: connection.id }).from(connection).where(and(inArray(connection.status, ["active", "error"]), real))
