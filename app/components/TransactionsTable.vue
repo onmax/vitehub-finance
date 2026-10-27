@@ -90,12 +90,13 @@ function onKeydown(event: KeyboardEvent) {
         </div>
       </template>
       <template #category-cell="{ row }">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center">
           <CategorySelect
             v-if="row.original.canEdit"
             :model-value="row.original.categoryId"
             variant="ghost"
             size="sm"
+            :suggested="row.original.categorySource === 'ai'"
             class="min-w-0 flex-1"
             :aria-label="$t('categoryFor', { value1: title(row.original) })"
             @update:model-value="(value) => emit('category', row.original, value ?? null)"
@@ -103,10 +104,8 @@ function onKeydown(event: KeyboardEvent) {
           <span v-else class="flex min-w-0 flex-1 items-center gap-2 text-sm" :title="$t('thisAccountIsSharedViewOnly')">
             <CategoryIcon :icon="find(row.original.categoryId)?.icon" :color="find(row.original.categoryId)?.color" size="sm" />
             <span class="truncate">{{ find(row.original.categoryId)?.name ?? $t('uncategorized') }}</span>
+            <UIcon v-if="row.original.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 shrink-0 text-dimmed" :aria-label="$t('suggestedByAi')" />
           </span>
-          <UTooltip v-if="row.original.categorySource === 'ai'" :text="$t('suggestedByAiChangeItIfItSWrong')">
-            <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0 text-dimmed" :aria-label="$t('suggestedByAi')" />
-          </UTooltip>
         </div>
       </template>
       <template #account-cell="{ row }">
