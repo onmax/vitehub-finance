@@ -13,6 +13,7 @@ import { listBanks, startAuth, type EnableBankingConfig } from "../providers/ena
 import { ProviderError, providerMessageCode } from "../providers/types"
 import { bankLogos } from "./bank-logos"
 import type { Member } from "./identity"
+import { isDemo } from "../demo/mode"
 
 export type ConnectionRow = typeof connection.$inferSelect
 
@@ -47,7 +48,20 @@ export function bankConfig(): EnableBankingConfig | null {
   return appId && privateKey ? { appId, privateKey } : null
 }
 
+/**
+ * A public instance (`FINANCE_DEMO=1`) links no banks for anyone: Enable Banking's restricted apps only reach the accounts
+ * their owner linked in its control panel, so a stranger's bank would fail at the consent screen.
+ */
+export const PUBLIC_NO_BANKS = "Bank connections aren't available on this public server. Import a CSV, or connect a wallet, an exchange, or Interactive Brokers."
+
+/** Why this ViteHub Finance can't link banks, or null when it can. */
+export function banksUnavailable(): "public" | "setup" | null {
+  if (isDemo()) return "public"
+  return bankConfig() ? null : "setup"
+}
+
 export function requireBankConfig() {
+  if (isDemo()) throw fail(503, PUBLIC_NO_BANKS)
   const config = bankConfig()
   if (!config)
     throw fail(

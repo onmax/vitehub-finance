@@ -72,6 +72,7 @@ const CODES: Record<string, string> = {
   "Sync failed. Try again later.": "errorSyncFailedTryAgainLater",
   "To leave, use Leave household.": "errorToLeaveUseLeaveHousehold",
   "Not available in the demo.": "errorNotAvailableInTheDemo",
+  "Bank connections aren't available on this public server. Import a CSV, or connect a wallet, an exchange, or Interactive Brokers.": "errorBanksArenTAvailableOnThisPublicServer",
   "The bank sent back an incomplete link. Connect the bank again.": "errorTheBankSentBackAnIncompleteLinkConnectThe",
   "This bank link expired. Connect the bank again.": "errorThisBankLinkExpiredConnectTheBankAgain",
   "This connection no longer exists. Connect the bank again.": "errorThisConnectionNoLongerExistsConnectTheBankAgain",

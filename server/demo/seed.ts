@@ -5,8 +5,6 @@ import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
 import { useServerEnv } from "#vitehub/env/server"
 import {
-  account as authAccount,
-  apikey,
   balanceSnapshot,
   budget,
   category,
@@ -15,25 +13,21 @@ import {
   goal,
   holding,
   householdSettings,
-  invitation,
   member,
-  oauthAccessToken,
-  oauthConsent,
-  oauthRefreshToken,
   organization,
-  passkey,
   recurring,
   rule,
   session,
   syncRun,
   transaction,
-  twoFactor,
   user as users,
 } from "../databases/config"
 import type auth from "../auth"
 import { detectRecurring } from "../utils/recurring"
 import { backfillSnapshots, recordSnapshot } from "../utils/snapshots"
 import { detectTransfers } from "../utils/transfers"
+import { erasePeople } from "../utils/erase"
+import { DEMO_DOMAIN } from "../../shared/demo"
 import { todayIso } from "../utils/dates"
 import { seedingEmails } from "./mode"
 import { DEMO_HOUSEHOLD, DEMO_PEOPLE, demoScenario, type DemoPerson } from "./scenario"
@@ -42,7 +36,6 @@ type FinanceAuth = Auth<ReturnType<typeof auth.options>>
 
 const DAY = 24 * 60 * 60 * 1000
 const SEEDED = "demo:seeded"
-const DEMO_DOMAIN = "@demo.vitehub.dev"
 const id = () => crypto.randomUUID()
 
 /** Runs `insert` over `rows` in chunks that stay under D1's 100 bound parameters a statement. */
@@ -79,58 +72,16 @@ export async function ensureDemo() {
   await seedDemo()
 }
 
-/** Every row the demo people and their households own. SQLite may run without foreign keys, so children go first. */
+/**
+ * Lucía, Pablo, anyone else under the demo's domain, and what they own. Only households whose every member is a demo
+ * person go (`splitHouseholds` in server/utils/erase-core.ts); people who signed up for real are never selected.
+ */
 async function wipe() {
   const people = await db
     .select({ id: users.id })
     .from(users)
-    .where(or(inArray(users.email, Object.values(DEMO_PEOPLE).map((person) => person.email)), like(users.email, `%${DEMO_DOMAIN}`)))
-  const userIds = people.map((row) => row.id)
-  if (!userIds.length) return
-  // Households only demo people belong to; anyone else's household stays whatever happens.
-  const memberships = await db.select({ organizationId: member.organizationId, userId: member.userId }).from(member)
-  const demoUsers = new Set(userIds)
-  const touched = new Set(memberships.filter((row) => demoUsers.has(row.userId)).map((row) => row.organizationId))
-  const households = [...touched].filter((household) =>
-    memberships.filter((row) => row.organizationId === household).every((row) => demoUsers.has(row.userId)),
-  )
-
-  if (households.length) {
-    const accountIds = (
-      await db.select({ id: financialAccount.id }).from(financialAccount).where(inArray(financialAccount.householdId, households))
-    ).map((row) => row.id)
-    const connectionIds = (
-      await db.select({ id: connection.id }).from(connection).where(inArray(connection.householdId, households))
-    ).map((row) => row.id)
-    await db.delete(transaction).where(inArray(transaction.householdId, households))
-    await db.delete(recurring).where(inArray(recurring.householdId, households))
-    await inChunks(accountIds, 80, async (ids) => {
-      await db.delete(holding).where(inArray(holding.accountId, ids))
-      await db.delete(balanceSnapshot).where(inArray(balanceSnapshot.accountId, ids))
-    })
-    await db.delete(goal).where(inArray(goal.householdId, households))
-    await db.delete(budget).where(inArray(budget.householdId, households))
-    await db.delete(financialAccount).where(inArray(financialAccount.householdId, households))
-    await inChunks(connectionIds, 80, (ids) => db.delete(syncRun).where(inArray(syncRun.connectionId, ids)))
-    await db.delete(connection).where(inArray(connection.householdId, households))
-    await db.delete(rule).where(inArray(rule.householdId, households))
-    await db.delete(category).where(inArray(category.householdId, households))
-    await db.delete(householdSettings).where(inArray(householdSettings.householdId, households))
-    await db.delete(invitation).where(inArray(invitation.organizationId, households))
-    await db.delete(member).where(inArray(member.organizationId, households))
-    await db.delete(organization).where(inArray(organization.id, households))
-  }
-  // Whatever the visitors made as these people: API keys, passkeys, agents' tokens, sessions.
-  await db.delete(member).where(inArray(member.userId, userIds))
-  await db.delete(apikey).where(inArray(apikey.referenceId, userIds))
-  await db.delete(oauthAccessToken).where(inArray(oauthAccessToken.userId, userIds))
-  await db.delete(oauthRefreshToken).where(inArray(oauthRefreshToken.userId, userIds))
-  await db.delete(oauthConsent).where(inArray(oauthConsent.userId, userIds))
-  await db.delete(passkey).where(inArray(passkey.userId, userIds))
-  await db.delete(twoFactor).where(inArray(twoFactor.userId, userIds))
-  await db.delete(session).where(inArray(session.userId, userIds))
-  await db.delete(authAccount).where(inArray(authAccount.userId, userIds))
-  await db.delete(users).where(inArray(users.id, userIds))
+    .where(or(inArray(users.email, Object.values(DEMO_PEOPLE).map((person) => person.email)), like(users.email, `%@${DEMO_DOMAIN}`)))
+  await erasePeople(people.map((row) => row.id))
 }
 
 /** Signs a demo person up through Better Auth (hashed password, the sign-up hooks), the one user the demo allows. */

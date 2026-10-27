@@ -11,8 +11,10 @@ const isHost = (value: string): value is Host => HOSTS.some((host) => host === v
  * - `node`: one Node process (a VPS, Docker, a home server) with SQLite on disk, KV files, and an in-process cron.
  *   Syncs run inline, one connection after another.
  *
- * `FINANCE_DEMO=1` builds the public demo: a fictional household anyone can enter, reset every night, with account and
- * bank management locked (server/demo). A demo never syncs real providers, so on Cloudflare it has no Queue.
+ * `FINANCE_DEMO=1` builds a public instance: anyone can sign up and use it with their own data (`FINANCE_ALLOWED_EMAILS`
+ * is ignored, no bank connections), and the login page also offers a fictional household, reset every night, whose two
+ * people can't manage sign-in, people, banks, or connections (server/demo). On Cloudflare it has no Queue: syncs run
+ * inline, so it can share an account with a private instance's queue.
  */
 export function deployment(env: Record<string, string | undefined> = process.env) {
   const preset = env.NITRO_PRESET || env.SERVER_PRESET

@@ -18,7 +18,7 @@ import {
 } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 const Body = v.object({
   provider: v.picklist(EXCHANGE_PROVIDERS),
@@ -32,7 +32,7 @@ const Body = v.object({
  * with the exchange's own reason; then it's sealed and synced.
  */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
   const body = await readValid(event, Body)
   // The exchange only: the key and secret never reach a log.

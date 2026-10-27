@@ -6,14 +6,14 @@ import { deleteSession, type EnableBankingCredentials } from "../../providers/en
 import { bankConfig, requireOwnConnection } from "../../utils/connections"
 import { unseal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 /**
  * Disconnects. `keepAccounts=1` keeps the accounts and their history as manual accounts; otherwise they go too. A bank
  * session is revoked at Enable Banking when possible.
  */
 export default defineHandler(async (event) => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
   const row = await requireOwnConnection(who, event.context.params?.id)
   if (row.provider === "enable_banking") {

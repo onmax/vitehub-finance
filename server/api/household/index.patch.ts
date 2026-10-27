@@ -4,9 +4,9 @@ import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import type { MeResponse } from "#shared/api"
 import { householdSettings, organization } from "../../databases/config"
-import { requireOwner } from "../../utils/identity"
+import { requireMember, requireOwner } from "../../utils/identity"
 import { Currency, Name, readInput } from "../../utils/input"
-import { refuseInDemo } from "../../demo/mode"
+import { refuseDemoPerson } from "../../demo/mode"
 
 const Body = v.object({
   name: v.optional(Name),
@@ -20,7 +20,7 @@ const Body = v.object({
  * categories off.
  */
 export default defineHandler(async (event): Promise<MeResponse["household"]> => {
-  refuseInDemo()
+  refuseDemoPerson(await requireMember(event))
   const who = await requireOwner(event)
   const body = await readInput(event, Body)
   if (body.name) await db.update(organization).set({ name: body.name }).where(eq(organization.id, who.householdId))

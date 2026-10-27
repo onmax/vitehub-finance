@@ -3,7 +3,7 @@ import type { RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { useServerEnv } from "#vitehub/env/server"
 import { category, financialAccount, householdSettings, member, rule, transaction, user as users } from "../databases/config"
-import { isDemo } from "../demo/mode"
+import { isDemo, isDemoPerson } from "../demo/mode"
 import { classify, costUsd, type AiCategory, type Usage } from "./ai-categorize-core"
 
 /** Rows asked about per call of the one-off action, so a request stays well inside a Worker's time. */
@@ -13,8 +13,22 @@ export const SYNC_LIMIT = 400
 
 const apiKey = () => useServerEnv().typesafe.apiKey.unseal()?.trim() || ""
 
-/** AI categories need a TypeSafe key and are never part of the demo, whose data is fictional anyway. */
-export const aiAvailable = () => !isDemo() && Boolean(apiKey())
+/** Whether this server has a TypeSafe key. */
+export const aiConfigured = () => Boolean(apiKey())
+
+/** AI categories need a TypeSafe key and are never for the demo's people, whose data is fictional anyway. */
+export const aiAvailable = (who: { email: string }) => aiConfigured() && !isDemoPerson(who.email)
+
+/** Whether the demo's people are in this household (a public instance only). */
+async function demoHousehold(householdId: string) {
+  if (!isDemo()) return false
+  const people = await db
+    .select({ email: users.email })
+    .from(member)
+    .innerJoin(users, eq(users.id, member.userId))
+    .where(eq(member.organizationId, householdId))
+  return people.some((person) => isDemoPerson(person.email))
+}
 
 export interface AiOutcome {
   /** Rows Jev was asked about. */
@@ -33,11 +47,11 @@ type Log = Pick<RequestLogger, "set" | "warn">
  * `categorySource: "ai"`; every row asked is marked, so an unsure one isn't asked (or paid for) again. Rows in a batch
  * whose request failed stay unmarked for next time.
  *
- * Nothing happens without a TypeSafe key, in the demo, or when the household turned it off. The log gets counts, token
+ * Nothing happens without a TypeSafe key, for the demo's household, or when the household turned it off. The log gets counts, token
  * usage, and cost, never the transactions' text.
  */
 export async function categorizeWithAi(householdId: string, accounts: SQL, options: { limit: number; log?: Log }): Promise<AiOutcome | null> {
-  if (!aiAvailable()) return null
+  if (!aiConfigured() || (await demoHousehold(householdId))) return null
   const [settings] = await db
     .select({ aiCategorize: householdSettings.aiCategorize })
     .from(householdSettings)

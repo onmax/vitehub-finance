@@ -10,7 +10,8 @@ const target = deployment()
 const dev = process.argv.includes("dev")
 const host: Host = dev ? "node" : target.host
 const email = target.email
-// The public demo (FINANCE_DEMO=1): no Queue, because it never syncs real providers; the daily Schedule reseeds instead.
+// A public instance (FINANCE_DEMO=1): open sign-up plus the demo household. It has no Queue, so a Cloudflare account can
+// hold it beside a private instance (one queue per name); its people's syncs run inline from the daily Schedule.
 const demo = target.demo
 const queue = host === "cloudflare" && !demo
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url))
@@ -35,7 +36,7 @@ const EVLOG = {
 }
 
 /**
- * ViteHub per host. Cloudflare gets a Queue (one sync per message, retried on failure), except demo builds; Node syncs
+ * ViteHub per host. Cloudflare gets a Queue (one sync per message, retried on failure), except public builds; Node syncs
  * inline from the same daily Schedule. Everything else (Database, KV, Auth, Email) is the same code on both.
  */
 const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
@@ -85,7 +86,7 @@ export default defineNuxtConfig({
   },
 
   alias: {
-    // How a sync request reaches the sync: a Queue message on Cloudflare, a direct call elsewhere (and in demo builds).
+    // How a sync request reaches the sync: a Queue message on Cloudflare, a direct call elsewhere (and in public builds).
     "#dispatch": here(`./server/dispatch/${queue ? "queue" : "inline"}.ts`),
     // Sends through ViteHub Email when the build has a provider, otherwise returns the link for the UI to show.
     "#mailer": here(`./server/mailer/${email ? "email" : "none"}.ts`),
@@ -296,6 +297,7 @@ export default defineNuxtConfig({
         },
         finance: {
           // Emails allowed to create an account, comma-separated. Empty lets anyone sign up. Invited people always may.
+          // A public build (FINANCE_DEMO=1) ignores it.
           allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), default: "" }),
           // Encrypts bank sessions and exchange keys at rest (AES-GCM). Any long random string; changing it disconnects
           // every connection.

@@ -35,6 +35,6 @@ export default defineHandler(async (event): Promise<MeResponse> => {
     role: who.role,
     members: members.map((row) => ({ ...row, role: row.role === "owner" ? "owner" : "member" })),
     email: Boolean(useRuntimeConfig().public.email),
-    ai: aiAvailable(),
+    ai: aiAvailable(who),
   }
 })

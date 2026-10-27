@@ -8,8 +8,11 @@ import { defineAuth } from "vite-hub/auth"
 import { db, schema } from "vite-hub/database/drizzle"
 import { send } from "#mailer"
 import { invitation, member, session } from "./databases/config"
-import { DEMO_DISABLED_PATHS, isDemo, seedingEmails } from "./demo/mode"
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
+import { DEMO_LOCKED, DEMO_LOCKED_PATHS, isDemo, isDemoPerson, seedingEmails } from "./demo/mode"
+import { isDemoEmail } from "../shared/demo"
 import { isAllowedEmail } from "./utils/allowed"
+import { erasePeople, householdsOf } from "./utils/erase"
 import { emailLanguage, requestLanguage } from "./utils/language"
 import { translator } from "./utils/translate"
 import { isLocale } from "../shared/locale"
@@ -20,12 +23,15 @@ import { createHousehold } from "./utils/household"
  *
  * Email and password, a passkey, or (when the build has Email) a magic link; two-factor is optional per person.
  * `FINANCE_ALLOWED_EMAILS` keeps a private ViteHub Finance private: only those emails, plus anyone a household invited, can sign up.
+ * A public instance (`FINANCE_DEMO=1`) ignores it: anyone can sign up, with or without email.
  *
  * A household is a Better Auth organization. Signing up makes your own, unless an invitation is waiting for your
  * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in.
  *
- * The public demo (`FINANCE_DEMO=1`) creates no users but its own two (server/demo/seed.ts) and turns off the endpoints
- * that change who signs in or who's in the household (server/demo/mode.ts).
+ * Nobody signs up under the demo's domain but the seed's own two (server/demo/seed.ts). Those two can't use the endpoints
+ * that change who signs in or who's in the household (`DEMO_LOCKED_PATHS`, server/demo/mode.ts); everyone else can.
+ *
+ * Deleting your account erases the household with it, which is why it waits until nobody else is in that household.
  *
  * MCP clients connect through OAuth 2.1 (`oauthProvider`, tokens signed by `jwt`, scoped to `<origin>/mcp`). Scripts
  * that can't do OAuth use a personal API key (`apiKey`) as a bearer token instead.
@@ -37,16 +43,44 @@ export default defineAuth(({ env, requestOrigin }) => ({
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // Mounted by server/api/auth/[...all].ts: the Nuxt module doesn't add ViteHub's generated Auth route.
   route: false,
-  user: { additionalFields: { language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true } } },
+  user: {
+    additionalFields: { language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true } },
+    // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day.
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (person) => {
+        const { shared } = await householdsOf([person.id])
+        if (shared.length)
+          throw new APIError("BAD_REQUEST", {
+            message: "Leave your household, or remove its other members, before deleting your account.",
+            code: "HOUSEHOLD_NOT_EMPTY",
+          })
+        await erasePeople([person.id], { keepLogin: true })
+      },
+    },
+  },
   emailAndPassword: { enabled: true, minPasswordLength: 10 },
   // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in ViteHub Finance needs.
-  disabledPaths: ["/token", ...(isDemo() ? DEMO_DISABLED_PATHS : [])],
+  disabledPaths: ["/token"],
+  hooks: {
+    // The demo's people, and any request about one of their emails, can't change sign-in or households.
+    before: createAuthMiddleware(async (ctx) => {
+      if (!isDemo() || !DEMO_LOCKED_PATHS.has(ctx.path)) return
+      const body = (ctx.body ?? {}) as { email?: unknown; newEmail?: unknown }
+      const named = [body.email, body.newEmail].filter((value): value is string => typeof value === "string")
+      if (named.some((email) => isDemoEmail(email) && !seedingEmails.has(email.toLowerCase()))) throw demoLocked()
+      const current = await getSessionFromCtx(ctx).catch(() => null)
+      if (isDemoPerson(current?.user.email)) throw demoLocked()
+    }),
+  },
   databaseHooks: {
     user: {
       create: {
         before: async (person, context) => {
-          if (isDemo()) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
-          if (!isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email))) return false
+          if (isDemoEmail(person.email)) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
+          // A public instance is open to anyone; a private one to its allowed emails and the people a household invited.
+          if (!isDemo() && !isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email)))
+            return false
           const language = "language" in person && isLocale(person.language) ? person.language : requestLanguage(context?.headers)
           return { data: { ...person, language } }
         },
@@ -126,6 +160,8 @@ export default defineAuth(({ env, requestOrigin }) => ({
     }),
   ],
 }))
+
+const demoLocked = () => new APIError("FORBIDDEN", { message: DEMO_LOCKED, code: "DEMO_LOCKED" })
 
 async function pendingInvitation(email: string) {
   const [row] = await db

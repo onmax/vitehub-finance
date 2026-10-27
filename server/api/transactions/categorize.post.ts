@@ -12,7 +12,7 @@ import { requireMember } from "../../utils/identity"
  */
 export default defineHandler(async (event): Promise<AiCategorizeResult> => {
   const who = await requireMember(event)
-  if (!aiAvailable()) throw new HTTPError({ status: 404, statusText: "AI categories aren't set up on this server." })
+  if (!aiAvailable(who)) throw new HTTPError({ status: 404, statusText: "AI categories aren't set up on this server." })
   const log = useLogger(event)
   log.set({ action: "ai-categorize" })
   const outcome = await categorizeWithAi(who.householdId, editableAccounts(who), { limit: ACTION_LIMIT, log }).catch((error) => {
