@@ -13,7 +13,7 @@ const steps = computed(() => [
 ])
 // In English whatever the app's language: it names IBKR's sections and fields as IBKR does. It asks for what
 // @vitehub-finance/brokers reads (OpenPosition and CashReportCurrency rows).
-const PROMPT = "Create an Activity Flex Query named ViteHub Finance with two sections and nothing else. Open Positions at the Summary level of detail, with all fields, including Account ID, Currency, Asset Class, Symbol, Description, Conid, ISIN, Quantity, Mark Price, and Position Value. Cash Report per currency, with all fields, including Currency and Ending Cash. Format: XML. Period: Last Business Day."
+const PROMPT = "Create an Activity Flex Query named ViteHub Finance with two sections and nothing else. Open Positions at the Summary level of detail, with all fields, including Account ID, Currency, Asset Class, Symbol, Description, Conid, ISIN, Quantity, Mark Price, and Position Value. Cash Report per currency, with all fields, including Currency and Ending Cash. Format: XML. Period: Last Business Day. Keep Display Account Alias in Place of Account ID and Breakout by Day on No, and add no filters."
 // What @vitehub-finance/brokers reads; their names as IBKR's Sections list shows them.
 const sections = computed(() => [
   { name: "Open Positions", detail: translate('catalogIbkrSectionPositions') },
