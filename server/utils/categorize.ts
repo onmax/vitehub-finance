@@ -15,6 +15,21 @@ export function editableAccounts(who: Pick<Member, "userId" | "householdId">): S
   )!
 }
 
+/**
+ * The transactions someone may change in bulk (rules, AI categories), as a condition on `transaction` alone, since an
+ * UPDATE has no join: on `accounts` (by default the ones they may edit, `editableAccounts`), and never another owner's
+ * hidden row (server/utils/access.ts `visibleTransactions`). Every bulk read and update of transactions uses it.
+ */
+export function writableTransactions(who: Pick<Member, "userId" | "householdId">, accounts: SQL = editableAccounts(who)): SQL {
+  const ids = (where: SQL) => db.select({ id: financialAccount.id }).from(financialAccount).where(where)
+  const own = and(eq(financialAccount.householdId, who.householdId), eq(financialAccount.ownerId, who.userId))!
+  return and(
+    eq(transaction.householdId, who.householdId),
+    inArray(transaction.accountId, ids(accounts)),
+    or(eq(transaction.hidden, false), inArray(transaction.accountId, ids(own))),
+  )!
+}
+
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, (char) => `\\${char}`)
 
 /** Description or counterparty contains `text`, ignoring case: how a rule matches. */
@@ -73,8 +88,8 @@ export async function ensureRule(householdId: string, match: string, action: Par
 }
 
 /**
- * A rule's new action. Turning `exclude` off brings back the transactions it excluded (unless another rule still
- * excludes them); a new category or `exclude` applies like a new rule (`applyRule`).
+ * A rule's new action. Turning `exclude` off brings back the transactions it excluded that the caller may change (unless
+ * another rule still excludes them); a new category or `exclude` applies like a new rule (`applyRule`).
  */
 export async function setRule(who: Pick<Member, "userId" | "householdId">, id: string, action: RuleAction) {
   const [existing] = await db
@@ -84,25 +99,29 @@ export async function setRule(who: Pick<Member, "userId" | "householdId">, id: s
     .limit(1)
   if (!existing) return null
   const [saved] = await db.update(rule).set(action).where(eq(rule.id, id)).returning()
-  if (existing.exclude && !action.exclude) await includeMatches(who.householdId, existing.match, id)
+  if (existing.exclude && !action.exclude) await includeMatches(who, existing.match, id)
   await applyRule(who, saved!)
   return saved!
 }
 
-/** Deletes a rule; what it excluded comes back, unless another rule still excludes it. */
-export async function deleteRule(householdId: string, id: string) {
+/**
+ * Deletes a rule; what it excluded comes back on the transactions the caller may change, unless another rule still
+ * excludes it. Rows on accounts they can't edit, or hidden from them, stay as they are.
+ */
+export async function deleteRule(who: Pick<Member, "userId" | "householdId">, id: string) {
   const [deleted] = await db
     .delete(rule)
-    .where(and(eq(rule.id, id), eq(rule.householdId, householdId)))
+    .where(and(eq(rule.id, id), eq(rule.householdId, who.householdId)))
     .returning()
-  if (deleted?.exclude) await includeMatches(householdId, deleted.match, id)
+  if (deleted?.exclude) await includeMatches(who, deleted.match, id)
   return deleted ?? null
 }
 
 /**
  * Applies a rule to the caller's editable transactions (`ownOnly`: their own accounts' only): its category to the
  * uncategorized, unlocked ones, and with `exclude`, excludes every match no one decided on by hand. Accounts they may
- * only view, or not see, stay untouched; the sync applies the rule to new transactions everywhere.
+ * only view, or not see, and rows another owner hid stay untouched; the sync applies the rule to new transactions
+ * everywhere.
  */
 export async function applyRule(
   who: Pick<Member, "userId" | "householdId">,
@@ -112,21 +131,21 @@ export async function applyRule(
   const accounts = options.ownOnly
     ? and(eq(financialAccount.householdId, who.householdId), eq(financialAccount.ownerId, who.userId))
     : editableAccounts(who)
-  const editable = and(
-    eq(transaction.householdId, who.householdId),
-    inArray(transaction.accountId, db.select({ id: financialAccount.id }).from(financialAccount).where(accounts)),
-  )!
+  const editable = writableTransactions(who, accounts)
   if (entry.exclude) await excludeMatches(editable, entry.match)
   if (entry.categoryId) await categorizeMatches(editable, entry.match, entry.categoryId)
 }
 
-/** Rules of a household applied to the uncategorized, unlocked transactions of some accounts (after a move). */
-export async function applyRulesTo(householdId: string, accountIds: string[]) {
+/**
+ * The rules of the caller's household applied to the uncategorized, unlocked transactions of some of the accounts they
+ * may change (after a move: their own, in their new household).
+ */
+export async function applyRulesTo(who: Pick<Member, "userId" | "householdId">, accountIds: string[]) {
   if (!accountIds.length) return
-  const rules = await db.select().from(rule).where(eq(rule.householdId, householdId))
+  const rules = await db.select().from(rule).where(eq(rule.householdId, who.householdId))
   for (const entry of rules)
     for (let index = 0; index < accountIds.length; index += 80) {
-      const accounts = and(eq(transaction.householdId, householdId), inArray(transaction.accountId, accountIds.slice(index, index + 80)))!
+      const accounts = and(writableTransactions(who), inArray(transaction.accountId, accountIds.slice(index, index + 80)))!
       if (entry.exclude) await excludeMatches(accounts, entry.match)
       if (entry.categoryId) await categorizeMatches(accounts, entry.match, entry.categoryId)
     }
@@ -158,20 +177,24 @@ async function excludeMatches(accounts: SQL, match: string) {
     )
 }
 
-/** Brings back what rules excluded and `match` matches, except what another of the household's excluding rules matches. */
-async function includeMatches(householdId: string, match: string, ruleId: string) {
+/**
+ * Brings back what rules excluded and `match` matches, among the transactions the caller may change, except what another
+ * of the household's excluding rules matches.
+ */
+async function includeMatches(who: Pick<Member, "userId" | "householdId">, match: string, ruleId: string) {
   const others = await db
     .select({ match: rule.match, categoryId: rule.categoryId, exclude: rule.exclude })
     .from(rule)
-    .where(and(eq(rule.householdId, householdId), eq(rule.exclude, true), ne(rule.id, ruleId)))
+    .where(and(eq(rule.householdId, who.householdId), eq(rule.exclude, true), ne(rule.id, ruleId)))
+  const writable = writableTransactions(who)
   const rows = await db
     .select({ id: transaction.id, description: transaction.description, counterparty: transaction.counterparty })
     .from(transaction)
-    .where(and(eq(transaction.householdId, householdId), eq(transaction.excludeSource, "rule"), ruleMatches(match)))
+    .where(and(writable, eq(transaction.excludeSource, "rule"), ruleMatches(match)))
   const ids = rows.filter((row) => !ruleActions(others, row).exclude).map((row) => row.id)
   for (let index = 0; index < ids.length; index += 90)
     await db
       .update(transaction)
       .set({ excluded: false, excludeSource: null })
-      .where(inArray(transaction.id, ids.slice(index, index + 90)))
+      .where(and(writable, inArray(transaction.id, ids.slice(index, index + 90))))
 }

@@ -5,6 +5,8 @@ import { category, financialAccount, householdSettings, member, rule, transactio
 import { isDemo, isDemoPerson } from "../demo/mode"
 import { classify, costUsd, type AiCategory, type Usage } from "./ai-categorize-core"
 import { routeFor, type Route } from "./ai-gateway"
+import { writableTransactions } from "./categorize"
+import type { Member } from "./identity"
 
 /** Rows asked about per call of the one-off action, so a request stays well inside a Worker's time. */
 export const ACTION_LIMIT = 200
@@ -40,15 +42,33 @@ export interface AiOutcome {
 type Log = Pick<RequestLogger, "set" | "warn">
 
 /**
- * Asks Jev for the categories rules didn't give: uncategorized, unlocked rows in `accounts` (a condition on
- * `financialAccount`) that AI hasn't looked at yet, newest first, at most `limit`. A sure answer sets the category with
+ * Which rows may go to Jev, and so to whoever runs the AI gateway:
+ *
+ * - `{ caller }`: someone pressed "Categorize with AI". Only rows they may both see and edit
+ *   (`writableTransactions`): never another member's private account or hidden row.
+ * - `{ accounts }`: the sync or a CSV import, which nobody asked about. Rows in `accounts` (a condition on
+ *   `financialAccount`), never a hidden one, whoever's key answers. Through the household's own key, set by one of its
+ *   owners (nothing records which), never a private account's either: its owner never agreed to that key, while the
+ *   server's own route (ai-gateway.ts) is the operator's, who holds the database anyway. A private account's owner
+ *   still gets its rows categorized by pressing the button.
+ */
+export type AiRows = { caller: Pick<Member, "userId" | "householdId"> } | { accounts: SQL }
+
+function allowedRows(rows: AiRows, route: Route): SQL {
+  if ("caller" in rows) return writableTransactions(rows.caller)
+  return and(rows.accounts, eq(transaction.hidden, false), route.source === "household" ? eq(financialAccount.visibility, "household") : undefined)!
+}
+
+/**
+ * Asks Jev for the categories rules didn't give: uncategorized, unlocked rows that `rows` allows (`AiRows`) and AI hasn't
+ * looked at yet, newest first, at most `limit`. A sure answer sets the category with
  * `categorySource: "ai"`; every row asked is marked, so an unsure one isn't asked (or paid for) again. Rows in a batch
  * whose request failed stay unmarked for next time.
  *
  * Nothing happens without a key (the household's or the server's, server/utils/ai-gateway.ts), for the demo's household,
  * or when the household turned it off. The log gets the route, counts, token usage, and cost, never the transactions' text.
  */
-export async function categorizeWithAi(householdId: string, accounts: SQL, options: { limit: number; log?: Log }): Promise<AiOutcome | null> {
+export async function categorizeWithAi(householdId: string, rows: AiRows, options: { limit: number; log?: Log }): Promise<AiOutcome | null> {
   if (await demoHousehold(householdId)) return null
   const route = await routeFor(householdId)
   if (!route) return null
@@ -67,7 +87,7 @@ export async function categorizeWithAi(householdId: string, accounts: SQL, optio
     isNull(transaction.transferId),
     eq(transaction.excluded, false),
     ne(transaction.amountMinor, 0),
-    accounts,
+    allowedRows(rows, route),
   )
   const batch = await db
     .select({

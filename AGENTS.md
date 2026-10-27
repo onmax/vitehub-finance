@@ -29,7 +29,16 @@ forkable, deployable to Cloudflare or any Node host.
   through `visibleTransactions(who, scope)`, which adds to `visibleAccounts`: a `hidden` transaction is seen only by
   its account's owner. Only that owner sets `hidden`, in the browser (not agents or API keys; `canHide`). Hidden rows
   never make a recurring series, pair as transfers only with the owner's own accounts, and never become a household
-  rule. Balances are bank-reported and still include them.
+  rule. Balances are bank-reported and still include them. Staking events of a hidden transaction (an event id is the
+  wallet transaction's hash, its `externalId`, plus `:value` or `:fee`) are left out of everyone else's `stakingView`.
+- Bulk changes to transactions (rules applied, removed, or turned off; AI categories someone asks for) go through
+  `writableTransactions(who)` (server/utils/categorize.ts): accounts the caller may edit, minus another owner's hidden rows.
+- What goes to an AI gateway (`AiRows` in server/utils/ai-categorize.ts): from the button, only the caller's
+  `writableTransactions`; from the sync and CSV import, never a hidden row, and through a key the household set (nothing
+  records which owner set it) never a private account's rows. The server's own route may get a private account's rows.
+- A connection's `lastError` reaches every member who shares one of its accounts, so it holds only a stable code's
+  English copy (`englishError`); other members get that copy even for older rows (`lastErrorFor`). Names and provider
+  text of failed accounts go only to `sync_run`, which only the connection's owner reads; logs get codes and account ids.
 - The caller is `await requireMember(event)` (server/utils/identity.ts): `{ userId, householdId, role, via }`. Never take
   a household id or owner id from the request body or query.
 - `scope` (`?scope=me|household`, `scopeOf(event)`) narrows a view to the caller's own accounts.
@@ -138,7 +147,7 @@ and out of staking stay out of transactions, since the holding counts staked coi
 
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
-(`aiCheckedAt` null) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (questions,
+(`aiCheckedAt` null) among those `AiRows` allows (see the privacy rules) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (questions,
 answers, thresholds, batches through an AI gateway's `ask()`), tested in test/ai with ViteHub's gateways on a stubbed fetch. It
 runs only with a key (the household's or the server's), never in the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
@@ -184,7 +193,8 @@ object Workers Logs indexes on Cloudflare): `method`, `path`, `status`,
 `action` where a handler sets one, and `error` (`message`, `stack`) when it failed. Handlers add fields with
 `useLogger(event).set({...})` from `evlog/nitro/v3`; work without a request makes its own with `createLogger` from
 `evlog` and calls `emit()`. Other events: `action: "sync"` (one per sync run: `sync.connectionId`, `provider`, `trigger`,
-`accounts`, `added`, `status`, `code`, plus `ai.*`), `action: "schedule"` (the daily run), `action: "client-error"`
+`accounts`, `added`, `status`, `code`, `messageCode`, `failures` (failed accounts' ids and codes, never their names or
+the provider's text), plus `ai.*`), `action: "schedule"` (the daily run), `action: "client-error"`
 (browser errors: `client.kind` vue / unhandled / toast / load, `client.path`, `client.title`, `client.request`,
 `client.status`, the browser in `userAgent`). Level `error` means something broke: a 4xx prints as `warn`
 (server/observability.ts), as do provider failures people fix themselves (an expired consent). Secrets, emails, IBANs,
@@ -226,6 +236,8 @@ In `nuxt dev` they print as a readable tree in the terminal.
 ## Commands
 
 Run heavy commands through `heavy` (shared machine): `heavy pnpm typecheck`, `HEAVY_WAIT=0 heavy pnpm build`.
+Tests that need SQL (test/privacy) run server code against an in-memory SQLite with every migration (test/database.ts),
+mocking `vite-hub/database/drizzle` and the other ViteHub modules they reach; only synthetic data goes in them.
 `FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
 
 ## API
@@ -252,7 +264,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `DELETE /api/accounts/:id` | | `{ ok }` (owner) |
 | `POST /api/accounts/:id/import` | `{ rows: [{ date, amount, description, counterparty? }] }` (amount in major units) | `{ added, skipped }` |
 | `GET /api/transactions` | `scope, q, account, category (id or "none"), from, to, direction (in/out), cursor, limit` | `TransactionPage` |
-| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, uncategorized rows; 404 without a key (household or server), 409 when the household turned it off |
+| `POST /api/transactions/categorize` | | `AiCategorizeResult` — AI categories for up to 200 of the caller's editable, visible, uncategorized rows; 404 without a key (household or server), 409 when the household turned it off |
 | `PATCH /api/transactions/:id` | `{ categoryId?, note?, excluded?, hidden?, applyToSimilar? }` (`hidden`: the account's owner, in the browser) | `Transaction` |
 | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` | `{ name, kind, icon, color }` | `Category[]` / `Category` |
 | `GET/POST /api/rules`, `DELETE /api/rules/:id` | `{ match, categoryId }` | `{ id, match, categoryId }[]` |

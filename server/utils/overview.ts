@@ -5,6 +5,7 @@ import { category, connection, financialAccount, stakingPosition, user as users 
 import { visibleAccounts, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts, type Converter } from "./accounts"
 import { bankLogos } from "./bank-logos"
+import { lastErrorFor } from "./connections"
 import { addDays, eachDay, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
 import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
@@ -44,15 +45,15 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
 
   const recent = (await searchTransactions(who, { scope, limit: 8 }, { totals: false })).items
 
-  // Staking on the accounts in view: what's staked and the rewards identified, in the household's currency at today's
-  // price. Both are already inside net worth; this only says how much of it is staked.
+  // Staking on the accounts in view: what's staked and the rewards identified (without another member's hidden ones), in
+  // the household's currency at today's price. Both are already inside net worth; this only says how much of it is staked.
   const staked = accounts.length
     ? await db.select({ accountId: stakingPosition.accountId }).from(stakingPosition).where(inArray(stakingPosition.accountId, accounts.map((row) => row.account.id)))
     : []
   const staking: Overview["staking"] = []
   for (const { accountId } of staked) {
     const account = accounts.find((row) => row.account.id === accountId)!.account
-    const view = await stakingView(accountId, account.currency)
+    const view = await stakingView(who, account, account.currency)
     if (!view) continue
     const inHousehold = (minor: number | null | undefined) => (minor === null || minor === undefined ? null : convert(minor, account.currency))
     staking.push({
@@ -152,14 +153,14 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
     )
   const limit = Date.now() + SOON
   const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
-  return rows
-    .filter(
-      ({ connection: row }) =>
-        row.status === "expired" ||
-        row.status === "error" ||
-        (row.status === "active" && row.consentExpiresAt !== null && row.consentExpiresAt.getTime() <= limit),
-    )
-    .map(({ connection: row, ownerName }) => ({
+  const failing = rows.filter(
+    ({ connection: row }) =>
+      row.status === "expired" ||
+      row.status === "error" ||
+      (row.status === "active" && row.consentExpiresAt !== null && row.consentExpiresAt.getTime() <= limit),
+  )
+  return Promise.all(
+    failing.map(async ({ connection: row, ownerName }) => ({
       id: row.id,
       provider: row.provider,
       name: row.name,
@@ -170,9 +171,10 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
       ownerName,
       consentExpiresAt: row.consentExpiresAt?.toISOString() ?? null,
       lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
-      lastError: row.lastError,
+      lastError: await lastErrorFor(who, row),
       lastErrorCode: row.lastErrorCode,
       accounts: counts.get(row.id) ?? [],
       canManage: row.ownerId === who.userId,
-    }))
+    })),
+  )
 }

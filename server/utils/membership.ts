@@ -71,7 +71,8 @@ export async function moveOut(householdId: string, userId: string) {
         .set({ categoryId: to })
         .where(and(inArray(recurring.accountId, ids), eq(recurring.categoryId, from)))
     }
-  await applyRulesTo(fresh, accountIds)
+  // They own every moved account, so the rules reach all of it.
+  await applyRulesTo({ userId, householdId: fresh }, accountIds)
 
   const budgets = await db
     .select()

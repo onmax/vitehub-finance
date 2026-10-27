@@ -7,7 +7,8 @@ import { providerFor, WALLET_PROVIDERS } from "../providers/index"
 import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import type { CoinHistory } from "./holdings-history"
-import { bankConfig, errorMessage } from "./connections"
+import { bankConfig, englishError, errorMessage } from "./connections"
+import { errorCode } from "./error-codes"
 import { seal, unseal } from "./crypto"
 import { replaceHoldings } from "./holdings"
 import { saveStaking } from "./staking"
@@ -175,12 +176,45 @@ async function walletHistoryMissing(connectionId: string, horizon: string) {
 const retryable = (error: unknown) => !(error instanceof ProviderError) || error.code === "unavailable"
 
 /**
+ * One account that didn't sync. `detail` names it and says why in the provider's words: it goes only to the sync run,
+ * which only the connection's owner reads, and they own every account it feeds. The connection's `lastError`, which
+ * members who share one of its accounts read, and the logs get the stable `code` and the account's id instead.
+ */
+interface AccountFailure {
+  /** Null for an account this connection hasn't stored yet. */
+  accountId: string | null
+  /** The message code (server/utils/error-codes.ts, server/providers/types.ts `providerMessageCode`). */
+  code: string
+  detail: string
+  /** A bug here rather than the provider's answer. */
+  internal: boolean
+}
+
+/** Every account of a run failed. Not a provider's answer about the connection, so the Queue retries it. */
+class AccountsFailed extends Error {
+  constructor(readonly failures: AccountFailure[]) {
+    super(failures.map((failure) => failure.detail).join(" "))
+    this.name = "AccountsFailed"
+  }
+
+  /** The failures' code when they share one, else the generic one. */
+  get code() {
+    const codes = new Set(this.failures.map((failure) => failure.code))
+    return codes.size === 1 ? [...codes][0]! : "providerUnavailable"
+  }
+}
+
+/** What the logs may say about failed accounts: ids and codes, never names or a provider's text. */
+const loggable = (failures: AccountFailure[]) => failures.map(({ accountId, code }) => ({ accountId, code }))
+
+/**
  * Runs one connection: fetch from the provider, write accounts, holdings, balances, and new transactions, then record
- * the run. Failures land in `sync_run` and the connection's `lastError`; only transient ones (a bank or network down)
- * are rethrown, so a Queue retries them while an expired consent waits for its owner.
+ * the run. Failures land in `sync_run` (in detail, for the owner) and the connection's `lastError` (a stable code and its
+ * copy, for everyone who shares one of its accounts); only transient ones (a bank or network down) are rethrown, so a
+ * Queue retries them while an expired consent waits for its owner.
  *
  * Each run is one wide event (`action: "sync"`), whether a request, the Queue, or the daily Schedule started it: the
- * connection, provider, trigger, accounts, rows added, duration, and the failure's code and reason.
+ * connection, provider, trigger, accounts, rows added, duration, and the failure's codes and account ids.
  */
 export async function syncConnection(connectionId: string, trigger: SyncTrigger) {
   const log = createLogger({ action: "sync", sync: { connectionId, trigger } })
@@ -239,11 +273,13 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     // Accounts whose balance is the transactions' sum; a holdings account's past value depends on past prices instead.
     const backfill: string[] = []
     const histories: Array<{ accountId: string; history: HoldingsHistory }> = []
-    const failures: string[] = []
+    const failures: AccountFailure[] = []
+    const failed = (remote: ProviderAccount, message: string, code: string, internal = false) =>
+      failures.push({ accountId: context.existing.get(remote.externalId)?.id ?? null, code, detail: `${remote.name}: ${message}`, internal })
     // Each account on its own: one failing never loses what the others brought.
     for (const remote of result.accounts) {
       if (remote.error) {
-        failures.push(`${remote.name}: ${remote.error}`)
+        failed(remote, remote.error, errorCode(remote.error))
         continue
       }
       try {
@@ -253,19 +289,20 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
         if (!outcome.hasHoldings) backfill.push(outcome.accountId)
         if (outcome.history) histories.push({ accountId: outcome.accountId, history: outcome.history })
       } catch (error) {
-        failures.push(`${remote.name}: ${errorMessage(error)}`)
+        failed(remote, errorMessage(error), providerMessageCode(error), !(error instanceof ProviderError))
       }
     }
     log.set({ sync: { added, touched: touched.length, failedAccounts: failures.length } })
-    if (!touched.length && failures.length) throw new Error(failures.join(" "))
+    if (!touched.length && failures.length) throw new AccountsFailed(failures)
 
     // Transfers first: a move between two accounts often arrives with the second account's sync.
     const step = (name: string, run: () => Promise<unknown>) =>
       run().catch((error) => log.warn(`${name} failed`, { sync: { failedStep: name, stepError: errorMessage(error) } }))
     if (touched.length) await step("Transfer detection", () => detectTransfers(row.householdId))
-    // AI after rules and transfers, for what they left uncategorized; recurring detection then sees its categories.
+    // AI after rules and transfers, for what they left uncategorized; recurring detection then sees its categories. Never
+    // hidden rows, nor a private account's through the household's key (`AiRows` in ai-categorize.ts).
     if (touched.length)
-      await step("AI categories", () => categorizeWithAi(row.householdId, inArray(financialAccount.id, touched), { limit: SYNC_LIMIT, log }))
+      await step("AI categories", () => categorizeWithAi(row.householdId, { accounts: inArray(financialAccount.id, touched) }, { limit: SYNC_LIMIT, log }))
     if (touched.length) await step("Recurring detection", () => detectRecurring(row.householdId, touched))
     // The first sync brings a year of history: give its accounts a balance chart from it.
     if (initial) for (const accountId of backfill) await step("Snapshot backfill", () => backfillSnapshots(accountId))
@@ -276,14 +313,16 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
         if (written) log.set({ sync: { historyDays: written } })
       })
 
-    const partial = failures.length ? `Couldn't sync ${failures.length} of ${result.accounts.length} accounts. ${failures.join(" ")}` : null
-    if (partial) log.warn("Some accounts failed", { sync: { partial: partial.slice(0, 500) } })
+    const partial = failures.length
+      ? `Couldn't sync ${failures.length} of ${result.accounts.length} accounts. ${failures.map((failure) => failure.detail).join(" ")}`.slice(0, 500)
+      : null
+    if (partial) log.warn("Some accounts failed", { sync: { failures: loggable(failures) } })
     await db
       .update(connection)
       .set({
         status: "active",
         lastSyncedAt: new Date(),
-        lastError: partial,
+        lastError: partial ? await englishError("providerPartial") : null,
         lastErrorCode: partial ? "providerPartial" : null,
         ...(result.consentExpiresAt === undefined ? {} : { consentExpiresAt: result.consentExpiresAt }),
         ...(result.credentials === undefined ? {} : { credentials: await seal(result.credentials) }),
@@ -296,17 +335,24 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
     log.set({ sync: { status: "succeeded" } })
     return { added, error: partial }
   } catch (error) {
+    // The provider's words (and failed accounts' names) for the run, which only the owner reads; the stable code's copy
+    // for the connection, which members who share one of its accounts read (`AccountFailure`).
     const message = errorMessage(error).slice(0, 500)
+    const messageCode = error instanceof AccountsFailed ? error.code : providerMessageCode(error)
     const expired = error instanceof ProviderError && error.code === "expired"
-    const code = error instanceof ProviderError ? error.code : "internal"
+    const code = error instanceof ProviderError ? error.code : error instanceof AccountsFailed ? "accounts" : "internal"
     // A provider's answer (an expired consent, a revoked key, a bank that's down) is a warning: the run records it for
-    // the owner. Anything else is a bug to look at.
-    if (error instanceof ProviderError) log.warn(message, { sync: { status: "failed", code } })
-    else log.error(error instanceof Error ? error : new Error(message), { sync: { status: "failed", code } })
-    await db.update(syncRun).set({ status: "failed", error: message, errorCode: providerMessageCode(error), finishedAt: new Date() }).where(eq(syncRun.id, runId))
+    // the owner. Anything else is a bug to look at. Never the provider's text or an account's name.
+    if (error instanceof ProviderError) log.warn("Sync failed", { sync: { status: "failed", code, messageCode } })
+    else if (error instanceof AccountsFailed) {
+      const context = { sync: { status: "failed", code, messageCode, failures: loggable(error.failures) } }
+      if (error.failures.some((failure) => failure.internal)) log.error(new Error("Every account failed"), context)
+      else log.warn("Every account failed", context)
+    } else log.error(error instanceof Error ? error : new Error(message), { sync: { status: "failed", code } })
+    await db.update(syncRun).set({ status: "failed", error: message, errorCode: messageCode, finishedAt: new Date() }).where(eq(syncRun.id, runId))
     await db
       .update(connection)
-      .set({ status: expired ? "expired" : "error", lastError: message, lastErrorCode: providerMessageCode(error) })
+      .set({ status: expired ? "expired" : "error", lastError: await englishError(messageCode), lastErrorCode: messageCode })
       .where(eq(connection.id, row.id))
     if (retryable(error)) throw error
     return { added: 0, error: message }

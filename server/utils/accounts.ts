@@ -153,5 +153,5 @@ export async function accountDetail(who: Pick<Member, "userId" | "householdId">,
   const history = days.flatMap((day) => (day.value === null ? [] : [{ date: day.date, balanceMinor: day.value }]))
   // An account without snapshots still shows today's balance.
   if (!history.length) history.push({ date: today, balanceMinor: summary.balanceMinor })
-  return { ...summary, holdings, history, staking: await stakingView(accountId, summary.currency) }
+  return { ...summary, holdings, history, staking: await stakingView(who, summary, summary.currency) }
 }

@@ -14,6 +14,7 @@ import { ProviderError, providerMessageCode } from "../providers/types"
 import { bankLogos } from "./bank-logos"
 import type { Member } from "./identity"
 import { isDemo } from "../demo/mode"
+import { translator } from "./translate"
 
 export type ConnectionRow = typeof connection.$inferSelect
 
@@ -153,6 +154,27 @@ export async function requireOwnConnection(who: Member, id: string | undefined) 
 
 const iso = (date: Date | null | undefined) => (date ? date.toISOString() : null)
 
+/** The English copy of a stable error code (app/locales/en.json), which the browser translates; unknown codes read as `providerUnavailable`. */
+export async function englishError(code: string | null | undefined) {
+  const english = await translator("en")
+  try {
+    return english(code || "providerUnavailable")
+  } catch {
+    return english("providerUnavailable")
+  }
+}
+
+/**
+ * A connection's last failure as `who` reads it. Anyone who sees one shared account of a connection gets it, so for
+ * them it's the copy of its stable code, which never names an account or repeats a provider's words. Its owner, who owns
+ * every account it feeds, reads what was stored: the sync stores only that copy too (sync.ts), but older rows and the
+ * bank callback may say more. Per-account details live in the sync runs, which only the owner reads (`recentRuns`).
+ */
+export async function lastErrorFor(who: Pick<Member, "userId">, row: Pick<ConnectionRow, "ownerId" | "lastError" | "lastErrorCode">) {
+  if (!row.lastError || row.ownerId === who.userId) return row.lastError
+  return englishError(row.lastErrorCode)
+}
+
 /**
  * The caller's own connections plus other members' that feed at least one shared account. Lists only the accounts the
  * caller may see; credentials never leave the server.
@@ -178,9 +200,9 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       visible.set(account.connectionId, [...(visible.get(account.connectionId) ?? []), { id: account.id, name: account.name }])
   }
   const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
-  return rows
-    .filter(({ connection: row }) => row.ownerId === who.userId || shared.has(row.id))
-    .map(({ connection: row, ownerName }) => ({
+  const listed = rows.filter(({ connection: row }) => row.ownerId === who.userId || shared.has(row.id))
+  return Promise.all(
+    listed.map(async ({ connection: row, ownerName }) => ({
       id: row.id,
       provider: row.provider,
       name: row.name,
@@ -191,11 +213,12 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       ownerName,
       consentExpiresAt: iso(row.consentExpiresAt),
       lastSyncedAt: iso(row.lastSyncedAt),
-      lastError: row.lastError,
+      lastError: await lastErrorFor(who, row),
       lastErrorCode: row.lastErrorCode,
       accounts: visible.get(row.id) ?? [],
       canManage: row.ownerId === who.userId,
-    }))
+    })),
+  )
 }
 
 export async function connectionSummary(who: Member, id: string) {
