@@ -11,10 +11,12 @@ overrides:
   devalue: ^5.9.4
 
 patchedDependencies:
-  # Jev through TypeSafe, Vercel AI Gateway, or Cloudflare AI Gateway: `typesafeEnv({ provider: "cloudflare" })` and the
-  # AI gateways in vite-hub/agent/gateways (`typesafe()`, `vercel()`, and `cloudflare()` with `ask()`). Upstream: https://github.com/vite-hub/vitehub/pull/2985. Drop both when the vite-hub pin includes it.
+  # AI gateways (upstream: https://github.com/vite-hub/vitehub/pull/2985, the @vite-hub/gateways package). Until a
+  # release has it, the presets and ask() are patched into @vite-hub/agent, vite-hub/gateways re-exports them, and
+  # typesafeEnv() only declares the variables of typesafe(). Drop the three patches when the vite-hub pin includes it.
   '@vite-hub/agent@0.0.4': patches/@vite-hub__agent@0.0.4.patch
   '@vite-hub/env@0.0.4': patches/@vite-hub__env@0.0.4.patch
+  vite-hub@0.0.4: patches/vite-hub@0.0.4.patch
   # Logs the error behind a JSON-RPC "Internal error"; upstream returns it without a trace.
   h3-mcp@0.2.0: patches/h3-mcp@0.2.0.patch
   # `nuxt dev` on the nightly CLI gives Vite no httpServer, and virtual modules resolve bare imports from the root.

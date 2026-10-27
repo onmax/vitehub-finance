@@ -1,11 +1,11 @@
 // Categories for transactions the rules left uncategorized, from Jev (TypeSafe's System One model,
 // https://docs.typesafe.ai). Pure logic, no database: what we ask, how answers become categories, and when an answer is
 // sure enough to use. The questions go through one of ViteHub's AI gateways (`typesafe()`, `vercel()`, or `cloudflare()`
-// from vite-hub/agent/gateways), which reach TypeSafe directly or through Vercel or Cloudflare AI Gateway
+// from vite-hub/gateways), which reach TypeSafe directly or through Vercel or Cloudflare AI Gateway
 // (server/utils/ai-gateway.ts picks the route).
 // server/utils/ai-categorize.ts picks the rows and writes the results.
 import type { AgentUsageRecord, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/agent"
-import type { AiGateway } from "vite-hub/agent/gateways"
+import type { AiGateway } from "vite-hub/gateways"
 import { currencyDigits } from "../../shared/money"
 
 /** Dollars per million input tokens (jev-1.14). Output tokens are free. Only used to estimate cost in the logs. */

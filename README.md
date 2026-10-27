@@ -95,8 +95,8 @@ It reaches Jev through one of ViteHub's AI gateways (`typesafe()`, `vercel()`, o
 | Route | Server variables | Household form |
 | --- | --- | --- |
 | TypeSafe, directly (default) | `TYPESAFE_API_KEY` | a TypeSafe key |
-| Vercel AI Gateway | `FINANCE_AI_GATEWAY=vercel` at build time, `AI_GATEWAY_API_KEY` | an AI Gateway key |
-| Cloudflare AI Gateway | `FINANCE_AI_GATEWAY=cloudflare` at build time, `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, optional `CLOUDFLARE_AI_GATEWAY_TOKEN` and `CLOUDFLARE_AI_GATEWAY_SLUG` | the TypeSafe key, account ID, gateway ID, optional gateway token and slug |
+| Vercel AI Gateway | `AI_GATEWAY_API_KEY` (used when `TYPESAFE_API_KEY` is not set) | an AI Gateway key |
+| Cloudflare AI Gateway | `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, optional `CLOUDFLARE_AI_GATEWAY_TOKEN` and `CLOUDFLARE_AI_GATEWAY_SLUG` | the TypeSafe key, account ID, gateway ID, optional gateway token and slug |
 
 The server's key is optional. Each household's owner can pick a route and paste their own key in Settings › Categories
 instead; it's encrypted like connection credentials, the browser only ever sees its last four characters, and Test asks

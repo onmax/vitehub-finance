@@ -308,10 +308,21 @@ export default defineNuxtConfig({
         coingecko: {
           apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
         },
-        // Optional. The server's key for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
-        // (server/utils/ai-categorize.ts). `FINANCE_AI_GATEWAY` picks the route and so the variables (scripts/deployment.ts);
-        // households without their own key use this one (server/utils/ai-gateway.ts).
-        typesafe: typesafeEnv({ provider: target.ai }),
+        // Optional. The server's own route for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
+        // (server/utils/ai-categorize.ts). Each group sits where ViteHub's AI gateway presets read it
+        // (env.server.<preset>.<field>); server/utils/ai-gateway.ts uses the first one set: Cloudflare AI Gateway, TypeSafe,
+        // then Vercel AI Gateway. Households without their own key use it.
+        typesafe: typesafeEnv(),
+        vercel: {
+          apiKey: env({ secret: true, source: env.source("AI_GATEWAY_API_KEY"), default: "" }),
+        },
+        cloudflare: {
+          // The TypeSafe key that the gateway forwards is typesafe.apiKey.
+          accountId: env({ source: env.source("CLOUDFLARE_ACCOUNT_ID"), default: "" }),
+          gatewayId: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_ID"), default: "" }),
+          token: env({ secret: true, source: env.source("CLOUDFLARE_AI_GATEWAY_TOKEN"), default: "" }),
+          slug: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_SLUG"), default: "typesafe" }),
+        },
       },
     },
   },

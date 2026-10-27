@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
 import * as v from "valibot"
-import { cloudflare, type AiGateway, typesafe, vercel } from "vite-hub/agent/gateways"
+import { cloudflare, type AiGateway, typesafe, vercel } from "vite-hub/gateways"
 import { db } from "vite-hub/database/drizzle"
 import { useServerEnv } from "#vitehub/env/server"
 import type { AiGatewayInput, AiGatewaySettings, AiRoute, AiTestResult, SecretHint } from "#shared/api"
@@ -11,7 +11,7 @@ import { HTTPError } from "./http-error"
 
 /**
  * How a household reaches Jev, TypeSafe's model for AI categories. Each route is one of ViteHub's AI gateways
- * (`vite-hub/agent/gateways`), which all answer the same questions with `gateway.ask()`:
+ * (`vite-hub/gateways`), which all answer the same questions with `gateway.ask()`:
  *
  * - `typesafe`: TypeSafe's API, with a TypeSafe key.
  * - `vercel`: Vercel AI Gateway, with an AI Gateway key.
@@ -19,8 +19,8 @@ import { HTTPError } from "./http-error"
  *   gateway ids, an optional gateway token (authenticated gateways), and the provider's slug (default `typesafe`).
  *
  * The household's owner picks one in Settings › Categories; its secrets are sealed like connection credentials and never
- * go back to the browser. Without one, the household uses the server's own route (`typesafeEnv()` in nuxt.config.ts,
- * `FINANCE_AI_GATEWAY` at build time). Without either, AI categories are off. The demo build never asks Jev.
+ * go back to the browser. Without one, the household uses the server's own route (nuxt.config.ts `vite.env.server`).
+ * Without either, AI categories are off. The demo build never asks Jev.
  */
 
 /** What `ai_credentials` holds, sealed. */
@@ -42,27 +42,24 @@ export interface Route {
 const present = (value: string | null | undefined) => (value?.trim() ? value.trim() : undefined)
 
 /**
- * The server's own route and credentials, from its `typesafeEnv()` group, when it has what that route needs. Passed to the
- * preset explicitly, like a household's, instead of the preset's own Env lookup.
+ * The server's own route and credentials (nuxt.config.ts `vite.env.server`), the first that has what it needs: Cloudflare
+ * AI Gateway (the TypeSafe key, account, and gateway), TypeSafe (its key), then Vercel AI Gateway (an AI Gateway key).
+ * Passed to the preset explicitly, like a household's, instead of the preset's own Env lookup.
  */
 function serverCredentials(): { gateway: AiRoute; credentials: Credentials } | null {
   if (isDemo()) return null
-  // Its type follows the build's FINANCE_AI_GATEWAY; read it as any of the three.
-  const config: {
-    provider?: string
-    apiKey?: { unseal(): string | undefined }
-    cloudflare?: { accountId?: string; gatewayId?: string; slug?: string; token?: { unseal(): string | undefined } }
-  } = useServerEnv().typesafe
-  const gateway: AiRoute = config.provider === "vercel" || config.provider === "cloudflare" ? config.provider : "typesafe"
-  const apiKey = present(config.apiKey?.unseal())
-  if (!apiKey) return null
-  if (gateway !== "cloudflare") return { gateway, credentials: { apiKey } }
-  const accountId = present(config.cloudflare?.accountId)
-  const gatewayId = present(config.cloudflare?.gatewayId)
-  if (!accountId || !gatewayId) return null
-  const token = present(config.cloudflare?.token?.unseal())
-  const slug = present(config.cloudflare?.slug)
-  return { gateway, credentials: { apiKey, accountId, gatewayId, ...(token ? { token } : {}), ...(slug ? { slug } : {}) } }
+  const { cloudflare, typesafe, vercel } = useServerEnv()
+  const typesafeKey = present(typesafe.apiKey?.unseal())
+  const accountId = present(cloudflare.accountId)
+  const gatewayId = present(cloudflare.gatewayId)
+  if (typesafeKey && accountId && gatewayId) {
+    const token = present(cloudflare.token.unseal())
+    const slug = present(cloudflare.slug)
+    return { gateway: "cloudflare", credentials: { apiKey: typesafeKey, accountId, gatewayId, ...(token ? { token } : {}), ...(slug ? { slug } : {}) } }
+  }
+  if (typesafeKey) return { gateway: "typesafe", credentials: { apiKey: typesafeKey } }
+  const gatewayKey = present(vercel.apiKey.unseal())
+  return gatewayKey ? { gateway: "vercel", credentials: { apiKey: gatewayKey } } : null
 }
 
 /** The server's own route, or null when it has no key. */

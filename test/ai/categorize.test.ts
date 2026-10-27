@@ -1,4 +1,4 @@
-import { cloudflare, typesafe } from "vite-hub/agent/gateways"
+import { cloudflare, typesafe } from "vite-hub/gateways"
 import { describe, expect, it, vi } from "vitest"
 import { DEFAULT_CATEGORIES } from "../../shared/categories"
 import {

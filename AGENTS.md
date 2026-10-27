@@ -132,11 +132,11 @@ runs only with a key (the household's or the server's), never in the demo, and n
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
 `keySource`), counts, tokens, and cost.
 
-Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudflare()` from `vite-hub/agent/gateways`,
-pnpm-patched until upstream ships them) and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
+Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudflare()` from `vite-hub/gateways`,
+pnpm-patched until upstream ships `@vite-hub/gateways`) and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
 picks the household's own route (`householdSettings.aiGateway`, its key and Cloudflare fields sealed in `aiCredentials`
-with crypto.ts) when its owner set one in Settings › Categories, else the server's `typesafeEnv()` group (nuxt.config.ts;
-`FINANCE_AI_GATEWAY` picks the route at build time), else none. It passes every credential to the preset explicitly, so a
+with crypto.ts) when its owner set one in Settings › Categories, else the server's own route from nuxt.config.ts
+`vite.env.server` (`cloudflare` when the TypeSafe key, account, and gateway are set, else `typesafe`, else `vercel`), else none. It passes every credential to the preset explicitly, so a
 household's route never picks up the server's variables, and the server's comes from its typed `useServerEnv()`. The browser gets only `{ last4 }` of a secret; `GET/PUT
 /api/household/ai` and `POST /api/household/ai/test` are owner-only, in the browser, and refused in the demo.
 
