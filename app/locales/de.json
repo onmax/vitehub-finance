@@ -168,7 +168,7 @@
   "queryId": "Query ID",
   "theTokenIsStoredEncryptedAFlexTokenOnlyReads": "Der Token wird verschlüsselt gespeichert. Ein Flex-Token liest nur Berichte und kann weder handeln noch Geld bewegen.",
   "privateKey": "Privater Schlüssel",
-  "inKrakenOpenSettingsApiAndCreateAKeyWith": "Öffne in Kraken Settings › API und erstelle einen Schlüssel nur mit Query Funds und Query Ledger Entries. Lass Handel und Auszahlungen deaktiviert.",
+  "inKrakenOpenSettingsApiAndCreateAKeyWith": "Öffne in Kraken Settings › API und erstelle einen Schlüssel nur mit Query Funds. Lass Handel und Auszahlungen deaktiviert.",
   "secretKey": "Geheimer Schlüssel",
   "inBinanceOpenApiManagementAndCreateASystemGenerated": "Öffne in Binance API Management und erstelle einen systemgenerierten Schlüssel. Aktiviere nur Enable Reading, keinen Handel und keine Auszahlungen.",
   "keyName": "Schlüsselname",
@@ -1338,7 +1338,7 @@
   "catalogConnectedDescription": "Das wurde gefunden.",
   "catalogConnectedStatus": "In deinem Haushalt verbunden. Du kannst auch ein weiteres Konto verbinden.",
   "catalogDegiroDescription": "Aktien, ETFs und Anleihen.",
-  "catalogDocs": "Dokumentation von {name}",
+  "catalogDocs": "{name} verbinden: Anleitung",
   "catalogElsewhereBanks": "Bankkonten, manuelle Konten und CSV-Importe findest du unter",
   "catalogElsewhereCrypto": "Kryptobörsen und Wallets findest du unter",
   "catalogElsewhereInvestments": "Interactive Brokers findest du unter",
@@ -1541,7 +1541,7 @@
   "catalogIbkrStepTitle": "Lege in IBKR eine Flex Query und ein Token an und füge sie ein",
   "catalogIbkrWhere": "Beides findest du im Client Portal von IBKR unter Performance & Reports › Flex Queries.",
   "catalogIbkrOpenPortal": "Client Portal von IBKR öffnen",
-  "catalogIbkrDocs": "Doku von IBKR",
+  "catalogIbkrDocs": "Schritt-für-Schritt-Anleitung",
   "catalogIbkrAiShort": "Schneller mit Configure with AI von IBKR:",
   "catalogIbkrTokenRenew": "Es wird täglich genutzt, bis es abläuft. Erzeuge dann ein neues und verbinde dich damit erneut: Deine Konten und ihr Verlauf bleiben.",
   "syncStatusSyncingOne": "{name} wird synchronisiert…",
@@ -1549,5 +1549,7 @@
   "syncStatusSyncingDetail": "Die Seiten aktualisieren sich danach",
   "syncStatusNeedsYouOne": "{name} braucht dich",
   "syncStatusNeedsYouMany": "{count} Verbindungen brauchen dich",
-  "syncStatusUpToDate": "Aktuell"
+  "syncStatusUpToDate": "Aktuell",
+  "docs": "Dokumentation",
+  "howItWorks": "So funktioniert es"
 }

@@ -35,7 +35,7 @@ async function submit() {
   <UForm :id="flow.formId" :state="state" :validate="validate" :disabled="flow.pending.value" class="flex flex-col gap-4" @submit="submit">
     <UFormField :label="labels.key()" name="key">
       <template #hint>
-        <ULink :to="flow.entry.docs ?? undefined" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-medium text-highlighted underline-offset-4 hover:underline">
+        <ULink :to="flow.entry.docs ? `${flow.entry.docs}#create-a-read-only-key` : undefined" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-medium text-highlighted underline-offset-4 hover:underline">
           {{ $t('catalogGetAKey') }}<UIcon name="i-lucide-arrow-up-right" class="size-3" />
         </ULink>
       </template>

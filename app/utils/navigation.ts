@@ -25,4 +25,5 @@ export const CONNECT_PAGES = [
 export const SECONDARY_PAGES = [
   { get label() { return translate('household') }, icon: "i-lucide-users", to: "/household", key: "h" },
   { get label() { return translate('settings') }, icon: "i-lucide-settings", to: "/settings", key: "s" },
+  { get label() { return translate('docs') }, icon: "i-lucide-book-open", to: "/docs", key: "d" },
 ] as const

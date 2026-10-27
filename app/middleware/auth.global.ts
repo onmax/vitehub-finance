@@ -1,8 +1,8 @@
 // Signed-out people go to /login (with where they were headed); signed-in people skip /login and /signup.
-// /invite/<id> and /oauth handle both states themselves; /privacy and /terms are for everyone. The demo build has no
+// /invite/<id> and /oauth handle both states themselves; /privacy, /terms, and /docs are for everyone. The demo build has no
 // accounts to sign in to: a signed-out visitor enters the demo household, wherever they arrive.
 const PUBLIC = new Set(["/login", "/signup"])
-const OPEN = [/^\/invite\//, /^\/oauth\/?$/, /^\/(privacy|terms)\/?$/]
+const OPEN = [/^\/invite\//, /^\/oauth\/?$/, /^\/(privacy|terms)\/?$/, /^\/docs(\/|$)/]
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (OPEN.some((pattern) => pattern.test(to.path))) return

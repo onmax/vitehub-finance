@@ -39,6 +39,7 @@ export interface CatalogProvider {
   auth: AuthMethod
   /** How it signs in, in a sentence. */
   readonly authDetail: string
+  /** Its guide in /docs (docs/2.providers/); null for platforms that can't be connected yet. */
   docs: string | null
   /** Can't be connected yet: its tile says "Coming soon" and offers a CSV import instead. */
   soon?: true
@@ -74,7 +75,7 @@ const step = (id: string, title: () => string, component: Component, action?: ()
 const exchangeSteps = [step("key", () => translate('catalogStepPasteTheKey'), ExchangeKey, () => translate('catalogCheckAndConnect'))]
 const walletSteps = [step("address", () => translate('catalogStepPasteTheAddress'), WalletAddress, () => translate('addWallet'))]
 
-function exchange(provider: "kraken" | "binance" | "coinbase", name: string, domain: string, docs: string, detail: () => string): CatalogProvider {
+function exchange(provider: "kraken" | "binance" | "coinbase", name: string, domain: string, detail: () => string): CatalogProvider {
   return {
     id: provider,
     provider,
@@ -86,12 +87,12 @@ function exchange(provider: "kraken" | "binance" | "coinbase", name: string, dom
     get cannot() { return [translate('catalogCannotTradeOrWithdraw'), translate('catalogCannotSeePassword', { name })] },
     auth: "api-key",
     get authDetail() { return detail() },
-    docs,
+    docs: providerDocs(provider),
     steps: exchangeSteps,
   }
 }
 
-function wallet(provider: "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq", name: string, domain: string, history: boolean, docs: string): CatalogProvider {
+function wallet(provider: "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq", name: string, domain: string, history: boolean): CatalogProvider {
   return {
     id: provider,
     provider,
@@ -111,7 +112,7 @@ function wallet(provider: "bitcoin" | "ethereum" | "solana" | "xrpl" | "nimiq", 
     get cannot() { return [translate('catalogCannotSpend'), ...(history ? [] : [translate('catalogCannotHistory')])] },
     auth: "address",
     get authDetail() { return translate('catalogAddressDetail') },
-    docs,
+    docs: providerDocs(provider),
     steps: walletSteps,
   }
 }
@@ -135,14 +136,14 @@ function comingSoon(id: string, name: string, domain: string, description: () =>
 }
 
 export const CATALOG: CatalogProvider[] = [
-  exchange("kraken", "Kraken", "kraken.com", "https://support.kraken.com/articles/360000919966-how-to-create-an-api-key", () => translate('inKrakenOpenSettingsApiAndCreateAKeyWith')),
-  exchange("binance", "Binance", "binance.com", "https://www.binance.com/en/support/faq/detail/360002502072", () => translate('inBinanceOpenApiManagementAndCreateASystemGenerated')),
-  exchange("coinbase", "Coinbase", "coinbase.com", "https://docs.cdp.coinbase.com/coinbase-app/authentication-authorization/api-key-authentication", () => translate('inTheCoinbaseDeveloperPlatformCreateASecretApiKey')),
-  wallet("bitcoin", "Bitcoin", "bitcoin.org", true, "https://bitcoin.org/en/how-it-works"),
-  wallet("ethereum", "Ethereum", "ethereum.org", false, "https://ethereum.org/wallets/"),
-  wallet("solana", "Solana", "solana.com", false, "https://solana.com/wallets"),
-  wallet("xrpl", "XRP Ledger", "xrpl.org", true, "https://xrpl.org/docs/concepts/accounts"),
-  wallet("nimiq", "Nimiq", "nimiq.com", true, "https://www.nimiq.com/"),
+  exchange("kraken", "Kraken", "kraken.com", () => translate('inKrakenOpenSettingsApiAndCreateAKeyWith')),
+  exchange("binance", "Binance", "binance.com", () => translate('inBinanceOpenApiManagementAndCreateASystemGenerated')),
+  exchange("coinbase", "Coinbase", "coinbase.com", () => translate('inTheCoinbaseDeveloperPlatformCreateASecretApiKey')),
+  wallet("bitcoin", "Bitcoin", "bitcoin.org", true),
+  wallet("ethereum", "Ethereum", "ethereum.org", false),
+  wallet("solana", "Solana", "solana.com", false),
+  wallet("xrpl", "XRP Ledger", "xrpl.org", true),
+  wallet("nimiq", "Nimiq", "nimiq.com", true),
   {
     id: "ibkr",
     provider: "ibkr",
@@ -154,7 +155,7 @@ export const CATALOG: CatalogProvider[] = [
     get cannot() { return [translate('catalogCannotTradeOrMoveMoney'), translate('catalogCannotReadOutsideTheQuery')] },
     auth: "flex-token",
     get authDetail() { return translate('catalogFlexTokenDetail') },
-    docs: "https://www.ibkrguides.com/clientportal/performanceandstatements/flex3.htm",
+    docs: providerDocs("ibkr"),
     steps: [
       step("connect", () => translate('catalogIbkrStepTitle'), IbkrConnect, () => translate('catalogCheckAndConnect')),
     ],

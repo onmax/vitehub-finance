@@ -168,7 +168,7 @@
   "queryId": "Query ID",
   "theTokenIsStoredEncryptedAFlexTokenOnlyReads": "O token é guardado cifrado. Um token Flex apenas lê relatórios e não permite negociar nem movimentar dinheiro.",
   "privateKey": "Chave privada",
-  "inKrakenOpenSettingsApiAndCreateAKeyWith": "No Kraken, abra Settings › API e crie uma chave apenas com Query Funds e Query Ledger Entries. Desative a negociação e os levantamentos.",
+  "inKrakenOpenSettingsApiAndCreateAKeyWith": "No Kraken, abra Settings › API e crie uma chave apenas com Query Funds. Desative a negociação e os levantamentos.",
   "secretKey": "Chave secreta",
   "inBinanceOpenApiManagementAndCreateASystemGenerated": "Na Binance, abra API Management e crie uma chave gerada pelo sistema. Ative apenas Enable Reading, sem negociação nem levantamentos.",
   "keyName": "Nome da chave",
@@ -1338,7 +1338,7 @@
   "catalogConnectedDescription": "Eis o que encontrou.",
   "catalogConnectedStatus": "Ligado no seu agregado. Também pode ligar outra conta.",
   "catalogDegiroDescription": "Ações, ETF e obrigações.",
-  "catalogDocs": "Documentação da {name}",
+  "catalogDocs": "Como conectar {name}",
   "catalogElsewhereBanks": "As contas bancárias, as contas manuais e as importações CSV estão em",
   "catalogElsewhereCrypto": "As plataformas cripto e as carteiras estão em",
   "catalogElsewhereInvestments": "A Interactive Brokers está em",
@@ -1541,7 +1541,7 @@
   "catalogIbkrStepTitle": "Crie uma Flex Query e um token no IBKR e cole-os",
   "catalogIbkrWhere": "Ambos estão no Client Portal do IBKR, em Performance & Reports › Flex Queries.",
   "catalogIbkrOpenPortal": "Abrir o Client Portal do IBKR",
-  "catalogIbkrDocs": "Documentação do IBKR",
+  "catalogIbkrDocs": "Guia passo a passo",
   "catalogIbkrAiShort": "Mais rápido com o Configure with AI do IBKR:",
   "catalogIbkrTokenRenew": "É usado todos os dias até expirar. Depois crie outro e ligue-se de novo com ele: as suas contas e o histórico mantêm-se.",
   "syncStatusSyncingOne": "A sincronizar {name}…",
@@ -1549,5 +1549,7 @@
   "syncStatusSyncingDetail": "As páginas atualizam-se no fim",
   "syncStatusNeedsYouOne": "{name} precisa de si",
   "syncStatusNeedsYouMany": "{count} ligações precisam de si",
-  "syncStatusUpToDate": "Atualizado"
+  "syncStatusUpToDate": "Atualizado",
+  "docs": "Documentação",
+  "howItWorks": "Como funciona"
 }

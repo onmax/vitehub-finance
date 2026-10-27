@@ -132,6 +132,9 @@ export default defineNuxtConfig({
     colorMode: true,
     // Geist is self-hosted from Fontsource (see `css`).
     fonts: false,
+    // Prose components (ProseH2, ProseCallout, ProseSteps…) and ContentNavigation/ContentToc render /docs.
+    prose: true,
+    content: true,
     theme: { colors: ["primary", "secondary", "success", "info", "warning", "error", "neutral"] },
   },
 
@@ -197,6 +200,7 @@ export default defineNuxtConfig({
           "undo-2",
           "coins",
           "settings",
+          "book-open",
           "wallet-cards",
           // Account kinds (shared/accounts.ts).
           "landmark",
@@ -253,6 +257,8 @@ export default defineNuxtConfig({
       ...(host === "node" ? [here("./server/database-migrate.ts")] : []),
     ],
     modules: [evlog(EVLOG)],
+    // The docs' Markdown, bundled with the server so a Worker can read it (server/content.ts).
+    serverAssets: [{ baseName: "docs", dir: here("./docs") }],
     cloudflare: {
       wrangler: {
         name: worker,

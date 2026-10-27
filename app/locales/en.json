@@ -169,7 +169,7 @@
   "queryId": "Query ID",
   "theTokenIsStoredEncryptedAFlexTokenOnlyReads": "The token is stored encrypted. A Flex token only reads reports and can’t trade or move money.",
   "privateKey": "Private key",
-  "inKrakenOpenSettingsApiAndCreateAKeyWith": "In Kraken, open Settings › API and create a key with only Query Funds and Query Ledger Entries. Leave trading and withdrawals off.",
+  "inKrakenOpenSettingsApiAndCreateAKeyWith": "In Kraken, open Settings › API and create a key with only Query Funds. Leave trading and withdrawals off.",
   "secretKey": "Secret key",
   "inBinanceOpenApiManagementAndCreateASystemGenerated": "In Binance, open API Management and create a system-generated key. Keep only Enable Reading on; no trading, no withdrawals.",
   "keyName": "Key name",
@@ -1338,7 +1338,7 @@
   "catalogConnectedDescription": "Here’s what it found.",
   "catalogConnectedStatus": "Connected in your household. You can connect another account too.",
   "catalogDegiroDescription": "Shares, ETFs, and bonds.",
-  "catalogDocs": "{name} docs",
+  "catalogDocs": "How to connect {name}",
   "catalogElsewhereBanks": "Bank accounts, manual accounts, and CSV imports are under",
   "catalogElsewhereCrypto": "Exchanges and wallets are under",
   "catalogElsewhereInvestments": "Interactive Brokers is under",
@@ -1541,7 +1541,7 @@
   "catalogIbkrStepTitle": "Make a Flex Query and a token in IBKR, then paste them",
   "catalogIbkrWhere": "Both are in IBKR’s Client Portal, under Performance & Reports › Flex Queries.",
   "catalogIbkrOpenPortal": "Open IBKR’s Client Portal",
-  "catalogIbkrDocs": "IBKR’s docs",
+  "catalogIbkrDocs": "Step-by-step guide",
   "catalogIbkrAiShort": "Quicker with IBKR’s Configure with AI:",
   "catalogIbkrTokenRenew": "It’s used every day until it expires. Then make a new one and connect again with it: your accounts and their history stay.",
   "syncStatusSyncingOne": "Syncing {name}…",
@@ -1549,5 +1549,7 @@
   "syncStatusSyncingDetail": "Pages update when it’s done",
   "syncStatusNeedsYouOne": "{name} needs you",
   "syncStatusNeedsYouMany": "{count} connections need you",
-  "syncStatusUpToDate": "Up to date"
+  "syncStatusUpToDate": "Up to date",
+  "docs": "Docs",
+  "howItWorks": "How it works"
 }

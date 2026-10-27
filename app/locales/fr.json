@@ -168,7 +168,7 @@
   "queryId": "Query ID",
   "theTokenIsStoredEncryptedAFlexTokenOnlyReads": "Le jeton est stocké chiffré. Un jeton Flex permet seulement de lire des rapports, sans passer d’ordres ni déplacer d’argent.",
   "privateKey": "Clé privée",
-  "inKrakenOpenSettingsApiAndCreateAKeyWith": "Dans Kraken, ouvrez Settings › API et créez une clé avec uniquement Query Funds et Query Ledger Entries. Désactivez le trading et les retraits.",
+  "inKrakenOpenSettingsApiAndCreateAKeyWith": "Dans Kraken, ouvrez Settings › API et créez une clé avec uniquement Query Funds. Désactivez le trading et les retraits.",
   "secretKey": "Clé secrète",
   "inBinanceOpenApiManagementAndCreateASystemGenerated": "Dans Binance, ouvrez API Management et créez une clé générée par le système. Activez uniquement Enable Reading, sans trading ni retraits.",
   "keyName": "Nom de la clé",
@@ -1338,7 +1338,7 @@
   "catalogConnectedDescription": "Voici ce qui a été trouvé.",
   "catalogConnectedStatus": "Connecté dans votre foyer. Vous pouvez aussi connecter un autre compte.",
   "catalogDegiroDescription": "Actions, ETF et obligations.",
-  "catalogDocs": "Documentation de {name}",
+  "catalogDocs": "Connecter {name} : le guide",
   "catalogElsewhereBanks": "Les comptes bancaires, les comptes manuels et les imports CSV se trouvent dans",
   "catalogElsewhereCrypto": "Les plateformes crypto et les portefeuilles se trouvent dans",
   "catalogElsewhereInvestments": "Interactive Brokers se trouve dans",
@@ -1541,7 +1541,7 @@
   "catalogIbkrStepTitle": "Créez une Flex Query et un jeton dans IBKR, puis collez-les",
   "catalogIbkrWhere": "Les deux sont dans le Client Portal d’IBKR, sous Performance & Reports › Flex Queries.",
   "catalogIbkrOpenPortal": "Ouvrir le Client Portal d’IBKR",
-  "catalogIbkrDocs": "Documentation d’IBKR",
+  "catalogIbkrDocs": "Guide pas à pas",
   "catalogIbkrAiShort": "Plus rapide avec Configure with AI d’IBKR :",
   "catalogIbkrTokenRenew": "Il sert chaque jour jusqu’à son expiration. Créez-en alors un nouveau et reconnectez-vous avec : vos comptes et leur historique restent.",
   "syncStatusSyncingOne": "Synchronisation de {name}…",
@@ -1549,5 +1549,7 @@
   "syncStatusSyncingDetail": "Les pages se mettent à jour à la fin",
   "syncStatusNeedsYouOne": "{name} a besoin de vous",
   "syncStatusNeedsYouMany": "{count} connexions ont besoin de vous",
-  "syncStatusUpToDate": "À jour"
+  "syncStatusUpToDate": "À jour",
+  "docs": "Documentation",
+  "howItWorks": "Comment ça marche"
 }

@@ -44,6 +44,9 @@ onMounted(() => {
           :title="connections.length ? $t('connectAnotherBank') : $t('connectABank')"
           :description="$t('checkingSavingsAndCardsFromEuropeanBanksReadOnlyOver')"
         >
+          <template #actions>
+            <UButton :to="providerDocs('banks')" target="_blank" color="neutral" variant="link" size="sm" trailing-icon="i-lucide-arrow-up-right" :label="$t('howItWorks')" class="shrink-0" />
+          </template>
           <ConnectBankPicker :error="bankError" @dismiss-error="bankFailure = null" />
         </ConnectSection>
 

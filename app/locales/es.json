@@ -168,7 +168,7 @@
   "queryId": "Query ID",
   "theTokenIsStoredEncryptedAFlexTokenOnlyReads": "El token se guarda cifrado. Un token Flex solo lee informes y no permite operar ni mover dinero.",
   "privateKey": "Clave privada",
-  "inKrakenOpenSettingsApiAndCreateAKeyWith": "En Kraken, abre Settings › API y crea una clave solo con Query Funds y Query Ledger Entries. Deja desactivadas las operaciones y las retiradas.",
+  "inKrakenOpenSettingsApiAndCreateAKeyWith": "En Kraken, abre Settings › API y crea una clave solo con Query Funds. Deja desactivadas las operaciones y las retiradas.",
   "secretKey": "Clave secreta",
   "inBinanceOpenApiManagementAndCreateASystemGenerated": "En Binance, abre API Management y crea una clave generada por el sistema. Activa solo Enable Reading, sin operaciones ni retiradas.",
   "keyName": "Nombre de la clave",
@@ -1338,7 +1338,7 @@
   "catalogConnectedDescription": "Esto es lo que ha encontrado.",
   "catalogConnectedStatus": "Conectado en tu hogar. También puedes conectar otra cuenta.",
   "catalogDegiroDescription": "Acciones, ETF y bonos.",
-  "catalogDocs": "Documentación de {name}",
+  "catalogDocs": "Cómo conectar {name}",
   "catalogElsewhereBanks": "Las cuentas bancarias, las cuentas manuales y las importaciones CSV están en",
   "catalogElsewhereCrypto": "Los exchanges y las carteras están en",
   "catalogElsewhereInvestments": "Interactive Brokers está en",
@@ -1541,7 +1541,7 @@
   "catalogIbkrStepTitle": "Crea una Flex Query y un token en IBKR y pégalos",
   "catalogIbkrWhere": "Ambos están en el Client Portal de IBKR, en Performance & Reports › Flex Queries.",
   "catalogIbkrOpenPortal": "Abrir el Client Portal de IBKR",
-  "catalogIbkrDocs": "Documentación de IBKR",
+  "catalogIbkrDocs": "Guía paso a paso",
   "catalogIbkrAiShort": "Más rápido con Configure with AI de IBKR:",
   "catalogIbkrTokenRenew": "Se usa cada día hasta que caduque. Después crea otro y vuelve a conectar con él: tus cuentas y su historial se mantienen.",
   "syncStatusSyncingOne": "Sincronizando {name}…",
@@ -1549,5 +1549,7 @@
   "syncStatusSyncingDetail": "Las páginas se actualizan al terminar",
   "syncStatusNeedsYouOne": "{name} necesita tu atención",
   "syncStatusNeedsYouMany": "{count} conexiones necesitan tu atención",
-  "syncStatusUpToDate": "Al día"
+  "syncStatusUpToDate": "Al día",
+  "docs": "Documentación",
+  "howItWorks": "Cómo funciona"
 }
