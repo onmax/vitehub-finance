@@ -1,11 +1,12 @@
 /**
- * Marks for the banks people use most, so a connection or account shows its bank without a round trip: a Simple Icons
- * glyph on the bank's own color where Simple Icons has one, otherwise the logo Enable Banking publishes for it. The
+ * Marks for the banks and brokers people use most, so a connection, account, or catalog tile shows its brand without a
+ * round trip: a Simple Icons glyph on the brand's own color where Simple Icons has one, else our own (`i-finance-*`,
+ * app/assets/icons, cut from the brand's published logo), otherwise the logo Enable Banking publishes for it. The
  * server adds Enable Banking's logo for any other bank from its cached bank lists (server/utils/bank-logos.ts).
  * Every `icon` here is listed in nuxt.config's client icon bundle.
  */
 export interface BankMark {
-  /** A Simple Icons glyph (`i-simple-icons-*`), drawn in `fg` on a `bg` tile. */
+  /** A glyph (`i-simple-icons-*`, `i-finance-*`), drawn in `fg` (or its own colors) on a `bg` tile. */
   icon?: string
   bg?: string
   fg?: string
@@ -43,7 +44,11 @@ const MARKS: Array<[string[], BankMark]> = [
   [["ibercaja", "ibercajabanco"], { logo: brand("ES", "Ibercaja Banco") }],
   [["imagin", "imaginbank"], { logo: brand("ES", "imagin") }],
   [["evo", "evobanco"], { logo: brand("ES", "EVO Banco") }],
-  [["traderepublic"], { logo: brand("DE", "Trade Republic") }],
+  [["traderepublic", "traderepublicbank"], { icon: "i-finance-trade-republic", bg: "#000000", fg: "#ffffff" }],
+  [["interactivebrokers", "ibkr"], { icon: "i-finance-ibkr", bg: "#141414" }],
+  [["degiro", "flatexdegiro"], { icon: "i-finance-degiro", bg: "#ffffff", fg: "#009fdf" }],
+  [["scalable", "scalablecapital"], { icon: "i-finance-scalable-capital", bg: "#101112", fg: "#28ebcf" }],
+  [["myinvestor"], { icon: "i-finance-myinvestor", bg: "#ffffff" }],
   [["lunar"], { logo: brand("DK", "Lunar") }],
   [["danskebank", "danske"], { logo: brand("DK", "Danske Bank") }],
   [["nordea"], { logo: brand("FI", "Nordea") }],

@@ -59,13 +59,18 @@ export function refreshStems(...stems: string[]) {
 }
 
 /** Toasts an action's failure, worded by the server when it can, and reports it to the server's logs. */
+/** How long a toast stays: long enough to read it (about 15 characters a second on top of 4 s), 6 to 15 s. */
+const readingTime = (...texts: Array<string | undefined>) => Math.min(15_000, Math.max(6_000, 4_000 + texts.join(" ").length * 65))
+
 export function useNotify() {
   const toast = useToast()
   return {
     error: (error: unknown, title = translate('thatDidnTWork')) => {
       reportClientError("toast", error, { title })
-      return toast.add({ title, description: errorText(error), color: "error", icon: "i-lucide-circle-alert" })
+      const description = errorText(error)
+      return toast.add({ title, description, color: "error", icon: "i-lucide-circle-alert", duration: readingTime(title, description) })
     },
-    success: (title: string, description?: string) => toast.add({ title, description, icon: "i-lucide-circle-check" }),
+    success: (title: string, description?: string) =>
+      toast.add({ title, description, icon: "i-lucide-circle-check", duration: readingTime(title, description) }),
   }
 }

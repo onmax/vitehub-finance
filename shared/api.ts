@@ -182,6 +182,33 @@ export interface TransactionPage {
   totals: { inMinor: number; outMinor: number; count: number; excluded: number }
 }
 
+/** A household rule: when a description or counterparty has `match`, file it under `categoryId` and/or exclude it. */
+export interface Rule {
+  id: string
+  match: string
+  categoryId: string | null
+  exclude: boolean
+  /** Transactions the caller sees that it matches. */
+  matches: number
+}
+
+/** A rule the household's transactions call for (server/utils/rule-suggestions-core.ts). */
+export interface RuleSuggestion {
+  /** Stable, for dismissing it: `<kind>:<match>`. */
+  key: string
+  /** File matches under a category, or exclude them (moves banks make on their own). */
+  kind: "file" | "exclude"
+  match: string
+  /** The category to suggest; null when people should pick one. */
+  categoryId: string | null
+  /** Why: people filed these by hand, AI did, they're the bank's own moves, or the payee just keeps coming back. */
+  because: "manual" | "ai" | "automatic" | "repeats"
+  /** Transactions it would act on. */
+  count: number
+  /** One of their descriptions. */
+  example: string
+}
+
 export interface Overview {
   currency: string
   netWorthMinor: number

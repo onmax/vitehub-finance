@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { categorize, matchRule, sqliteLowerForms, startsWord } from "../../server/providers/dedupe"
+import { categorize, ruleActions, sqliteLowerForms, startsWord } from "../../server/providers/dedupe"
 
 describe("rules", () => {
   it("match at the start of a word, not inside one", () => {
@@ -18,13 +18,14 @@ describe("rules", () => {
     expect(categorize(rules, { description: "Coffee at Amazon" })).toBe("shopping")
   })
 
-  it("say whether the matching rule excludes", () => {
+  it("exclude when any matching rule excludes, and file under the longest one with a category", () => {
     const rules = [
       { match: "revolut", categoryId: "fees" },
-      { match: "revpoints spare change", categoryId: "transfers", exclude: true },
+      { match: "revolut spare change", categoryId: null, exclude: true },
     ]
-    expect(matchRule(rules, { description: "To Revpoints", counterparty: "Revpoints Spare Change" })?.exclude).toBe(true)
-    expect(matchRule(rules, { description: "Revolut fee" })?.exclude).toBeFalsy()
+    expect(ruleActions(rules, { description: "Revolut Spare Change" })).toEqual({ categoryId: "fees", exclude: true })
+    expect(ruleActions(rules, { description: "Revolut fee" })).toEqual({ categoryId: "fees", exclude: false })
+    expect(ruleActions(rules, { description: "Lidl" })).toEqual({ categoryId: null, exclude: false })
   })
 })
 

@@ -1,14 +1,7 @@
-import { asc, eq } from "drizzle-orm"
 import { defineHandler } from "h3"
-import { db } from "vite-hub/database/drizzle"
-import { rule } from "../../databases/config"
+import type { Rule } from "#shared/api"
 import { requireMember } from "../../utils/identity"
+import { listRules } from "../../utils/rules"
 
-export default defineHandler(async (event): Promise<Array<{ id: string; match: string; categoryId: string; exclude: boolean }>> => {
-  const who = await requireMember(event)
-  return db
-    .select({ id: rule.id, match: rule.match, categoryId: rule.categoryId, exclude: rule.exclude })
-    .from(rule)
-    .where(eq(rule.householdId, who.householdId))
-    .orderBy(asc(rule.match))
-})
+/** The household's rules, with how many of the caller's transactions each matches. */
+export default defineHandler(async (event): Promise<Rule[]> => listRules(await requireMember(event)))

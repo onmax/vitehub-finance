@@ -10,6 +10,7 @@ const links = computed<NavigationMenuItem[]>(() =>
     { get label() { return translate('security') }, icon: "i-lucide-shield", to: "/settings/security" },
     { get label() { return translate('agents') }, icon: "i-lucide-bot", to: "/settings/agents" },
     { get label() { return translate('categories') }, icon: "i-lucide-tags", to: "/settings/categories" },
+    { get label() { return translate('rules') }, icon: "i-lucide-list-filter", to: "/settings/rules" },
   ].map((link) => ({ ...link, active: route.path === link.to })),
 )
 </script>

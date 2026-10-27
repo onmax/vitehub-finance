@@ -8,6 +8,8 @@ const props = withDefaults(
     size?: "xs" | "sm" | "md"
     /** Offer Uncategorized (null) as a choice. */
     allowNone?: boolean
+    /** What the null choice is called, when it isn't "Uncategorized" (a rule's "Don't change"). */
+    noneLabel?: string
     kinds?: Array<"expense" | "income" | "transfer">
     disabled?: boolean
     ariaLabel?: string
@@ -17,7 +19,9 @@ const props = withDefaults(
 const model = defineModel<string | null | undefined>()
 const { items: all, find } = useCategories()
 const items = computed(() =>
-  all.value.filter((item) => (item.id === null ? props.allowNone : !props.kinds || props.kinds.includes(item.kind))),
+  all.value
+    .filter((item) => (item.id === null ? props.allowNone : !props.kinds || props.kinds.includes(item.kind)))
+    .map((item) => (item.id === null && props.noneLabel ? { ...item, name: props.noneLabel } : item)),
 )
 const selected = computed(() => find(model.value))
 </script>
@@ -40,7 +44,7 @@ const selected = computed(() => find(model.value))
       <CategoryIcon :icon="selected?.icon" :color="selected?.color" size="sm" />
     </template>
     <template #default>
-      <span class="truncate" :class="selected ? 'text-default' : 'text-muted'">{{ selected?.name ?? (model === null ? $t('uncategorized') : placeholder ?? $t('category')) }}</span>
+      <span class="truncate" :class="selected ? 'text-default' : 'text-muted'">{{ selected?.name ?? (model === null ? (noneLabel ?? $t('uncategorized')) : placeholder ?? $t('category')) }}</span>
     </template>
     <template #item-leading="{ item }">
       <CategoryIcon :icon="item.id ? item.icon : null" :color="item.color" size="sm" />

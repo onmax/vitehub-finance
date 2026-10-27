@@ -189,6 +189,8 @@ export const transaction = sqliteTable(
       .default("booked"),
     // Hidden from spending and forecasts (a refund pair, a duplicate the bank sent).
     excluded: integer("excluded", { mode: "boolean" }).notNull().default(false),
+    // Who decided `excluded`: a rule (undone when the rule stops excluding) or a person (rules then leave it alone).
+    excludeSource: text("exclude_source", { enum: ["rule", "manual"] }),
     // Only the account's owner sees it (a gift, a personal purchase), even on a shared account. server/utils/access.ts
     // `visibleTransactions` applies it; the balance, which the bank reports, still includes it.
     hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
@@ -204,21 +206,33 @@ export const transaction = sqliteTable(
   ],
 )
 
-/** "Description contains X → category Y", applied to new transactions on every sync. */
+/**
+ * "When the description has X, file it under Y and/or exclude it", applied to new transactions on every sync. One rule
+ * per `match`; it does at least one of the two.
+ */
 export const rule = sqliteTable(
   "rule",
   {
     id: text("id").primaryKey(),
     householdId: householdId(),
     match: text("match").notNull(),
-    categoryId: text("category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    categoryId: text("category_id").references(() => category.id, { onDelete: "cascade" }),
     /** Also excludes what it matches: out of the lists (until people show it) and out of every total. */
     exclude: integer("exclude", { mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [index("rule_household_idx").on(table.householdId)],
+)
+
+/** Rule suggestions someone dismissed, by key (server/utils/rule-suggestions-core.ts), so they don't come back. */
+export const dismissedSuggestion = sqliteTable(
+  "dismissed_suggestion",
+  {
+    householdId: householdId(),
+    key: text("key").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.householdId, table.key] })],
 )
 
 /** A monthly limit for a category. `ownerId` set: a personal budget over the owner's accounts; null: the household's. */

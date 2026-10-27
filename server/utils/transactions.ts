@@ -7,7 +7,8 @@ import { canEdit, canHide, canSeeTransaction } from "#shared/access"
 import { category, financialAccount, transaction, user as users } from "../databases/config"
 import { requireAccount, visibleTransactions, type Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
-import { applyRule, ensureRule, similarMatch, textMatches } from "./categorize"
+import { applyRule, ensureRule, textMatches } from "./categorize"
+import { similarMatch } from "./rule-suggestions-core"
 import { decodeCursor, encodeCursor } from "./cursor"
 import { isIsoDate } from "./dates"
 import type { Member } from "./identity"
@@ -232,7 +233,8 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   if (change.categoryId !== undefined)
     Object.assign(set, { categoryId: change.categoryId, categoryLocked: true, categorySource: change.categoryId ? "manual" : null, aiGuessId: null })
   if (change.note !== undefined) set.note = change.note?.trim() || null
-  if (change.excluded !== undefined) set.excluded = change.excluded
+  // A person's call either way: rules stop excluding (or showing) it.
+  if (change.excluded !== undefined) Object.assign(set, { excluded: change.excluded, excludeSource: "manual" })
   if (change.hidden !== undefined) set.hidden = change.hidden
   if (Object.keys(set).length) await db.update(transaction).set(set).where(eq(transaction.id, id))
   // Someone said one side of a detected transfer is something else: the two rows stop being a pair.
@@ -244,10 +246,10 @@ export async function updateTransaction(who: Member, id: string, change: Transac
     // transaction never becomes one: similar transactions on the caller's own accounts get the category, and no rule
     // is saved.
     if (match && (account.visibility === "private" || (change.hidden ?? row.hidden)))
-      await applyRule(who, match, change.categoryId, { ownOnly: true })
+      await applyRule(who, { match, categoryId: change.categoryId, exclude: false }, { ownOnly: true })
     else if (match) {
-      await ensureRule(who.householdId, match, change.categoryId)
-      await applyRule(who, match, change.categoryId)
+      await ensureRule(who.householdId, match, { categoryId: change.categoryId })
+      await applyRule(who, { match, categoryId: change.categoryId, exclude: false })
     }
   }
   // Excluding a charge (a duplicate the bank sent) changes which payments repeat; so does hiding one, since recurring

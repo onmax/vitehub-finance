@@ -55,7 +55,8 @@ export function isDate(value: string) {
 
 export interface Rule {
   match: string
-  categoryId: string
+  /** The category it files matches under, or null for a rule that only excludes. */
+  categoryId: string | null
   /** Matches are excluded too: out of the lists and every total. */
   exclude?: boolean
 }
@@ -77,20 +78,27 @@ export function startsWord(haystack: string, needle: string) {
   return false
 }
 
-/**
- * The rule for a row: the one whose `match` (case-insensitive) starts a word in the description or counterparty; the
- * longest match wins. server/utils/categorize.ts `ruleMatches` is the same test in SQL.
- */
-export function matchRule(rules: Rule[], row: { description: string; counterparty?: string | null }) {
-  const haystack = `${row.description.toLowerCase()}\n${(row.counterparty ?? "").toLowerCase()}`
-  let best: Rule | null = null
-  for (const rule of rules) {
-    const needle = rule.match.toLowerCase()
-    if (!needle.trim() || !startsWord(haystack, needle)) continue
-    if (!best || needle.length > best.match.length) best = rule
-  }
-  return best
+const matches = (rule: Rule, haystack: string) => {
+  const needle = rule.match.toLowerCase()
+  return needle.trim() !== "" && startsWord(haystack, needle)
 }
 
-/** The category the matching rule gives a row, or null. */
-export const categorize = (rules: Rule[], row: { description: string; counterparty?: string | null }) => matchRule(rules, row)?.categoryId ?? null
+/**
+ * What the rules do to a row. A rule matches when its `match` (case-insensitive) starts a word in the description or
+ * counterparty, and each rule does its own part: the longest matching rule with a category gives the category, and any
+ * matching rule that excludes excludes it. server/utils/categorize.ts `ruleMatches` is the same test in SQL.
+ */
+export function ruleActions(rules: Rule[], row: { description: string; counterparty?: string | null }) {
+  const haystack = `${row.description.toLowerCase()}\n${(row.counterparty ?? "").toLowerCase()}`
+  let filer: Rule | null = null
+  let exclude = false
+  for (const rule of rules) {
+    if (!matches(rule, haystack)) continue
+    if (rule.exclude) exclude = true
+    if (rule.categoryId && (!filer || rule.match.length > filer.match.length)) filer = rule
+  }
+  return { categoryId: filer?.categoryId ?? null, exclude }
+}
+
+/** The category the matching rules give a row, or null. */
+export const categorize = (rules: Rule[], row: { description: string; counterparty?: string | null }) => ruleActions(rules, row).categoryId

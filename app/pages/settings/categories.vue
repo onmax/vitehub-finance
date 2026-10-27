@@ -2,7 +2,7 @@
 import type { Category } from "#shared/api"
 import { CategoryModal } from "#components"
 
-// The household's categories, grouped by kind, and the rules that file transactions into them.
+// The household's categories, grouped by kind. The rules that file transactions into them are on Settings › Rules.
 useHead({ get title() { return translate('categories') } })
 const { categories, status, error, refresh } = useCategories()
 const confirm = useConfirm()
@@ -94,6 +94,4 @@ async function remove(category: Category) {
   </SettingsSection>
 
   <SettingsAiGateway v-if="!demoBuild" />
-
-  <SettingsRules />
 </template>

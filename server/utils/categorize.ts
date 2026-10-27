@@ -2,8 +2,7 @@ import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import { financialAccount, rule, transaction } from "../databases/config"
 import type { Member } from "./identity"
-import { sqliteLowerForms } from "../providers/dedupe"
-import { normalizedWords } from "./recurring-core"
+import { ruleActions, sqliteLowerForms } from "../providers/dedupe"
 
 /** The accounts someone may categorize: shared/access.ts `canEdit`, as SQL. */
 export function editableAccounts(who: Pick<Member, "userId" | "householdId">): SQL {
@@ -44,70 +43,81 @@ export function ruleMatches(text: string): SQL {
   return or(column(sql`lower(${transaction.description})`), column(sql`lower(coalesce(${transaction.counterparty}, ''))`))!
 }
 
-/**
- * What "apply to similar" matches on: the counterparty when the bank names one, else the description's first
- * meaningful words (up to three in a row, skipping card masks, dates, and payment words), as they appear in it.
- */
-export function similarMatch(row: { description: string; counterparty: string | null }) {
-  const counterparty = row.counterparty?.trim().toLowerCase()
-  if (counterparty && counterparty.length >= 3) return counterparty
-  const text = row.description.toLowerCase()
-  const tokens = [...text.matchAll(/\S+/g)].map((match) => ({
-    start: match.index,
-    end: match.index + match[0].length,
-    meaningful: !/\d/.test(match[0]) && normalizedWords(match[0]).length > 0,
-  }))
-  const first = tokens.findIndex((token) => token.meaningful)
-  if (first < 0) return null
-  let last = first
-  while (last + 1 < tokens.length && last - first < 2 && tokens[last + 1]!.meaningful) last++
-  const match = text.slice(tokens[first]!.start, tokens[last]!.end).replace(/[.,;:]+$/, "")
-  return match.length >= 3 ? match : null
+export interface RuleAction {
+  /** The category to file matches under; null leaves categories alone. */
+  categoryId: string | null
+  exclude: boolean
 }
 
-/** A rule for `match`, reusing an identical one (and turning its `exclude` on when asked). */
-export async function ensureRule(householdId: string, match: string, categoryId: string, exclude = false) {
+/**
+ * The household's rule for `match`, made or updated: one rule per match. A category given replaces the rule's; asking
+ * to exclude turns `exclude` on (it's never turned off here: that's `setRule`).
+ */
+export async function ensureRule(householdId: string, match: string, action: Partial<RuleAction>) {
   const [existing] = await db
     .select()
     .from(rule)
-    .where(and(eq(rule.householdId, householdId), eq(rule.match, match), eq(rule.categoryId, categoryId)))
+    .where(and(eq(rule.householdId, householdId), eq(rule.match, match)))
     .limit(1)
-  if (existing && (existing.exclude || !exclude)) return existing
-  if (existing) return (await db.update(rule).set({ exclude }).where(eq(rule.id, existing.id)).returning())[0]!
-  const [created] = await db.insert(rule).values({ id: crypto.randomUUID(), householdId, match, categoryId, exclude }).returning()
-  return created!
+  if (!existing) {
+    const [created] = await db
+      .insert(rule)
+      .values({ id: crypto.randomUUID(), householdId, match, categoryId: action.categoryId ?? null, exclude: action.exclude ?? false })
+      .returning()
+    return created!
+  }
+  const categoryId = action.categoryId ?? existing.categoryId
+  const exclude = existing.exclude || Boolean(action.exclude)
+  if (categoryId === existing.categoryId && exclude === existing.exclude) return existing
+  return (await db.update(rule).set({ categoryId, exclude }).where(eq(rule.id, existing.id)).returning())[0]!
 }
 
 /**
- * Gives `categoryId` to the caller's editable, uncategorized, unlocked transactions that match. With `exclude`, it
- * also excludes every match whose category no one picked by hand. Accounts they may only view, or not see, stay
- * untouched; the sync applies the rule to new transactions everywhere.
+ * A rule's new action. Turning `exclude` off brings back the transactions it excluded (unless another rule still
+ * excludes them); a new category or `exclude` applies like a new rule (`applyRule`).
+ */
+export async function setRule(who: Pick<Member, "userId" | "householdId">, id: string, action: RuleAction) {
+  const [existing] = await db
+    .select()
+    .from(rule)
+    .where(and(eq(rule.id, id), eq(rule.householdId, who.householdId)))
+    .limit(1)
+  if (!existing) return null
+  const [saved] = await db.update(rule).set(action).where(eq(rule.id, id)).returning()
+  if (existing.exclude && !action.exclude) await includeMatches(who.householdId, existing.match, id)
+  await applyRule(who, saved!)
+  return saved!
+}
+
+/** Deletes a rule; what it excluded comes back, unless another rule still excludes it. */
+export async function deleteRule(householdId: string, id: string) {
+  const [deleted] = await db
+    .delete(rule)
+    .where(and(eq(rule.id, id), eq(rule.householdId, householdId)))
+    .returning()
+  if (deleted?.exclude) await includeMatches(householdId, deleted.match, id)
+  return deleted ?? null
+}
+
+/**
+ * Applies a rule to the caller's editable transactions (`ownOnly`: their own accounts' only): its category to the
+ * uncategorized, unlocked ones, and with `exclude`, excludes every match no one decided on by hand. Accounts they may
+ * only view, or not see, stay untouched; the sync applies the rule to new transactions everywhere.
  */
 export async function applyRule(
   who: Pick<Member, "userId" | "householdId">,
-  match: string,
-  categoryId: string,
-  options: { ownOnly?: boolean; exclude?: boolean } = {},
+  entry: { match: string } & RuleAction,
+  options: { ownOnly?: boolean } = {},
 ) {
   const accounts = options.ownOnly
     ? and(eq(financialAccount.householdId, who.householdId), eq(financialAccount.ownerId, who.userId))
     : editableAccounts(who)
-  const editable = db.select({ id: financialAccount.id }).from(financialAccount).where(accounts)
-  if (options.exclude) await excludeMatches(and(eq(transaction.householdId, who.householdId), inArray(transaction.accountId, editable))!, match)
-  const updated = await db
-    .update(transaction)
-    .set({ categoryId, categorySource: "rule" })
-    .where(
-      and(
-        eq(transaction.householdId, who.householdId),
-        inArray(transaction.accountId, editable),
-        isNull(transaction.categoryId),
-        eq(transaction.categoryLocked, false),
-        ruleMatches(match),
-      ),
-    )
-    .returning({ id: transaction.id })
-  return updated.length
+  const editable = and(
+    eq(transaction.householdId, who.householdId),
+    inArray(transaction.accountId, db.select({ id: financialAccount.id }).from(financialAccount).where(accounts)),
+  )!
+  if (entry.exclude) await excludeMatches(editable, entry.match)
+  if (entry.categoryId) await categorizeMatches(editable, entry.match, entry.categoryId)
 }
 
 /** Rules of a household applied to the uncategorized, unlocked transactions of some accounts (after a move). */
@@ -118,32 +128,50 @@ export async function applyRulesTo(householdId: string, accountIds: string[]) {
     for (let index = 0; index < accountIds.length; index += 80) {
       const accounts = and(eq(transaction.householdId, householdId), inArray(transaction.accountId, accountIds.slice(index, index + 80)))!
       if (entry.exclude) await excludeMatches(accounts, entry.match)
-      await db
-        .update(transaction)
-        .set({ categoryId: entry.categoryId, categorySource: "rule" })
-        .where(
-          and(
-            eq(transaction.householdId, householdId),
-            inArray(transaction.accountId, accountIds.slice(index, index + 80)),
-            isNull(transaction.categoryId),
-            eq(transaction.categoryLocked, false),
-            ruleMatches(entry.match),
-          ),
-        )
+      if (entry.categoryId) await categorizeMatches(accounts, entry.match, entry.categoryId)
     }
 }
 
-/** Excludes the matches of `match` in `accounts` whose category no one picked by hand, and that aren't locked. */
+async function categorizeMatches(accounts: SQL, match: string, categoryId: string) {
+  await db
+    .update(transaction)
+    .set({ categoryId, categorySource: "rule" })
+    .where(and(accounts, isNull(transaction.categoryId), eq(transaction.categoryLocked, false), ruleMatches(match)))
+}
+
+/**
+ * Excludes the matches of `match` in `accounts` that no one decided on: not excluded or shown by hand, not locked, and
+ * with no category picked by hand.
+ */
 async function excludeMatches(accounts: SQL, match: string) {
   await db
     .update(transaction)
-    .set({ excluded: true })
+    .set({ excluded: true, excludeSource: "rule" })
     .where(
       and(
         accounts,
+        isNull(transaction.excludeSource),
         eq(transaction.categoryLocked, false),
         or(isNull(transaction.categorySource), ne(transaction.categorySource, "manual")),
         ruleMatches(match),
       ),
     )
+}
+
+/** Brings back what rules excluded and `match` matches, except what another of the household's excluding rules matches. */
+async function includeMatches(householdId: string, match: string, ruleId: string) {
+  const others = await db
+    .select({ match: rule.match, categoryId: rule.categoryId, exclude: rule.exclude })
+    .from(rule)
+    .where(and(eq(rule.householdId, householdId), eq(rule.exclude, true), ne(rule.id, ruleId)))
+  const rows = await db
+    .select({ id: transaction.id, description: transaction.description, counterparty: transaction.counterparty })
+    .from(transaction)
+    .where(and(eq(transaction.householdId, householdId), eq(transaction.excludeSource, "rule"), ruleMatches(match)))
+  const ids = rows.filter((row) => !ruleActions(others, row).exclude).map((row) => row.id)
+  for (let index = 0; index < ids.length; index += 90)
+    await db
+      .update(transaction)
+      .set({ excluded: false, excludeSource: null })
+      .where(inArray(transaction.id, ids.slice(index, index + 90)))
 }
