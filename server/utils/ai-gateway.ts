@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
 import * as v from "valibot"
-import { jev, type JevClient, type JevOptions } from "vite-hub/agent/gateways"
+import { cloudflare, type AiGateway, typesafe, vercel } from "vite-hub/agent/gateways"
 import { db } from "vite-hub/database/drizzle"
 import { useServerEnv } from "#vitehub/env/server"
 import type { AiGatewayInput, AiGatewaySettings, AiRoute, AiTestResult, SecretHint } from "#shared/api"
@@ -10,8 +10,8 @@ import { seal, unseal } from "./crypto"
 import { HTTPError } from "./http-error"
 
 /**
- * How a household reaches Jev, TypeSafe's model for AI categories. All three routes ask the same questions through
- * ViteHub's `jev()` client:
+ * How a household reaches Jev, TypeSafe's model for AI categories. Each route is one of ViteHub's AI gateways
+ * (`vite-hub/agent/gateways`), which all answer the same questions with `gateway.ask()`:
  *
  * - `typesafe`: TypeSafe's API, with a TypeSafe key.
  * - `vercel`: Vercel AI Gateway, with an AI Gateway key.
@@ -36,15 +36,14 @@ export interface Route {
   route: AiRoute
   /** `household`: the household's own key; `server`: the server's. */
   source: "household" | "server"
-  client: JevClient
+  gateway: AiGateway<{ ask: true }>
 }
 
 const present = (value: string | null | undefined) => (value?.trim() ? value.trim() : undefined)
 
 /**
- * The server's own route and credentials, from its `typesafeEnv()` group, when it has what that route needs. Passed to
- * `jev()` explicitly: ViteHub's Server Env fallback inside `jev()` doesn't resolve under `nuxt dev`, where vite-hub stays
- * external.
+ * The server's own route and credentials, from its `typesafeEnv()` group, when it has what that route needs. Passed to the
+ * preset explicitly, like a household's, instead of the preset's own Env lookup.
  */
 function serverCredentials(): { gateway: AiRoute; credentials: Credentials } | null {
   if (isDemo()) return null
@@ -69,10 +68,10 @@ function serverCredentials(): { gateway: AiRoute; credentials: Credentials } | n
 /** The server's own route, or null when it has no key. */
 export const serverRoute = (): AiRoute | null => serverCredentials()?.gateway ?? null
 
-/** A Jev client through the server's own route. */
-export function serverClient() {
+/** The AI gateway of the server's own route. */
+export function serverGateway() {
   const server = serverCredentials()
-  return server ? clientFor(server.gateway, server.credentials) : null
+  return server ? gatewayFor(server.gateway, server.credentials) : null
 }
 
 async function stored(householdId: string) {
@@ -86,30 +85,27 @@ async function stored(householdId: string) {
   return credentials ? { gateway: row.gateway, credentials } : null
 }
 
-function optionsFor(gateway: AiRoute, credentials: Credentials): JevOptions {
-  if (gateway !== "cloudflare") return { provider: gateway, apiKey: credentials.apiKey }
-  return {
-    provider: "cloudflare",
+/** The AI gateway for a route and its credentials. Every value is passed, so no preset falls back to the server's Env. */
+export function gatewayFor(route: AiRoute, credentials: Credentials): AiGateway<{ ask: true }> {
+  if (route === "typesafe") return typesafe({ apiKey: credentials.apiKey })
+  if (route === "vercel") return vercel({ apiKey: credentials.apiKey })
+  return cloudflare({
     apiKey: credentials.apiKey,
-    cloudflare: {
-      accountId: credentials.accountId ?? "",
-      gatewayId: credentials.gatewayId ?? "",
-      ...(credentials.token ? { token: credentials.token } : {}),
-      ...(credentials.slug ? { slug: credentials.slug } : {}),
-    },
-  }
+    accountId: credentials.accountId ?? "",
+    gatewayId: credentials.gatewayId ?? "",
+    // An open gateway has no token; the preset then leaves out cf-aig-authorization.
+    token: credentials.token,
+    slug: credentials.slug ?? "typesafe",
+  })
 }
-
-/** A Jev client for a household's own route. */
-export const clientFor = (gateway: AiRoute, credentials: Credentials) => jev(optionsFor(gateway, credentials))
 
 /** The household's own route when its owner set one, else the server's, else null (AI categories are off). */
 export async function routeFor(householdId: string): Promise<Route | null> {
   if (isDemo()) return null
   const own = await stored(householdId)
-  if (own) return { route: own.gateway, source: "household", client: clientFor(own.gateway, own.credentials) }
+  if (own) return { route: own.gateway, source: "household", gateway: gatewayFor(own.gateway, own.credentials) }
   const server = serverCredentials()
-  return server ? { route: server.gateway, source: "server", client: clientFor(server.gateway, server.credentials) } : null
+  return server ? { route: server.gateway, source: "server", gateway: gatewayFor(server.gateway, server.credentials) } : null
 }
 
 const hint = (secret: string | undefined): SecretHint | null => (secret ? { last4: secret.slice(-4) } : null)
@@ -184,11 +180,11 @@ export async function saveGateway(householdId: string, chosen: Awaited<ReturnTyp
  * One tiny question, to check a route before relying on it: a Noul about a made-up grocery payment, nothing from the
  * household. A failure returns the provider's own answer (their auth error, for a wrong key), never a credential.
  */
-export async function testRoute(client: JevClient): Promise<AiTestResult> {
+export async function testRoute(gateway: AiGateway<{ ask: true }>): Promise<AiTestResult> {
   const started = Date.now()
   let model: string | null = null
   try {
-    await client.ask(
+    await gateway.ask(
       { description: "SUPERMARKET 24.10", direction: "money out" },
       { groceries: { type: "chance", instructions: "Is this a grocery purchase?" } },
       { onUsage: (record) => (model ??= record.model ?? null), signal: AbortSignal.timeout(20_000) },

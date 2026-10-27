@@ -1,10 +1,11 @@
 // Categories for transactions the rules left uncategorized, from Jev (TypeSafe's System One model,
 // https://docs.typesafe.ai). Pure logic, no database: what we ask, how answers become categories, and when an answer is
-// sure enough to use. The questions go through ViteHub's Jev client (`jev()` from vite-hub/agent/gateways), which
-// reaches TypeSafe directly or through Vercel or Cloudflare AI Gateway (server/utils/ai-gateway.ts picks the route).
+// sure enough to use. The questions go through one of ViteHub's AI gateways (`typesafe()`, `vercel()`, or `cloudflare()`
+// from vite-hub/agent/gateways), which reach TypeSafe directly or through Vercel or Cloudflare AI Gateway
+// (server/utils/ai-gateway.ts picks the route).
 // server/utils/ai-categorize.ts picks the rows and writes the results.
 import type { AgentUsageRecord, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/agent"
-import type { JevClient } from "vite-hub/agent/gateways"
+import type { AiGateway } from "vite-hub/agent/gateways"
 import { currencyDigits } from "../../shared/money"
 
 /** Dollars per million input tokens (jev-1.14). Output tokens are free. Only used to estimate cost in the logs. */
@@ -200,7 +201,7 @@ export const costUsd = (usage: Pick<Usage, "inputTokens">) => (usage.inputTokens
  * yields no decisions (its rows stay as they were, to try again later); when every batch fails, the last error is
  * thrown.
  */
-export async function classify(rows: AiRow[], categories: AiCategory[], options: { jev: JevClient; names?: string[]; batchSize?: number }) {
+export async function classify(rows: AiRow[], categories: AiCategory[], options: { gateway: AiGateway<{ ask: true }>; names?: string[]; batchSize?: number }) {
   const batches = buildBatches(rows, categories, options)
   const usage: Usage = { calls: 0, failedCalls: 0, inputTokens: 0, outputTokens: 0 }
   const decisions: Decision[] = []
@@ -211,7 +212,7 @@ export async function classify(rows: AiRow[], categories: AiCategory[], options:
       const batch = batches[next++]!
       try {
         // ViteHub retries 429s and 5xx itself, and reports each request's model and tokens.
-        const answers = await options.jev.ask(batch.state, batch.questions, { onUsage: (record) => count(usage, record) })
+        const answers = await options.gateway.ask(batch.state, batch.questions, { onUsage: (record) => count(usage, record) })
         usage.calls++
         decisions.push(...readAnswers(batch, answers))
       } catch (error) {

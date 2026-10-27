@@ -93,7 +93,7 @@ export async function categorizeWithAi(householdId: string, accounts: SQL, optio
   const started = Date.now()
   let result: Awaited<ReturnType<typeof classify>>
   try {
-    result = await classify(batch, categories, { jev: route.client, names })
+    result = await classify(batch, categories, { gateway: route.gateway, names })
   } catch (error) {
     options.log?.warn("AI categories failed", { ai: { ...where(route), error: error instanceof Error ? error.message : String(error) } })
     throw error

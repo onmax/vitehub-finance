@@ -127,17 +127,17 @@ server/utils/series.ts), so connecting one doesn't count as growth.
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
 (`aiCheckedAt` null) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (questions,
-answers, thresholds, batches through a `jev()` client), tested in test/ai with ViteHub's client on a stubbed fetch. It
+answers, thresholds, batches through an AI gateway's `ask()`), tested in test/ai with ViteHub's gateways on a stubbed fetch. It
 runs only with a key (the household's or the server's), never in the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
 `keySource`), counts, tokens, and cost.
 
-Jev is reached through ViteHub's `jev()` client (`vite-hub/agent/gateways`, pnpm-patched until upstream ships it):
-TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
+Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudflare()` from `vite-hub/agent/gateways`,
+pnpm-patched until upstream ships them) and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
 picks the household's own route (`householdSettings.aiGateway`, its key and Cloudflare fields sealed in `aiCredentials`
 with crypto.ts) when its owner set one in Settings › Categories, else the server's `typesafeEnv()` group (nuxt.config.ts;
-`FINANCE_AI_GATEWAY` picks the route at build time), else none. It passes credentials to `jev()` explicitly: its Server
-Env fallback doesn't resolve under `nuxt dev`. The browser gets only `{ last4 }` of a secret; `GET/PUT
+`FINANCE_AI_GATEWAY` picks the route at build time), else none. It passes every credential to the preset explicitly, so a
+household's route never picks up the server's variables, and the server's comes from its typed `useServerEnv()`. The browser gets only `{ last4 }` of a secret; `GET/PUT
 /api/household/ai` and `POST /api/household/ai/test` are owner-only, in the browser, and refused in the demo.
 
 ## Demo

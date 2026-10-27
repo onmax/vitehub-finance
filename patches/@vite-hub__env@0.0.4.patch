@@ -1,8 +1,8 @@
 diff --git a/dist/presets.d.ts b/dist/presets.d.ts
-index e785e6fc0263b04614e9dee2efabbbcb78ff6f80..8954cbe3271c8ba7e22649242c8bd1e7e0cffe4a 100644
+index e785e6fc0263b04614e9dee2efabbbcb78ff6f80..1f88073e972cadc959ff5aa0e8431014dc1d703b 100644
 --- a/dist/presets.d.ts
 +++ b/dist/presets.d.ts
-@@ -10,14 +10,18 @@ export interface TypesafeEnvOptions {
+@@ -10,10 +10,14 @@ export interface TypesafeEnvOptions {
    /** Default model when `TYPESAFE_DEFAULT_MODEL` is not set. Default: `jev-latest`, or `typesafe-ai/jev` for `"vercel"`. */
    model?: string;
    /**
@@ -19,29 +19,11 @@ index e785e6fc0263b04614e9dee2efabbbcb78ff6f80..8954cbe3271c8ba7e22649242c8bd1e7
 +  provider?: "typesafe" | "vercel" | "cloudflare";
  }
  /**
-- * Declares the TypeSafe Jev provider, API key, and model. `defineAgent({ driver: { ask } })`, `llmGate()`, and
-- * `llmRoute()` read this group from `env.server.typesafe`.
-+ * Declares the TypeSafe Jev provider, API key, and model. `defineAgent({ driver: { ask } })`, `llmGate()`, `llmRoute()`,
-+ * and `jev()` read this group from `env.server.typesafe`.
-  */
- export declare function typesafeEnv(options?: TypesafeEnvOptions): EnvRuntimeConfigOptions;
- //#endregion
-\ No newline at end of file
+  * Declares the TypeSafe Jev provider, API key, and model. `defineAgent({ driver: { ask } })`, `llmGate()`, and
 diff --git a/dist/presets.js b/dist/presets.js
-index 8966dfae55ed78c93df44857eae0c2e95ab27837..7b2cbbbd78036743e8926b09baab6c6f76b302c9 100644
+index 8966dfae55ed78c93df44857eae0c2e95ab27837..7060079aae663c389c0869f2aae883a4a03b317b 100644
 --- a/dist/presets.js
 +++ b/dist/presets.js
-@@ -22,8 +22,8 @@ function openWorkflowEnv(options = {}) {
- 	};
- }
- /**
--* Declares the TypeSafe Jev provider, API key, and model. `defineAgent({ driver: { ask } })`, `llmGate()`, and
--* `llmRoute()` read this group from `env.server.typesafe`.
-+* Declares the TypeSafe Jev provider, API key, and model. `defineAgent({ driver: { ask } })`, `llmGate()`, `llmRoute()`,
-+* and `jev()` read this group from `env.server.typesafe`.
- */
- function typesafeEnv(options = {}) {
- 	const provider = options.provider || "typesafe";
 @@ -34,6 +34,25 @@ function typesafeEnv(options = {}) {
  			secret: true,
  			source: env.source(vercel ? "AI_GATEWAY_API_KEY" : "TYPESAFE_API_KEY")

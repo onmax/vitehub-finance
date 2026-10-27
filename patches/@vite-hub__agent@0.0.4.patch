@@ -1,140 +1,115 @@
 diff --git a/dist/agent-diagnostics-C17R3SEm.js b/dist/agent-diagnostics-C17R3SEm.js
-index f45f8774f011f4137b65f5e3e075813bf7e63121..35394c10c825eeb2baa16767f37a998501819260 100644
+index f45f8774f011f4137b65f5e3e075813bf7e63121..5a46ff6befa50259ea4b4f159dee6093751aefd3 100644
 --- a/dist/agent-diagnostics-C17R3SEm.js
 +++ b/dist/agent-diagnostics-C17R3SEm.js
-@@ -1506,7 +1506,7 @@ const agentDiagnostics = {
+@@ -1505,8 +1505,8 @@ const agentDiagnostics = {
+ 			AGENT_R1007: dynamicAgentError,
  			AGENT_R1008: dynamicAgentError,
  			AGENT_R1009: {
- 				why: ({ provider, status, env }) => `[vitehub] The ${provider} Jev provider rejected the API key with HTTP ${status}. The key is missing, expired, or not allowed to call Jev.`,
+-				why: ({ provider, status, env }) => `[vitehub] The ${provider} Jev provider rejected the API key with HTTP ${status}. The key is missing, expired, or not allowed to call Jev.`,
 -				fix: ({ env }) => `Set or rotate ${env} in the Server Env of this deployment.`
-+				fix: ({ env }) => env ? `Set or rotate ${env} in the Server Env of this deployment.` : "Pass a valid apiKey to jev(), or rotate the key."
++				why: ({ provider, status }) => `[vitehub] The ${provider} Jev provider rejected the API key with HTTP ${status}. The key is missing, expired, or not allowed to call Jev.`,
++				fix: ({ env }) => env ? `Set or rotate ${env} in the Server Env of this deployment.` : "Pass a valid apiKey to the gateway, or rotate the key."
  			},
  			AGENT_R1010: {
  				why: ({ provider, status, attempts }) => `[vitehub] The ${provider} Jev provider failed${status === void 0 ? " to respond" : ` with HTTP ${status}`} after ${attempts} attempts.`,
+@@ -1514,6 +1514,7 @@ const agentDiagnostics = {
+ 			},
+ 			AGENT_R1011: dynamicAgentError,
+ 			AGENT_R1012: dynamicAgentError,
++			AGENT_R1013: dynamicAgentError,
+ 			AGENT_R0928: {
+ 				why: "[vitehub] Provider Agent Drivers are not included in Worker builds. They start local Codex or Claude Code processes, which require a Node.js host.",
+ 				fix: "Use a { model } or { run } Driver in Worker builds, or deploy Agents that use provider Drivers to a Node.js host."
 diff --git a/dist/agent-driver-ghtKCAbH.js b/dist/agent-driver-ghtKCAbH.js
-index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..0b42926dd950aaaa9d37c6513b3a319a4f8bc6fd 100644
+index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f434254ba1850 100644
 --- a/dist/agent-driver-ghtKCAbH.js
 +++ b/dist/agent-driver-ghtKCAbH.js
-@@ -41,6 +41,67 @@ function optionalString(value) {
+@@ -41,6 +41,11 @@ function optionalString(value) {
  	const resolved = unseal(value);
  	return hasRuntimeType(resolved, "string") && resolved.trim() ? resolved.trim() : void 0;
  }
-+const jevProviderNames = {
-+	cloudflare: "Cloudflare AI Gateway",
-+	typesafe: "TypeSafe",
-+	vercel: "Vercel AI Gateway"
-+};
 +/** The custom provider URL of a Cloudflare AI Gateway. The TypeSafe client appends `/v1/systemone`. */
 +function cloudflareJevBaseURL(gateway) {
 +	const segment = (value) => encodeURIComponent(value.trim());
 +	return `https://gateway.ai.cloudflare.com/v1/${segment(gateway.accountId)}/${segment(gateway.gatewayId)}/custom-${segment(gateway.slug?.trim() || "typesafe")}`;
 +}
-+function jevProvider(value) {
-+	return value === "vercel" || value === "cloudflare" ? value : "typesafe";
-+}
-+/**
-+* Checks one route and builds its request options. `fromEnv` selects the names in diagnostics: Server Env variables,
-+* or `jev()` options.
-+*/
-+function jevRoute(settings, fromEnv) {
-+	const provider = jevProvider(settings.provider);
-+	const apiKey = optionalString(settings.apiKey);
-+	const model = optionalString(settings.model);
-+	const fetch = settings.fetch;
-+	const shared = {
-+		...fetch ? { fetch } : {},
-+		...model ? { model } : {},
-+		provider
-+	};
-+	if (provider === "vercel") {
-+		if (!apiKey && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: fromEnv ? `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` : `[vitehub] jev({ provider: "vercel" }) requires apiKey, an AI Gateway API key. On Vercel, VERCEL_OIDC_TOKEN also works.` });
+ /** Reads `env.server.typesafe` through the generated Server Env module. */
+ async function typesafeOptions(context) {
+ 	let module;
+@@ -55,15 +60,51 @@ async function typesafeOptions(context) {
+ 	const env = module.useServerEnv?.(context.event);
+ 	const group = isRuntimeRecord(env) ? env[typesafeEnvGroup] : void 0;
+ 	if (!isRuntimeRecord(group)) throw agentDiagnostics.AGENT_R0935({ message: `[vitehub] TypeSafe Jev requests read the Server Env group "${typesafeEnvGroup}", but it is not declared. ${typesafeEnvHint}` });
+-	const provider = group.provider === "vercel" ? "vercel" : "typesafe";
+ 	const apiKey = optionalString(group.apiKey);
+-	if (!apiKey && provider === "typesafe") throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
+-	if (!apiKey && provider === "vercel" && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` });
+ 	const model = optionalString(group.model);
++	const shared = model ? { model } : {};
++	if (group.provider === "vercel") {
++		if (!apiKey && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` });
 +		return {
 +			...shared,
 +			...apiKey ? { apiKey } : {},
-+			...fromEnv ? { keyEnv: "AI_GATEWAY_API_KEY" } : {}
++			keyEnv: "AI_GATEWAY_API_KEY",
++			label: "Vercel AI Gateway",
++			name: "vercel",
++			protocol: "vercel"
 +		};
 +	}
-+	if (!apiKey) throw agentDiagnostics.AGENT_R0936({ message: !fromEnv ? `[vitehub] jev({ provider: "${provider}" }) requires apiKey, a TypeSafe API key.` : provider === "cloudflare" ? `[vitehub] Jev requests through Cloudflare AI Gateway require env.server.${typesafeEnvGroup}.apiKey, the TypeSafe API key that the gateway forwards. Set TYPESAFE_API_KEY.` : `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
-+	if (provider === "typesafe") return {
++	const cloudflare = group.provider === "cloudflare";
++	if (!apiKey) throw agentDiagnostics.AGENT_R0936({ message: cloudflare ? `[vitehub] Jev requests through Cloudflare AI Gateway require env.server.${typesafeEnvGroup}.apiKey, the TypeSafe API key that the gateway forwards. Set TYPESAFE_API_KEY.` : `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
++	if (!cloudflare) return {
 +		...shared,
 +		apiKey,
-+		...fromEnv ? { keyEnv: "TYPESAFE_API_KEY" } : {}
++		keyEnv: "TYPESAFE_API_KEY",
++		label: "TypeSafe",
++		name: "typesafe",
++		protocol: "typesafe"
 +	};
-+	const cloudflare = isRuntimeRecord(settings.cloudflare) ? settings.cloudflare : {};
-+	const accountId = optionalString(cloudflare.accountId);
-+	const gatewayId = optionalString(cloudflare.gatewayId);
++	const gateway = isRuntimeRecord(group.cloudflare) ? group.cloudflare : {};
++	const accountId = optionalString(gateway.accountId);
++	const gatewayId = optionalString(gateway.gatewayId);
 +	if (!accountId || !gatewayId) {
-+		const missing = [!accountId && (fromEnv ? "CLOUDFLARE_ACCOUNT_ID" : "cloudflare.accountId"), !gatewayId && (fromEnv ? "CLOUDFLARE_AI_GATEWAY_ID" : "cloudflare.gatewayId")].filter(Boolean).join(" and ");
-+		throw agentDiagnostics.AGENT_R0936({ message: fromEnv ? `[vitehub] Jev requests through Cloudflare AI Gateway require ${missing}. Set them in the Server Env of this deployment.` : `[vitehub] jev({ provider: "cloudflare" }) requires ${missing}.` });
++		const missing = [!accountId && "CLOUDFLARE_ACCOUNT_ID", !gatewayId && "CLOUDFLARE_AI_GATEWAY_ID"].filter(Boolean).join(" and ");
++		throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] Jev requests through Cloudflare AI Gateway require ${missing}. Set them in the Server Env of this deployment.` });
 +	}
-+	const token = optionalString(cloudflare.token);
-+	return {
++	const token = optionalString(gateway.token);
+ 	return {
+-		...apiKey ? { apiKey } : {},
+-		...model ? { model } : {},
+-		provider
 +		...shared,
 +		apiKey,
 +		baseURL: cloudflareJevBaseURL({
 +			accountId,
 +			gatewayId,
-+			slug: optionalString(cloudflare.slug)
++			slug: optionalString(gateway.slug)
 +		}),
 +		...token ? { headers: { "cf-aig-authorization": `Bearer ${token}` } } : {},
-+		...fromEnv ? { keyEnv: "TYPESAFE_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN" } : {}
-+	};
-+}
- /** Reads `env.server.typesafe` through the generated Server Env module. */
- async function typesafeOptions(context) {
- 	let module;
-@@ -55,16 +116,30 @@ async function typesafeOptions(context) {
- 	const env = module.useServerEnv?.(context.event);
- 	const group = isRuntimeRecord(env) ? env[typesafeEnvGroup] : void 0;
- 	if (!isRuntimeRecord(group)) throw agentDiagnostics.AGENT_R0935({ message: `[vitehub] TypeSafe Jev requests read the Server Env group "${typesafeEnvGroup}", but it is not declared. ${typesafeEnvHint}` });
--	const provider = group.provider === "vercel" ? "vercel" : "typesafe";
--	const apiKey = optionalString(group.apiKey);
--	if (!apiKey && provider === "typesafe") throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] TypeSafe Jev requests require env.server.${typesafeEnvGroup}.apiKey. Set TYPESAFE_API_KEY, or use typesafeEnv({ provider: "vercel" }) with AI_GATEWAY_API_KEY.` });
--	if (!apiKey && provider === "vercel" && !optionalString(globalThis.process?.env?.VERCEL_OIDC_TOKEN)) throw agentDiagnostics.AGENT_R0936({ message: `[vitehub] Jev requests through Vercel AI Gateway require AI_GATEWAY_API_KEY. Set it in the Server Env of this deployment. On Vercel, VERCEL_OIDC_TOKEN also works.` });
--	const model = optionalString(group.model);
--	return {
--		...apiKey ? { apiKey } : {},
--		...model ? { model } : {},
-+	const cloudflare = isRuntimeRecord(group.cloudflare) ? group.cloudflare : {};
-+	return jevRoute({
-+		apiKey: optionalString(group.apiKey),
-+		cloudflare: {
-+			accountId: optionalString(cloudflare.accountId),
-+			gatewayId: optionalString(cloudflare.gatewayId),
-+			slug: optionalString(cloudflare.slug),
-+			token: optionalString(cloudflare.token)
-+		},
-+		...context.client?.fetch ? { fetch: context.client.fetch } : {},
-+		model: optionalString(context.client?.model) ?? optionalString(group.model),
-+		provider: jevProvider(group.provider)
-+	}, true);
-+}
-+/** Explicit `jev()` credentials when it has a route, else the Server Env group. */
-+async function jevRequestRoute(context) {
-+	const client = context.client;
-+	if (!client || client.provider === void 0 && client.apiKey === void 0 && client.cloudflare === void 0) return await typesafeOptions(context);
-+	const provider = jevProvider(client.provider);
-+	return jevRoute({
-+		...client,
-+		model: optionalString(client.model) ?? (provider === "vercel" ? "typesafe-ai/jev" : "jev-latest"),
- 		provider
--	};
-+	}, false);
++		keyEnv: "TYPESAFE_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN",
++		label: "Cloudflare AI Gateway",
++		name: "cloudflare",
++		protocol: "typesafe"
+ 	};
  }
  function toEntry(value) {
- 	const serialized = JSON.stringify(value);
-@@ -119,12 +194,18 @@ function toJevQuestion(question) {
+@@ -119,12 +160,22 @@ function toJevQuestion(question) {
  * and maps the answers as `advocaat.ask()` does.
  */
  async function requestJev(advocaat, state, batch, options) {
 -	const { signal, ...client } = options;
-+	const { headers, keyEnv: _keyEnv, provider, signal, ...client } = options;
++	const { apiKey, baseURL, fetch, headers, protocol, signal } = options;
  	const wire = Object.fromEntries(Object.entries(batch).map(([name, question]) => [name, toJevQuestion(question)]));
--	const result = await advocaat.typesafe(client).systemOne({
-+	const result = await advocaat.typesafe({
-+		...client,
-+		provider: provider === "vercel" ? "vercel" : "typesafe"
-+	}).systemOne({
++	const client = {
++		...apiKey ? { apiKey } : {},
++		...baseURL ? { baseURL } : {},
++		...fetch ? { fetch } : {},
++		...options.model ? { model: options.model } : {},
++		provider: protocol
++	};
+ 	const result = await advocaat.typesafe(client).systemOne({
  		questions: wire,
  		state
 -	}, { signal });
@@ -145,16 +120,16 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..0b42926dd950aaaa9d37c6513b3a319a
  	const answers = Object.create(null);
  	for (const [name, answer] of Object.entries(result.answers)) {
  		const question = batch[name];
-@@ -186,7 +267,7 @@ function waitForRetry(attempt, signal) {
+@@ -186,7 +237,7 @@ function waitForRetry(attempt, signal) {
  * Both keep the provider error as `cause` and expose `status`, `providerStatus`, and `requestId`.
  */
  async function requestJevWithRetry(advocaat, state, batch, options) {
 -	const provider = options.provider === "vercel" ? "Vercel AI Gateway" : "TypeSafe";
-+	const provider = jevProviderNames[options.provider];
++	const provider = options.label;
  	for (let attempt = 0;; attempt++) try {
  		return await requestJev(advocaat, state, batch, options);
  	} catch (error) {
-@@ -197,18 +278,15 @@ async function requestJevWithRetry(advocaat, state, batch, options) {
+@@ -197,18 +248,15 @@ async function requestJevWithRetry(advocaat, state, batch, options) {
  			providerStatus: status,
  			requestId: errorRequestId(error)
  		};
@@ -182,133 +157,534 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..0b42926dd950aaaa9d37c6513b3a319a
  		if (!(status === void 0 ? error instanceof TypeError && isRuntimeRecord(error) && "cause" in error : retryableJevStatuses.has(status))) throw error;
  		if (attempt + 1 >= jevAttempts) throw Object.assign(agentDiagnostics.AGENT_R1010({
  			provider,
-@@ -424,7 +502,7 @@ async function askJev(context, state, questions) {
+@@ -424,11 +472,14 @@ async function askJev(context, state, questions) {
  	const entry = toEntry(state);
  	const batches = jevQuestionBatches(entry, wire);
  	const advocaat = await loadAdvocaat();
 -	const options = await typesafeOptions(context);
-+	const options = await jevRequestRoute(context);
++	const options = context.route ? await context.route() : await typesafeOptions(context);
  	const output = Object.create(null);
  	for (const [batchIndex, batch] of batches.entries()) {
  		context.abortSignal?.throwIfAborted();
+-		const observed = await observeJevBatch(context.observe, options, questions, batch, {
++		const observed = await observeJevBatch(context.observe, {
++			...options.model ? { model: options.model } : {},
++			provider: options.name
++		}, questions, batch, {
+ 			count: batches.length,
+ 			index: batchIndex
+ 		});
+@@ -438,7 +489,7 @@ async function askJev(context, state, questions) {
+ 				signal: context.abortSignal
+ 			});
+ 			await observed.usage(response);
+-			const usage = jevUsageRecord(options.provider, response);
++			const usage = jevUsageRecord(options.name, response);
+ 			if (usage) context.recordUsage?.(usage);
+ 			context.abortSignal?.throwIfAborted();
+ 			for (const name of Object.keys(batch)) {
+@@ -764,4 +815,4 @@ function normalizeAgentDriver(options) {
+ 	throw agentDiagnostics.AGENT_R0497({ message: "[vitehub] Agent Driver is required. Expected a built-in driver name, tagged built-in configuration, or custom { model }, { run }, or { ask } driver." });
+ }
+ //#endregion
+-export { normalizeAgentDriverCapacity as n, askJev as r, normalizeAgentDriver as t };
++export { normalizeAgentDriverCapacity as n, askJev as r, normalizeAgentDriver as t, cloudflareJevBaseURL as vitehubCloudflareJevBaseURL };
+diff --git a/dist/agent-gateway-BgOKEyQn.js b/dist/agent-gateway-BgOKEyQn.js
+index 234c1cdd5277d8bdcafdee330a62cc042cf1da13..06dc17107fdaae62e394b694c74e483f62a033af 100644
+--- a/dist/agent-gateway-BgOKEyQn.js
++++ b/dist/agent-gateway-BgOKEyQn.js
+@@ -49,7 +49,12 @@ function isSecretInput(value) {
+ 	return hasRuntimeType(value, "string") || hasRuntimeType(value, "function") || isRuntimeRecord(value) && (hasRuntimeType(value.unseal, "function") || hasRuntimeType(value.resolve, "function"));
+ }
+ const missingSecret = () => void 0;
+-/** Validate a gateway definition and return a frozen copy. */
++/**
++* Marks an AI gateway that answers Jev questions. A symbol key, so key checks and copies skip it. Such a gateway may
++* have no Driver base URL.
++*/
++const aiGatewayAsks = Symbol.for("vitehub.aiGateway.ask");
++/** Validate a gateway definition and return a frozen copy with its Driver routes. */
+ function normalizeAgentDriverGateway(value) {
+ 	if (!isRuntimeRecord(value) || Array.isArray(value)) invalid("A driver gateway must be an object.");
+ 	const unknown = Object.keys(value).filter((key) => !gatewayKeys.has(key));
+@@ -67,7 +72,7 @@ function normalizeAgentDriverGateway(value) {
+ 		}
+ 		baseURL[driver] = validBaseURL(name, driver, url, invalid);
+ 	}
+-	if (!Object.keys(baseURL).length) invalid(`Gateway "${name}" must set a baseURL for "codex" or "claude-code".`);
++	if (!Object.keys(baseURL).length && Reflect.get(value, aiGatewayAsks) !== true) invalid(`Gateway "${name}" must set a baseURL for "codex" or "claude-code".`);
+ 	if (value.auth !== void 0 && value.auth !== "bearer" && value.auth !== "x-api-key") invalid(`Gateway "${name}" auth must be "bearer" or "x-api-key".`);
+ 	if (value.apiKey !== void 0 && !isSecretInput(value.apiKey)) invalid(`Gateway "${name}" apiKey must be a string, sealed Server Env value, or resolver.`);
+ 	if (value.apiKeyEnv !== void 0 && (!Array.isArray(value.apiKeyEnv) || !value.apiKeyEnv.every((item) => hasRuntimeType(item, "string") && environmentName.test(item)))) invalid(`Gateway "${name}" apiKeyEnv must be a list of environment variable names.`);
+@@ -186,4 +191,4 @@ function withAgentDriverGatewayEnvironment(gateway, environment, options = {}) {
+ 	};
+ }
+ //#endregion
+-export { codexDeveloperInstructionsArg as a, withAgentDriverGatewayEnvironment as i, normalizeAgentDriverGateway as n, codexDeveloperInstructionsMaxBytes as o, resolveAgentDriverGateway as r, codexLaunchArgs as s, assertAgentDriverGatewaySupports as t };
++export { codexDeveloperInstructionsArg as a, withAgentDriverGatewayEnvironment as i, normalizeAgentDriverGateway as n, codexDeveloperInstructionsMaxBytes as o, resolveAgentDriverGateway as r, codexLaunchArgs as s, assertAgentDriverGatewaySupports as t, aiGatewayAsks as vitehubAiGatewayAsks, resolveSecret as vitehubResolveSecret };
+diff --git a/dist/gateway-env-Cccy3H-K.js b/dist/gateway-env-Cccy3H-K.js
+index 1ac93e163ab85989ff10a1bd637c6ffb687c3806..63b5704c8a46bbceec3353bf14e936e95601fb3c 100644
+--- a/dist/gateway-env-Cccy3H-K.js
++++ b/dist/gateway-env-Cccy3H-K.js
+@@ -17,6 +17,19 @@ const builtInGatewayEnv = {
+ 		},
+ 		url: { names: ["CLIPROXY_URL"] }
+ 	},
++	cloudflare: {
++		accountId: { names: ["CLOUDFLARE_ACCOUNT_ID"] },
++		apiKey: {
++			names: ["TYPESAFE_API_KEY"],
++			secret: true
++		},
++		gatewayId: { names: ["CLOUDFLARE_AI_GATEWAY_ID"] },
++		slug: { names: ["CLOUDFLARE_AI_GATEWAY_SLUG"] },
++		token: {
++			names: ["CLOUDFLARE_AI_GATEWAY_TOKEN"],
++			secret: true
++		}
++	},
+ 	cloudflareAccess: {
+ 		clientId: {
+ 			names: ["CF_ACCESS_CLIENT_ID"],
+@@ -49,6 +62,10 @@ const builtInGatewayEnv = {
+ 		names: ["OPENROUTER_API_KEY"],
+ 		secret: true
+ 	} },
++	typesafe: { apiKey: {
++		names: ["TYPESAFE_API_KEY"],
++		secret: true
++	} },
+ 	vercel: { apiKey: {
+ 		names: ["AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"],
+ 		secret: true
 diff --git a/dist/gateways.d.ts b/dist/gateways.d.ts
-index 9a4baf2b8b170c8d1935a6eb07514b889780c106..63f0d199dd9a5310a456333db085b788e0ee8974 100644
+index 9a4baf2b8b170c8d1935a6eb07514b889780c106..617ad41310b50a3bcf8dedcb9d3f6a80b6254fa7 100644
 --- a/dist/gateways.d.ts
 +++ b/dist/gateways.d.ts
-@@ -1,4 +1,71 @@
+@@ -1,44 +1,158 @@
 -import { Hn as AgentDriverGateway, Un as AgentDriverGatewaySecret } from "./types-BY_RNjJY.js";
-+import { Hn as AgentDriverGateway, Oa as AgentUsageRecord, Ou as AskQuestions, Un as AgentDriverGatewaySecret, gu as AskAnswers } from "./types-BY_RNjJY.js";
-+import { TraceEvent } from "@vite-hub/runtime";
-+//#region src/internal/ask-runtime.d.ts
-+/** Where Jev requests go. Cloudflare AI Gateway forwards the TypeSafe API through a custom provider. */
-+type JevProvider = "typesafe" | "vercel" | "cloudflare";
-+/** A Cloudflare AI Gateway with a custom provider whose base URL is `https://api.typesafe.ai`. */
-+interface JevCloudflareGateway {
-+  /** Cloudflare account ID. */
-+  accountId: string;
-+  /** AI Gateway ID. */
-+  gatewayId: string;
-+  /** Custom provider slug. The gateway URL uses `custom-<slug>`. Default: `typesafe`. */
-+  slug?: string;
-+  /** Gateway token of an authenticated gateway, sent as `cf-aig-authorization`. */
-+  token?: string;
-+}
-+//#endregion
-+//#region src/jev.d.ts
-+interface JevSharedOptions {
-+  /** Custom fetch implementation. Default: `globalThis.fetch`. */
-+  fetch?: typeof globalThis.fetch;
-+  /** Model ID. Default: `TYPESAFE_DEFAULT_MODEL` with Server Env, else `jev-latest`, or `typesafe-ai/jev` through Vercel AI Gateway. */
-+  model?: string;
-+}
++import { MaybeResolvable } from "@vite-hub/runtime";
++import { Oa as AgentUsageRecord, Ou as AskQuestions, Pa as BuiltInAgentDriverName, gu as AskAnswers, li as AgentProviderCredentialValue, si as AgentProviderCredentialContext } from "./types-BY_RNjJY.js";
++//#region src/types.d.ts (AI gateway types)
 +/**
-+ * Options for `jev()`. Without `provider`, the client reads the Server Env group `typesafe`, declared with
-+ * `typesafeEnv()`. With `provider`, it uses only the credentials that you pass.
++ * A gateway API key or header value: a string, a sealed Server Env value, or an invocation-time resolver.
++ * `undefined` or an empty string fails the invocation, so optional Server Env values can be passed directly.
 + */
-+type JevOptions = JevSharedOptions & ({
-+  apiKey?: undefined;
-+  cloudflare?: undefined;
-+  provider?: undefined;
-+} | {
-+  apiKey: string;
-+  cloudflare?: undefined;
-+  provider: "typesafe";
-+} | {
-+  apiKey?: string;
-+  cloudflare?: undefined;
-+  provider: "vercel";
-+} | {
-+  apiKey: string;
-+  cloudflare: JevCloudflareGateway;
-+  provider: "cloudflare";
-+});
-+interface JevAskOptions {
++type AiGatewaySecret = MaybeResolvable<AgentProviderCredentialValue | undefined, AgentProviderCredentialContext>;
++/** What an AI gateway does besides routing the model requests of provider Drivers. */
++interface AiGatewayCapabilities {
++  /** The gateway answers TypeSafe Jev questions with `gateway.ask()`. */
++  ask: boolean;
++}
++interface AiGatewayAskOptions {
 +  /** Receives the model, provider, and token counts of each Jev request. */
 +  onUsage?: (usage: AgentUsageRecord) => void;
 +  /** Cancels the pending Jev requests. */
 +  signal?: AbortSignal;
 +}
-+interface JevClient {
++/**
++ * Answers TypeSafe Jev questions about `state`. Build the questions with `ask` from `@vite-hub/agent`. Large question sets
++ * are sent in sequential bounded requests, and transient provider failures are retried.
++ */
++type AiGatewayAsk = <const Q extends AskQuestions>(state: unknown, questions: Q, options?: AiGatewayAskOptions) => Promise<AskAnswers<Q>>;
++/** How a provider Driver reaches an AI gateway: a base URL per Driver, the key, and extra headers. */
++interface AiGatewayDefinition {
++  /** Name shown in Agent inspection and diagnostics. */
++  name: string;
 +  /**
-+   * Answers the questions about `state`. Build the questions with `ask` from `@vite-hub/agent`. Large question sets are
-+   * sent in sequential bounded requests; transient provider failures are retried.
++   * Base URL for each Driver. Codex sends OpenAI Responses requests to `<url>/responses`.
++   * Claude Code sends Anthropic Messages requests to `<url>/v1/messages`.
++   * A Driver without an entry cannot use this gateway. A resolver runs for each invocation, so the URL can come from Server Env.
 +   */
-+  ask: <const Q extends AskQuestions>(state: unknown, questions: Q, options?: JevAskOptions) => Promise<AskAnswers<Q>>;
++  baseURL: Partial<Record<BuiltInAgentDriverName, MaybeResolvable<string, AgentProviderCredentialContext>>>;
++  /** API key. When it is not set, ViteHub reads the first non-empty variable in `apiKeyEnv`. */
++  apiKey?: AiGatewaySecret;
++  /** Process environment variables that supply the API key, in lookup order. */
++  apiKeyEnv?: readonly string[];
++  /** How the gateway receives the API key. `"bearer"` (default) sends `Authorization: Bearer`. `"x-api-key"` sends `x-api-key`. */
++  auth?: "bearer" | "x-api-key";
++  /** Extra request headers, such as Cloudflare Access service-token headers. Values are treated as secrets. */
++  headers?: Record<string, AiGatewaySecret>;
 +}
 +/**
-+ * A TypeSafe Jev client. The same questions and answers work through the TypeSafe API, Vercel AI Gateway, and
-+ * Cloudflare AI Gateway. Use explicit options for credentials that the application stores, such as one key per tenant.
-+ *
-+ * ```ts
-+ * const answers = await jev({ provider: "vercel", apiKey }).ask(email, { spam: ask.if("Is it spam?") })
-+ * ```
++ * An AI gateway: an HTTP endpoint for the model requests of provider Drivers (`defineAgent({ driver: { gateway } })`) and,
++ * when `TCapabilities` has `ask: true`, for TypeSafe Jev questions (`gateway.ask()`). Build one with a preset from
++ * `@vite-hub/agent/gateways` or with `defineAiGateway()`.
 + */
-+export declare function jev(options?: JevOptions): JevClient;
++type AiGateway<TCapabilities extends Partial<AiGatewayCapabilities> = Partial<AiGatewayCapabilities>> = AiGatewayDefinition & (TCapabilities["ask"] extends true ? {
++  ask: AiGatewayAsk;
++} : TCapabilities["ask"] extends false ? {
++  ask?: never;
++} : {
++  ask?: AiGatewayAsk;
++});
 +//#endregion
  //#region src/gateways.d.ts
  /** Options shared by every gateway preset. */
- export interface AgentGatewayPresetOptions {
-@@ -41,4 +108,4 @@ export declare function openai(options?: AgentGatewayPresetOptions): AgentDriver
+-export interface AgentGatewayPresetOptions {
++export interface AiGatewayPresetOptions {
+   /** API key. When it is not set, the preset reads its Server Env value, such as `CLIPROXY_API_KEY`. */
+-  apiKey?: AgentDriverGatewaySecret;
++  apiKey?: AiGatewaySecret;
+   /** Extra request headers, such as `cloudflareAccess()`. */
+-  headers?: Record<string, AgentDriverGatewaySecret>;
++  headers?: Record<string, AiGatewaySecret>;
+ }
+ /** Options for a gateway that you host. */
+-export interface AgentHostedGatewayOptions extends AgentGatewayPresetOptions {
++export interface AiHostedGatewayOptions extends AiGatewayPresetOptions {
+   /** Origin of the gateway, such as `https://proxy.example.com`. A trailing `/v1` is removed. When it is not set, the preset reads its Server Env value, such as `CLIPROXY_URL`. */
+   url?: string;
+ }
++/** Options for a gateway that answers TypeSafe Jev questions. */
++export interface AiAskGatewayOptions {
++  /** Custom fetch implementation for Jev requests. Default: `globalThis.fetch`. */
++  fetch?: typeof globalThis.fetch;
++  /** Jev model ID for `ask()`. Default: `jev-latest`, or `typesafe-ai/jev` through Vercel AI Gateway. */
++  model?: string;
++}
++/** Options for `typesafe()`. */
++export interface TypesafeGatewayOptions extends AiAskGatewayOptions, AiGatewayPresetOptions {}
++/** Options for `vercel()`. `model` selects the Jev model of `ask()`; Driver models come from `driver.model`. */
++export interface VercelGatewayOptions extends AiAskGatewayOptions, AiGatewayPresetOptions {}
++/** Options for `cloudflare()`. Each value defaults to its Server Env value. */
++export interface CloudflareGatewayOptions extends AiAskGatewayOptions {
++  /** Cloudflare account ID. Defaults to `CLOUDFLARE_ACCOUNT_ID`. */
++  accountId?: string;
++  /** TypeSafe API key that the gateway forwards. Defaults to `TYPESAFE_API_KEY`. */
++  apiKey?: AiGatewaySecret;
++  /** AI Gateway ID. Defaults to `CLOUDFLARE_AI_GATEWAY_ID`. */
++  gatewayId?: string;
++  /** Custom provider slug; the gateway URL uses `custom-<slug>`. Defaults to `CLOUDFLARE_AI_GATEWAY_SLUG`, then `typesafe`. */
++  slug?: string;
++  /** Gateway token of an authenticated gateway, sent as `cf-aig-authorization`. Defaults to `CLOUDFLARE_AI_GATEWAY_TOKEN`. */
++  token?: AiGatewaySecret;
++}
+ /** Options for `cloudflareAccess()`. Each value defaults to its Server Env value. */
+ export interface CloudflareAccessOptions {
+   /** Service token client ID. Defaults to `CF_ACCESS_CLIENT_ID`. */
+-  clientId?: AgentDriverGatewaySecret;
++  clientId?: AiGatewaySecret;
+   /** Service token client secret. Defaults to `CF_ACCESS_CLIENT_SECRET`. */
+-  clientSecret?: AgentDriverGatewaySecret;
++  clientSecret?: AiGatewaySecret;
+ }
+-/** Validate a custom gateway. Use it for an endpoint without a preset. */
+-export declare function defineGateway(gateway: AgentDriverGateway): AgentDriverGateway;
++/**
++ * Validate a custom gateway for an endpoint without a preset. It routes Driver model requests; only the `typesafe()`,
++ * `vercel()`, and `cloudflare()` presets answer Jev questions.
++ */
++export declare function defineAiGateway(gateway: AiGatewayDefinition): AiGateway<{
++  ask: false;
++}>;
+ /**
+  * Cloudflare Access service-token headers for a gateway behind Access.
+  * Reads `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` unless you pass the values.
+  */
+-export declare function cloudflareAccess(options?: CloudflareAccessOptions): Record<string, AgentDriverGatewaySecret>;
++export declare function cloudflareAccess(options?: CloudflareAccessOptions): Record<string, AiGatewaySecret>;
+ /** [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). Serves Codex and Claude Code. Reads `CLIPROXY_URL` and `CLIPROXY_API_KEY`. */
+-export declare function cliproxy(options?: AgentHostedGatewayOptions): AgentDriverGateway;
++export declare function cliproxy(options?: AiHostedGatewayOptions): AiGateway<{
++  ask: false;
++}>;
+ /** [LiteLLM Proxy](https://docs.litellm.ai/docs/simple_proxy). Serves Codex and Claude Code. Reads `LITELLM_URL` and `LITELLM_API_KEY`. */
+-export declare function litellm(options?: AgentHostedGatewayOptions): AgentDriverGateway;
++export declare function litellm(options?: AiHostedGatewayOptions): AiGateway<{
++  ask: false;
++}>;
+ /** [Ollama](https://docs.ollama.com). Serves Codex and Claude Code. Reads `OLLAMA_URL` and `OLLAMA_API_KEY`; defaults to `http://localhost:11434` without a key. */
+-export declare function ollama(options?: AgentHostedGatewayOptions): AgentDriverGateway;
++export declare function ollama(options?: AiHostedGatewayOptions): AiGateway<{
++  ask: false;
++}>;
+ /** [OpenRouter](https://openrouter.ai/docs). Serves Codex and Claude Code. Reads `OPENROUTER_API_KEY`. */
+-export declare function openrouter(options?: AgentGatewayPresetOptions): AgentDriverGateway;
+-/** [Vercel AI Gateway](https://vercel.com/docs/ai-gateway/coding-agents). Serves Codex and Claude Code. Reads `AI_GATEWAY_API_KEY`, then `VERCEL_OIDC_TOKEN`. */
+-export declare function vercel(options?: AgentGatewayPresetOptions): AgentDriverGateway;
++export declare function openrouter(options?: AiGatewayPresetOptions): AiGateway<{
++  ask: false;
++}>;
++/**
++ * [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). Serves Codex and Claude Code, and answers Jev questions as
++ * `typesafe-ai/jev`. Reads `AI_GATEWAY_API_KEY`, then `VERCEL_OIDC_TOKEN`.
++ */
++export declare function vercel(options?: VercelGatewayOptions): AiGateway<{
++  ask: true;
++}>;
+ /** The OpenAI API with an API key. Serves Codex. Reads `OPENAI_API_KEY`. */
+-export declare function openai(options?: AgentGatewayPresetOptions): AgentDriverGateway;
++export declare function openai(options?: AiGatewayPresetOptions): AiGateway<{
++  ask: false;
++}>;
  /** The Anthropic API with an API key. Serves Claude Code. Reads `ANTHROPIC_API_KEY`. */
- export declare function anthropic(options?: AgentGatewayPresetOptions): AgentDriverGateway;
+-export declare function anthropic(options?: AgentGatewayPresetOptions): AgentDriverGateway;
++export declare function anthropic(options?: AiGatewayPresetOptions): AiGateway<{
++  ask: false;
++}>;
++/** [TypeSafe](https://typesafe.ai). Answers Jev questions; it serves no Driver. Reads `TYPESAFE_API_KEY`. */
++export declare function typesafe(options?: TypesafeGatewayOptions): AiGateway<{
++  ask: true;
++}>;
++/**
++ * TypeSafe through a [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/configuration/custom-providers/)
++ * custom provider whose base URL is `https://api.typesafe.ai`. Answers Jev questions; it serves no Driver. Reads
++ * `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, `CLOUDFLARE_AI_GATEWAY_TOKEN`, and
++ * `CLOUDFLARE_AI_GATEWAY_SLUG`.
++ */
++export declare function cloudflare(options?: CloudflareGatewayOptions): AiGateway<{
++  ask: true;
++}>;
  //#endregion
 -export type { AgentDriverGateway, AgentDriverGatewaySecret };
 \ No newline at end of file
-+export type { AgentDriverGateway, AgentDriverGatewaySecret, JevAskOptions, JevClient, JevCloudflareGateway, JevOptions, JevProvider };
++export type { AiGateway, AiGatewayAsk, AiGatewayAskOptions, AiGatewayCapabilities, AiGatewayDefinition, AiGatewaySecret };
 \ No newline at end of file
 diff --git a/dist/gateways.js b/dist/gateways.js
-index 4f5768c0cce8a75a51c1314dcaac5dcdc5c492c8..8bd3eebf46bf875ad0af4ef281504c146c12a914 100644
+index 4f5768c0cce8a75a51c1314dcaac5dcdc5c492c8..9c610ecd927c81c881122beb6520ee96535dc9c7 100644
 --- a/dist/gateways.js
 +++ b/dist/gateways.js
-@@ -1,7 +1,25 @@
+@@ -1,6 +1,7 @@
  import { t as agentDiagnostics } from "./agent-diagnostics-C17R3SEm.js";
  import { a as isRuntimeRecord, n as hasRuntimeType } from "./runtime-type-VTnJJ_sX.js";
- import { n as normalizeAgentDriverGateway } from "./agent-gateway-BgOKEyQn.js";
-+import { r as askJev } from "./agent-driver-ghtKCAbH.js";
+-import { n as normalizeAgentDriverGateway } from "./agent-gateway-BgOKEyQn.js";
++import { n as normalizeAgentDriverGateway, vitehubAiGatewayAsks as aiGatewayAsks, vitehubResolveSecret as resolveSecret } from "./agent-gateway-BgOKEyQn.js";
++import { r as askJev, vitehubCloudflareJevBaseURL as cloudflareJevBaseURL } from "./agent-driver-ghtKCAbH.js";
  import { n as gatewayEnvNames, r as gatewayEnvValue } from "./gateway-env-Cccy3H-K.js";
-+//#region src/jev.ts
-+/**
-+* A TypeSafe Jev client. The same questions and answers work through the TypeSafe API, Vercel AI Gateway, and
-+* Cloudflare AI Gateway. Use explicit options for credentials that the application stores, such as one key per tenant.
-+*
-+* ```ts
-+* const answers = await jev({ provider: "vercel", apiKey }).ask(email, { spam: ask.if("Is it spam?") })
-+* ```
-+*/
-+function jev(options = {}) {
-+	return { ask: async (state, questions, { onUsage, signal } = {}) => await askJev({
-+		...signal ? { abortSignal: signal } : {},
-+		client: options,
-+		...onUsage ? { recordUsage: onUsage } : {}
-+	}, state, questions) };
-+}
-+//#endregion
  //#region src/gateways.ts
  function origin(url, label) {
- 	if (!hasRuntimeType(url, "string") || !url.trim()) throw agentDiagnostics.AGENT_R0975({ message: `[vitehub] ${label}({ url }) must be a non-empty URL.` });
-@@ -136,4 +154,4 @@ function anthropic(options) {
+@@ -39,15 +40,65 @@ function hostedBaseURL(gateway, url, fallback) {
+ 		"claude-code": async (context) => origin(await read(context), gateway)
+ 	};
+ }
+-function preset(gateway, options) {
+-	const value = { ...gateway };
++function askContext(signal) {
++	return { abortSignal: signal };
++}
++function jevAsk(name, spec) {
++	return async (state, questions, { onUsage, signal } = {}) => await askJev({
++		...signal ? { abortSignal: signal } : {},
++		...onUsage ? { recordUsage: onUsage } : {},
++		route: async () => {
++			const context = askContext(signal);
++			const resolvedKey = await resolveSecret(spec.apiKey, context);
++			const apiKey = spec.oidc && resolvedKey === globalThis.process?.env?.VERCEL_OIDC_TOKEN?.trim() ? void 0 : resolvedKey;
++			if (!apiKey && !spec.oidc) throw agentDiagnostics.AGENT_R0977({ message: `[vitehub] Gateway "${name}" apiKey resolved to an empty value.` });
++			const headers = {};
++			for (const [header, input] of Object.entries(spec.headers ?? {})) {
++				const value = await resolveSecret(input, context);
++				if (value) headers[header] = value;
++			}
++			return {
++				...apiKey ? { apiKey } : {},
++				baseURL: await spec.baseURL(),
++				...spec.fetch ? { fetch: spec.fetch } : {},
++				...Object.keys(headers).length ? { headers } : {},
++				...spec.keyEnv ? { keyEnv: spec.keyEnv } : {},
++				label: spec.label,
++				model: spec.model,
++				name,
++				protocol: spec.protocol
++			};
++		}
++	}, state, questions);
++}
++function unsupportedAsk(name) {
++	return async () => {
++		throw agentDiagnostics.AGENT_R1013({ message: `[vitehub] Gateway "${name}" routes Driver model requests and cannot answer Jev questions. Use typesafe(), vercel(), or cloudflare() for ask().` });
++	};
++}
++function createAiGateway(definition, ask) {
++	const routes = normalizeAgentDriverGateway(ask ? Object.defineProperty({ ...definition }, aiGatewayAsks, { value: true }) : definition);
++	const gateway = { ...routes };
++	Object.defineProperty(gateway, "ask", { value: ask ?? unsupportedAsk(routes.name) });
++	if (ask) Object.defineProperty(gateway, aiGatewayAsks, { value: true });
++	return Object.freeze(gateway);
++}
++function preset(definition, options) {
++	const value = { ...definition };
+ 	if (options && Object.hasOwn(options, "apiKey")) value.apiKey = options.apiKey;
+ 	if (options?.headers !== void 0) value.headers = options.headers;
+-	return defineGateway(value);
++	return value;
+ }
+-/** Validate a custom gateway. Use it for an endpoint without a preset. */
+-function defineGateway(gateway) {
+-	return normalizeAgentDriverGateway(gateway);
++/** Variables of the key, or undefined when the caller passed it. */
++function keyEnv(gateway, options) {
++	return options && Object.hasOwn(options, "apiKey") ? void 0 : gatewayEnvNames(gateway, "apiKey").join(" or ");
++}
++/**
++* Validate a custom gateway for an endpoint without a preset. It routes Driver model requests; only the `typesafe()`,
++* `vercel()`, and `cloudflare()` presets answer Jev questions.
++*/
++function defineAiGateway(gateway) {
++	return createAiGateway(gateway);
+ }
+ /**
+ * Cloudflare Access service-token headers for a gateway behind Access.
+@@ -66,19 +117,19 @@ function cloudflareAccess(options = {}) {
+ }
+ /** [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). Serves Codex and Claude Code. Reads `CLIPROXY_URL` and `CLIPROXY_API_KEY`. */
+ function cliproxy(options = {}) {
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "cliproxy",
+ 		baseURL: hostedBaseURL("cliproxy", options.url),
+ 		apiKey: apiKeyFromEnv("cliproxy")
+-	}, options);
++	}, options));
+ }
+ /** [LiteLLM Proxy](https://docs.litellm.ai/docs/simple_proxy). Serves Codex and Claude Code. Reads `LITELLM_URL` and `LITELLM_API_KEY`. */
+ function litellm(options = {}) {
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "litellm",
+ 		baseURL: hostedBaseURL("litellm", options.url),
+ 		apiKey: apiKeyFromEnv("litellm")
+-	}, options);
++	}, options));
+ }
+ /** [Ollama](https://docs.ollama.com). Serves Codex and Claude Code. Reads `OLLAMA_URL` and `OLLAMA_API_KEY`; defaults to `http://localhost:11434` without a key. */
+ function ollama(options = {}) {
+@@ -87,29 +138,32 @@ function ollama(options = {}) {
+ 		return present(value) ? value : void 0;
+ 	};
+ 	const url = read("url");
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "ollama",
+ 		baseURL: options.url !== void 0 ? hostedBaseURL("ollama", options.url) : {
+ 			"codex": async (context) => `${origin(await url(context) ?? "http://localhost:11434", "ollama")}/v1`,
+ 			"claude-code": async (context) => origin(await url(context) ?? "http://localhost:11434", "ollama")
+ 		},
+ 		apiKey: (async (context) => await read("apiKey")(context) ?? "ollama")
+-	}, options);
++	}, options));
+ }
+ /** [OpenRouter](https://openrouter.ai/docs). Serves Codex and Claude Code. Reads `OPENROUTER_API_KEY`. */
+ function openrouter(options) {
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "openrouter",
+ 		baseURL: {
+ 			"codex": "https://openrouter.ai/api/v1",
+ 			"claude-code": "https://openrouter.ai/api"
+ 		},
+ 		apiKey: apiKeyFromEnv("openrouter")
+-	}, options);
++	}, options));
+ }
+-/** [Vercel AI Gateway](https://vercel.com/docs/ai-gateway/coding-agents). Serves Codex and Claude Code. Reads `AI_GATEWAY_API_KEY`, then `VERCEL_OIDC_TOKEN`. */
++/**
++* [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). Serves Codex and Claude Code, and answers Jev questions as
++* `typesafe-ai/jev`. Reads `AI_GATEWAY_API_KEY`, then `VERCEL_OIDC_TOKEN`.
++*/
+ function vercel(options) {
+-	return preset({
++	const definition = preset({
+ 		name: "vercel",
+ 		baseURL: {
+ 			"codex": "https://ai-gateway.vercel.sh/codex/v1",
+@@ -117,23 +171,94 @@ function vercel(options) {
+ 		},
+ 		apiKey: apiKeyFromEnv("vercel")
  	}, options);
++	return createAiGateway(definition, jevAsk("vercel", {
++		apiKey: definition.apiKey,
++		baseURL: async () => "https://ai-gateway.vercel.sh/v4/ai",
++		...options?.fetch ? { fetch: options.fetch } : {},
++		...definition.headers ? { headers: definition.headers } : {},
++		...keyEnv("vercel", options) ? { keyEnv: keyEnv("vercel", options) } : {},
++		label: "Vercel AI Gateway",
++		model: options?.model?.trim() || "typesafe-ai/jev",
++		oidc: !(options && Object.hasOwn(options, "apiKey")),
++		protocol: "vercel"
++	}));
+ }
+ /** The OpenAI API with an API key. Serves Codex. Reads `OPENAI_API_KEY`. */
+ function openai(options) {
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "openai",
+ 		baseURL: { codex: "https://api.openai.com/v1" },
+ 		apiKey: apiKeyFromEnv("openai")
+-	}, options);
++	}, options));
+ }
+ /** The Anthropic API with an API key. Serves Claude Code. Reads `ANTHROPIC_API_KEY`. */
+ function anthropic(options) {
+-	return preset({
++	return defineAiGateway(preset({
+ 		name: "anthropic",
+ 		baseURL: { "claude-code": "https://api.anthropic.com" },
+ 		apiKey: apiKeyFromEnv("anthropic"),
+ 		auth: "x-api-key"
++	}, options));
++}
++/** [TypeSafe](https://typesafe.ai). Answers Jev questions; it serves no Driver. Reads `TYPESAFE_API_KEY`. */
++function typesafe(options) {
++	const definition = preset({
++		name: "typesafe",
++		baseURL: {},
++		apiKey: apiKeyFromEnv("typesafe")
+ 	}, options);
++	return createAiGateway(definition, jevAsk("typesafe", {
++		apiKey: definition.apiKey,
++		baseURL: async () => "https://api.typesafe.ai",
++		...options?.fetch ? { fetch: options.fetch } : {},
++		...definition.headers ? { headers: definition.headers } : {},
++		...keyEnv("typesafe", options) ? { keyEnv: keyEnv("typesafe", options) } : {},
++		label: "TypeSafe",
++		model: options?.model?.trim() || "jev-latest",
++		protocol: "typesafe"
++	}));
++}
++/**
++* TypeSafe through a [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/configuration/custom-providers/)
++* custom provider whose base URL is `https://api.typesafe.ai`. Answers Jev questions; it serves no Driver. Reads
++* `TYPESAFE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, `CLOUDFLARE_AI_GATEWAY_TOKEN`, and
++* `CLOUDFLARE_AI_GATEWAY_SLUG`.
++*/
++function cloudflare(options = {}) {
++	const definition = preset({
++		name: "cloudflare",
++		baseURL: {},
++		apiKey: apiKeyFromEnv("cloudflare")
++	}, options);
++	const value = async (field, given) => {
++		if (given !== void 0) return given.trim();
++		const read = await gatewayEnvValue("cloudflare", field, askContext(void 0));
++		return hasRuntimeType(read, "string") ? read.trim() : "";
++	};
++	const required = async (field, given) => {
++		const resolved = await value(field, given);
++		if (resolved) return resolved;
++		const label = field === "accountId" ? "an account ID" : "a gateway ID";
++		throw agentDiagnostics.AGENT_R0980({ message: `[vitehub] Gateway "cloudflare" needs ${label}. Set ${gatewayEnvNames("cloudflare", field).join(" or ")}, or pass ${field}.` });
++	};
++	const token = Object.hasOwn(options, "token") ? options.token : async (context) => await gatewayEnvValue("cloudflare", "token", context);
++	return createAiGateway(definition, jevAsk("cloudflare", {
++		apiKey: definition.apiKey,
++		baseURL: async () => cloudflareJevBaseURL({
++			accountId: await required("accountId", options.accountId),
++			gatewayId: await required("gatewayId", options.gatewayId),
++			slug: await value("slug", options.slug)
++		}),
++		...options.fetch ? { fetch: options.fetch } : {},
++		headers: { "cf-aig-authorization": async (context) => {
++			const resolved = await resolveSecret(token, context);
++			return resolved ? `Bearer ${resolved}` : void 0;
++		} },
++		...Object.hasOwn(options, "apiKey") ? {} : { keyEnv: "TYPESAFE_API_KEY or CLOUDFLARE_AI_GATEWAY_TOKEN" },
++		label: "Cloudflare AI Gateway",
++		model: options.model?.trim() || "jev-latest",
++		protocol: "typesafe"
++	}));
  }
  //#endregion
 -export { anthropic, cliproxy, cloudflareAccess, defineGateway, litellm, ollama, openai, openrouter, vercel };
-+export { anthropic, cliproxy, cloudflareAccess, defineGateway, jev, litellm, ollama, openai, openrouter, vercel };
++export { anthropic, cliproxy, cloudflare, cloudflareAccess, defineAiGateway, litellm, ollama, openai, openrouter, typesafe, vercel };

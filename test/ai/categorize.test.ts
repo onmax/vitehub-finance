@@ -1,4 +1,4 @@
-import { jev } from "vite-hub/agent/gateways"
+import { cloudflare, typesafe } from "vite-hub/agent/gateways"
 import { describe, expect, it, vi } from "vitest"
 import { DEFAULT_CATEGORIES } from "../../shared/categories"
 import {
@@ -35,7 +35,7 @@ const row = (description: string, amountMinor: number, extra: Partial<AiRow> = {
 })
 
 /**
- * A stand-in for TypeSafe's API (what ViteHub's `jev()` client sends and reads): picks the option whose name appears in a
+ * A stand-in for TypeSafe's API (what ViteHub's `typesafe()` gateway sends and reads): picks the option whose name appears in a
  * lookup for the row's description, sure of it, and says the row fits; anything it doesn't know gets an even split and a
  * "no".
  */
@@ -137,13 +137,13 @@ describe("reading answers", () => {
   })
 })
 
-describe("asking Jev through ViteHub's client", () => {
-  const client = (fetch: typeof globalThis.fetch) => jev({ provider: "typesafe", apiKey: "ts_test", fetch })
+describe("asking Jev through ViteHub's AI gateways", () => {
+  const client = (fetch: typeof globalThis.fetch) => typesafe({ apiKey: "ts_test", fetch })
 
   it("posts each batch with the key and returns the sure answers with token usage", async () => {
     const rows = [row("Hetzner Online Gmbh", -2_500), row("Coop Eslov", -34_900), row("Card payment", -1_000)]
     const fetch = fakeJev({ "Hetzner Online Gmbh": "Subscriptions", "Coop Eslov": "Groceries" })
-    const result = await classify(rows, CATEGORIES, { jev: client(fetch) })
+    const result = await classify(rows, CATEGORIES, { gateway: client(fetch) })
     expect(fetch).toHaveBeenCalledTimes(1)
     const [url, init] = fetch.mock.calls[0]!
     expect(url).toBe("https://api.typesafe.ai/v1/systemone")
@@ -155,8 +155,8 @@ describe("asking Jev through ViteHub's client", () => {
 
   it("asks the same questions through a Cloudflare AI Gateway", async () => {
     const fetch = fakeJev({ Waymo: "Transport" })
-    const gateway = jev({ provider: "cloudflare", apiKey: "ts_test", cloudflare: { accountId: "acc", gatewayId: "finance", token: "cf" }, fetch })
-    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { jev: gateway })
+    const gateway = cloudflare({ apiKey: "ts_test", accountId: "acc", gatewayId: "finance", token: "cf", fetch })
+    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { gateway })
     const [url, init] = fetch.mock.calls[0]!
     expect(url).toBe("https://gateway.ai.cloudflare.com/v1/acc/finance/custom-typesafe/v1/systemone")
     expect(new Headers(init!.headers).get("cf-aig-authorization")).toBe("Bearer cf")
@@ -168,7 +168,7 @@ describe("asking Jev through ViteHub's client", () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(new Response("slow down", { status: 429 }))
       .mockImplementation(fakeJev({ Waymo: "Transport" }))
-    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { jev: client(fetch) })
+    const result = await classify([row("Waymo", -2_300)], CATEGORIES, { gateway: client(fetch) })
     expect(fetch).toHaveBeenCalledTimes(2)
     expect(result.decisions[0]!.categoryId).toBe(idOf("Transport"))
   })
@@ -177,12 +177,12 @@ describe("asking Jev through ViteHub's client", () => {
     const rows = Array.from({ length: BATCH_SIZE + 1 }, (_, index) => row(index === BATCH_SIZE ? "Waymo" : `Shop ${index}`, -500))
     const answer = fakeJev({ Waymo: "Transport" })
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValueOnce(new Response("bad key", { status: 401 })).mockImplementation(answer)
-    const result = await classify(rows, CATEGORIES, { jev: client(fetch) })
+    const result = await classify(rows, CATEGORIES, { gateway: client(fetch) })
     expect(result.usage.failedCalls).toBe(1)
     expect(result.usage.error).toMatchObject({ status: 401 })
     expect(result.decisions).toHaveLength(1)
 
     const down = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response("{}", { status: 422 }))
-    await expect(classify([row("Waymo", -2_300)], CATEGORIES, { jev: client(down) })).rejects.toMatchObject({ status: 422 })
+    await expect(classify([row("Waymo", -2_300)], CATEGORIES, { gateway: client(down) })).rejects.toMatchObject({ status: 422 })
   })
 })

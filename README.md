@@ -90,7 +90,7 @@ Rules categorize what they recognize ("mercadona" is Groceries). For the rest ("
 Gmbh"), ViteHub Finance asks TypeSafe's Jev model, after the rules and transfer detection, on every sync and CSV import.
 `/settings/categories` has a button for what's already there.
 
-It reaches Jev through ViteHub's `jev()` client, one of three ways:
+It reaches Jev through one of ViteHub's AI gateways (`typesafe()`, `vercel()`, or `cloudflare()`), one of three ways:
 
 | Route | Server variables | Household form |
 | --- | --- | --- |
