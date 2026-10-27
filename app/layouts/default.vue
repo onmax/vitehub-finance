@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui"
+import type { AccountSummary } from "#shared/api"
 
 // The signed-in shell: shadcn's sidebar (household header, main pages, what's syncing, Household and Settings, the
 // account menu) on Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
@@ -30,25 +31,46 @@ const toItem = (page: { label: string; icon: string; to: string }): NavigationMe
     onSelect: () => (open.value = false),
   }
 }
-// Accounts lists them under it, open while you're on one of its pages; the chevron opens or closes it anywhere. The menu
-// only reads which items start open when it mounts, so it mounts again once the accounts arrive and as you enter or
-// leave Accounts.
+// Accounts lists them under it, open while you're on one of its pages; the chevron opens or closes it anywhere. A
+// connection with several accounts (a bank's currency pockets) folds them under one row named for the bank, open while
+// you're on one of them, each labeled without the bank's name in front. The menu only reads which items start open when
+// it mounts, so it mounts again once the accounts arrive and as you move between those groups.
 const { data: accounts } = useAccounts()
 const inAccounts = computed(() => isActive("/accounts"))
+const accountLink = (account: AccountSummary, label = account.name): NavigationMenuItem => ({
+  label,
+  to: `/accounts/${account.id}`,
+  active: route.path === `/accounts/${account.id}`,
+  onSelect: () => (open.value = false),
+})
+const withoutBank = (name: string, bank: string) => (name.toLowerCase().startsWith(`${bank.toLowerCase()} `) ? name.slice(bank.length + 1) : name)
+const accountGroups = computed(() => {
+  const groups = new Map<string, AccountSummary[]>()
+  for (const account of accounts.value) {
+    const key = account.connectionId ?? account.id
+    groups.set(key, [...(groups.get(key) ?? []), account])
+  }
+  return [...groups.entries()].map(([key, members]) => ({ key, members, bank: members[0]!.institution ?? members[0]!.name }))
+})
+const openGroup = computed(() => accountGroups.value.find((group) => group.members.length > 1 && group.members.some((account) => route.path === `/accounts/${account.id}`))?.key ?? "")
 const accountItems = computed<NavigationMenuItem[]>(() =>
-  accounts.value.map((account) => ({
-    label: account.name,
-    to: `/accounts/${account.id}`,
-    active: route.path === `/accounts/${account.id}`,
-    onSelect: () => (open.value = false),
-  })),
+  accountGroups.value.map(({ key, members, bank }) =>
+    members.length === 1
+      ? accountLink(members[0]!)
+      : {
+          label: bank,
+          badge: { label: String(members.length), color: "neutral", variant: "soft", size: "sm" },
+          defaultOpen: key === openGroup.value,
+          children: members.map((account) => accountLink(account, withoutBank(account.name, bank))),
+        },
+  ),
 )
 const main = computed(() =>
   MAIN_PAGES.map((page) =>
     page.to === "/accounts" && accountItems.value.length ? { ...toItem(page), children: accountItems.value, defaultOpen: inAccounts.value } : toItem(page),
   ),
 )
-const mainKey = computed(() => `${accountItems.value.length > 0}-${inAccounts.value}`)
+const mainKey = computed(() => `${accountItems.value.length > 0}-${inAccounts.value}-${openGroup.value}`)
 const connect = computed<NavigationMenuItem[]>(() => [{ get label() { return translate('connect2') }, type: "label" }, ...CONNECT_PAGES.map(toItem)])
 const secondary = computed(() => SECONDARY_PAGES.map(toItem))
 
