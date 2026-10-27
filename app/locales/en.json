@@ -1543,5 +1543,11 @@
   "catalogIbkrOpenPortal": "Open IBKR’s Client Portal",
   "catalogIbkrDocs": "IBKR’s docs",
   "catalogIbkrAiShort": "Quicker with IBKR’s Configure with AI:",
-  "catalogIbkrTokenRenew": "It’s used every day until it expires. Then make a new one and connect again with it: your accounts and their history stay."
+  "catalogIbkrTokenRenew": "It’s used every day until it expires. Then make a new one and connect again with it: your accounts and their history stay.",
+  "syncStatusSyncingOne": "Syncing {name}…",
+  "syncStatusSyncingMany": "Syncing {count} connections…",
+  "syncStatusSyncingDetail": "Pages update when it’s done",
+  "syncStatusNeedsYouOne": "{name} needs you",
+  "syncStatusNeedsYouMany": "{count} connections need you",
+  "syncStatusUpToDate": "Up to date"
 }

@@ -445,6 +445,17 @@ export interface ConnectionSummary {
   canManage: boolean
 }
 
+/** What the sidebar says about syncing: what's syncing now, what needs someone, and when everything last synced. */
+export interface SyncStatus {
+  /** Connections with a sync running now. */
+  syncing: Array<{ id: string; name: string; provider: ProviderId; startedAt: string }>
+  /** Connections that failed, expired, or need reconnecting soon (the overview's `attention`). */
+  attention: ConnectionSummary[]
+  /** The latest sync of any connection the caller sees; null before the first. */
+  lastSyncedAt: string | null
+  connections: number
+}
+
 export interface SyncRun {
   id: string
   trigger: "schedule" | "manual" | "link"

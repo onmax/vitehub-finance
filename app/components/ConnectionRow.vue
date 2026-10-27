@@ -31,10 +31,11 @@ async function sync() {
   try {
     await $fetch(`/api/connections/${props.connection.id}/sync`, { method: "POST" })
     emit("changed")
-    await refreshStems("accounts", "overview", "transactions", "recurring", "forecast")
+    await refreshStems("accounts", "overview", "transactions", "recurring", "forecast", "sync-status")
     notify.success(translate('isUpToDate', { value1: props.connection.name }))
   } catch (error) {
     emit("changed")
+    void refreshNuxtData("sync-status")
     notify.error(error, translate('couldnTSync', { value1: props.connection.name }))
   } finally {
     pending.value = null
@@ -72,7 +73,7 @@ async function remove() {
   try {
     await $fetch(`/api/connections/${props.connection.id}`, { method: "DELETE", query: checked ? { keepAccounts: 1 } : {} })
     emit("changed")
-    await refreshStems("accounts", "overview", "transactions", "recurring", "forecast")
+    await refreshStems("accounts", "overview", "transactions", "recurring", "forecast", "sync-status")
     notify.success(translate('removed', { value1: props.connection.name }))
   } catch (error) {
     notify.error(error, translate('couldnTRemove', { value1: props.connection.name }))

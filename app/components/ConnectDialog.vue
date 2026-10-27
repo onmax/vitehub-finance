@@ -40,6 +40,7 @@ provideConnectFlow({
         .catch(() => [])
       result.value = connection
       emit("connected", connection)
+      void refreshNuxtData("sync-status")
     } catch (cause) {
       error.value = errorText(cause, fallback)
     } finally {

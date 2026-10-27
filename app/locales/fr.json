@@ -1543,5 +1543,11 @@
   "catalogIbkrOpenPortal": "Ouvrir le Client Portal d’IBKR",
   "catalogIbkrDocs": "Documentation d’IBKR",
   "catalogIbkrAiShort": "Plus rapide avec Configure with AI d’IBKR :",
-  "catalogIbkrTokenRenew": "Il sert chaque jour jusqu’à son expiration. Créez-en alors un nouveau et reconnectez-vous avec : vos comptes et leur historique restent."
+  "catalogIbkrTokenRenew": "Il sert chaque jour jusqu’à son expiration. Créez-en alors un nouveau et reconnectez-vous avec : vos comptes et leur historique restent.",
+  "syncStatusSyncingOne": "Synchronisation de {name}…",
+  "syncStatusSyncingMany": "Synchronisation de {count} connexions…",
+  "syncStatusSyncingDetail": "Les pages se mettent à jour à la fin",
+  "syncStatusNeedsYouOne": "{name} a besoin de vous",
+  "syncStatusNeedsYouMany": "{count} connexions ont besoin de vous",
+  "syncStatusUpToDate": "À jour"
 }

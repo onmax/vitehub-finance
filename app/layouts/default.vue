@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui"
 
-// The signed-in shell: shadcn's sidebar (household header, main pages, Household and Settings, the account menu) on
-// Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
+// The signed-in shell: shadcn's sidebar (household header, main pages, Household and Settings, what's syncing, the
+// account menu) on Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
 // a letter jumps to a page.
 const route = useRoute()
 const open = ref(false)
@@ -95,6 +95,7 @@ defineShortcuts(
           :aria-label="$t('householdAndSettings')"
           :ui="{ link: 'h-9', linkLabel: 'text-sm' }"
         />
+        <SidebarSyncStatus :collapsed="collapsed" />
       </template>
 
       <template #footer="{ collapsed }">
