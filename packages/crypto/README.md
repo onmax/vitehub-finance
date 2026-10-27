@@ -41,11 +41,13 @@ code that stores the id.
   whole coins with staked coins included, and `staked`, the part of `quantity` that earns rewards.
 - `CryptoTransaction`: `id` (the hash), `date` (`YYYY-MM-DD`, UTC), `symbol`, `quantity` in whole coins and signed
   (negative left the address, fee apart), `fee` (what this address paid), `counterparty` (the other address, or null),
-  and `kind`: `send`, `receive`, `reward` (block or staking rewards), `stake` (own coins into staking or back), or
-  `trade` (the XRP Ledger's DEX and AMMs). Only the native coin counts: XRP Ledger amounts come from the address's
-  balance change in the transaction's metadata, so issued currencies, trust lines, and fee-only transactions are left
-  out, and partial payments count what arrived. On Nimiq, a payment into the staking contract that names the address
-  is a staking reward.
+  and `kind`: `send`, `receive`, `reward` (block or staking rewards), `stake` (own coins into staking or back),
+  `trade` (the XRP Ledger's DEX and AMMs), `escrow` (own XRP locked in an escrow or back; the balance leaves locked XRP
+  out), or `fee` (only the fee moved: a setting, a trust line, a failed `tec*` transaction). Only the native coin
+  counts: XRP Ledger amounts come from the address's balance change in the transaction's metadata, so other people's
+  checks and escrows and issued currencies are left out, and partial payments count what arrived. Each transaction's
+  `quantity - fee` (`-fee` for `stake`) is what the holding changed by, so a whole history adds up to the balance. On
+  Nimiq, a payment into the staking contract that names the address is a staking reward.
 - `CryptoError`: `code` is `invalid_credentials`, `invalid_address`, `rate_limited`, or `unavailable`, and `message` is
   written for people.
 

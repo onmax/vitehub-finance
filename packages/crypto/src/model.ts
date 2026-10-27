@@ -36,9 +36,11 @@ export interface TransactionsOptions {
 /**
  * `send` and `receive` move coins to or from another address, `reward` is new coins from block production or staking,
  * `stake` moves the address's own coins into staking or back (its holding counts both, so its total doesn't change),
- * and `trade` swaps the coin for another asset on the chain (the XRP Ledger's DEX and AMMs).
+ * `trade` swaps the coin for another asset on the chain (the XRP Ledger's DEX and AMMs), `escrow` locks the address's
+ * own coins in an XRP Ledger escrow or brings them back (the balance leaves locked coins out, so it changes), and `fee`
+ * is a transaction that cost the address its fee and moved nothing else: a setting, a trust line, a failed (`tec*`) one.
  */
-export type CryptoTransactionKind = "send" | "receive" | "reward" | "stake" | "trade"
+export type CryptoTransactionKind = "send" | "receive" | "reward" | "stake" | "trade" | "escrow" | "fee"
 
 export interface CryptoTransaction {
   /** The transaction hash. */

@@ -18,12 +18,14 @@ export function shortAddress(address: string) {
 
 /**
  * A wallet transaction as a row people understand. Its amount is what the holding changed by, fee included. Staking
- * moves are left out: the holding counts staked coins, so they change nothing. Everything but rewards is a transfer:
- * coins moving between your wallet and an exchange, or swapped for another asset, are neither spending nor income.
+ * moves are left out: the holding counts staked coins, so they change nothing. So are transactions that only cost a fee:
+ * a few millionths of a coin, never worth a row (the balance history still counts them). Everything but rewards is a
+ * transfer: coins moving between your wallet and an exchange, into an escrow, or swapped for another asset are neither
+ * spending nor income.
  */
 export function coinTransaction(transaction: CryptoTransaction): ProviderCoinTransaction | null {
   const { kind, quantity, symbol, counterparty } = transaction
-  if (kind === "stake") return null
+  if (kind === "stake" || kind === "fee") return null
   const other = counterparty ? shortAddress(counterparty) : null
   const description =
     kind === "send"
@@ -32,9 +34,13 @@ export function coinTransaction(transaction: CryptoTransaction): ProviderCoinTra
         ? `Received ${coins(quantity, symbol)}`
         : kind === "reward"
           ? `Received ${coins(quantity, symbol)} in rewards`
-          : quantity < 0
-            ? `Swapped ${coins(quantity, symbol)}`
-            : `Swapped for ${coins(quantity, symbol)}`
+          : kind === "escrow"
+            ? quantity < 0
+              ? `Locked ${coins(quantity, symbol)} in escrow${other ? ` for ${other}` : ""}`
+              : `Released ${coins(quantity, symbol)} from escrow`
+            : quantity < 0
+              ? `Swapped ${coins(quantity, symbol)}`
+              : `Swapped for ${coins(quantity, symbol)}`
   return {
     externalId: transaction.id,
     date: transaction.date,

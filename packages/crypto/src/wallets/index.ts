@@ -134,10 +134,24 @@ function xrpDelta(address: string, meta: any) {
   return delta
 }
 
+/** When the transaction's ledger closed, in Unix seconds. */
+const xrplSeconds = (entry: any) => {
+  const tx = entry.tx ?? entry.tx_json
+  return typeof tx?.date === "number" ? tx.date + RIPPLE_EPOCH : Date.parse(entry.close_time_iso) / 1000
+}
+
+/** Whoever wrote the Check this transaction cashed: the XRP came from them. */
+function checkOwner(meta: any): string | undefined {
+  for (const node of meta?.AffectedNodes ?? []) if (node.DeletedNode?.LedgerEntryType === "Check") return node.DeletedNode.FinalFields?.Account
+  return undefined
+}
+
 /**
- * One `account_tx` entry as an XRP movement, or null when it moved no XRP besides the fee (trust lines, settings,
- * issued currencies). The amount comes from the address's balance change in the metadata, so partial payments,
- * account deletions, escrows, and filled DEX offers all count what really arrived.
+ * One `account_tx` entry as an XRP movement, or null when it didn't change this address's XRP balance (someone else's
+ * check, escrow, or payment in an issued currency that only names it). The amount comes from the address's balance
+ * change in the metadata, so partial payments (what `delivered_amount` says arrived), account deletions, escrows, checks,
+ * and filled DEX offers all count what really moved. The fee is apart: this address pays it on everything it signs,
+ * failed (`tec*`) transactions included, and a transaction that cost only the fee comes back as kind `fee`.
  */
 function xrplTransaction(context: Context, entry: any): CryptoTransaction | null {
   const tx = entry.tx ?? entry.tx_json
@@ -145,20 +159,25 @@ function xrplTransaction(context: Context, entry: any): CryptoTransaction | null
   const { address } = context
   const fee = tx.Account === address ? BigInt(tx.Fee ?? 0) : 0n
   const moved = xrpDelta(address, entry.meta) + fee
-  if (moved === 0n) return null
-  const seconds = typeof tx.date === "number" ? tx.date + RIPPLE_EPOCH : Date.parse(entry.close_time_iso) / 1000
+  if (moved === 0n && fee === 0n) return null
+  const type: string = tx.TransactionType
   // A swap: an offer, an AMM, a payment to yourself through the DEX, or someone's payment that took your offer.
-  const trade =
-    XRPL_TRADES.has(tx.TransactionType) ||
-    (tx.TransactionType === "Payment" && (tx.Destination === tx.Account || (tx.Account !== address && tx.Destination !== address)))
-  const counterparty = trade ? null : moved < 0n ? (tx.Destination ?? null) : tx.Account !== address ? tx.Account : null
+  const trade = XRPL_TRADES.has(type) || (type === "Payment" && (tx.Destination === tx.Account || (tx.Account !== address && tx.Destination !== address)))
+  // XRP this address locked in an escrow, or got back from one of its own (finished to itself, or cancelled).
+  const escrow = type === "EscrowCreate" ? tx.Account === address : type.startsWith("Escrow") && tx.Owner === address
+  const other = (candidate: unknown) => (typeof candidate === "string" && candidate !== address ? candidate : null)
+  // Who the XRP went to or came from: a payment's destination or sender, a cashed check's writer, an escrow's owner.
+  let counterparty: string | null = null
+  if (escrow) counterparty = moved < 0n ? other(tx.Destination) : null
+  else if (!trade && moved < 0n) counterparty = other(tx.Destination) ?? other(tx.Account)
+  else if (!trade && moved > 0n) counterparty = other(tx.Owner) ?? (type === "CheckCash" ? other(checkOwner(entry.meta)) : null) ?? other(tx.Account)
   return movement(context, {
     id: tx.hash ?? entry.hash,
-    time: seconds * 1000,
+    time: xrplSeconds(entry) * 1000,
     moved,
     fee,
-    counterparty: counterparty === address ? null : counterparty,
-    kind: trade ? "trade" : moved < 0n ? "send" : "receive",
+    counterparty,
+    kind: moved === 0n ? "fee" : trade ? "trade" : escrow ? "escrow" : moved < 0n ? "send" : "receive",
   })
 }
 
@@ -280,8 +299,9 @@ const READERS: Record<ChainId, Reader> = {
         if (result.error === "actNotFound") return []
         if (result.error) throw context.fail("unavailable", `The XRP Ledger server returned an error. Try again later. Details: ${result.error_message || result.error}`)
         for (const entry of result.transactions ?? []) {
+          const seconds = xrplSeconds(entry)
+          if (since && Number.isFinite(seconds) && day(seconds * 1000) < since) return out
           const parsed = xrplTransaction(context, entry)
-          if (parsed && since && parsed.date < since) return out
           if (parsed) out.push(parsed)
         }
         marker = result.marker

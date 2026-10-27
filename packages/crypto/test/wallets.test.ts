@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { bitcoin, connect, createCrypto, CryptoError, fromBaseUnits, nimiq, parseAddress, parseNimiqAddress, xrpl, XRPL_SERVERS } from "../src/index.ts"
 import { fake } from "../src/fake.ts"
@@ -189,6 +190,7 @@ describe("XRP Ledger history", () => {
     expect(transactions).toEqual([
       { id: "A1", date: "2026-10-20", symbol: "XRP", quantity: 125.5, fee: 0, counterparty: other, kind: "receive" },
       { id: "A2", date: "2026-10-18", symbol: "XRP", quantity: -10, fee: 0.000012, counterparty: exchange, kind: "send" },
+      { id: "A3", date: "2026-10-15", symbol: "XRP", quantity: 0, fee: 0.000012, counterparty: null, kind: "fee" },
       { id: "B1", date: "2026-10-10", symbol: "XRP", quantity: -20, fee: 0.00001, counterparty: null, kind: "trade" },
     ])
     expect(calls.map((call) => call.body.params[0])).toEqual([
@@ -200,6 +202,81 @@ describe("XRP Ledger history", () => {
   it("has no history for an unfunded address", async () => {
     const { stub } = urlStub({ [XRPL_SERVERS[0]!]: [json({ result: { error: "actNotFound" } })] })
     await expect(xrpl(address, { fetch: stub }).transactions!()).resolves.toEqual([])
+  })
+
+  it("counts failed transactions' fees, escrows, cashed checks, and partial payments by the balance change", async () => {
+    const failed = (hash: string, date: string, tx: object, nodes: object[], result: string) => ({ ...entry(hash, date, tx, nodes), meta: { TransactionResult: result, AffectedNodes: nodes } })
+    const created = (account: string, balance: string) => ({ CreatedNode: { LedgerEntryType: "AccountRoot", NewFields: { Account: account, Balance: balance } } })
+    const check = { DeletedNode: { LedgerEntryType: "Check", FinalFields: { Account: other, Destination: address, SendMax: "5000000" } } }
+    const transactions = [
+      // Cashed a 5 XRP check `other` wrote, paying 12 drops: 4.999988 more.
+      entry("C6", "2026-10-26", { TransactionType: "CheckCash", Account: address, CheckID: "AB", Amount: "5000000", Fee: "12" }, [root(address, "300000000", "304999988"), root(other, "50000000", "45000000"), check]),
+      // A payment that failed for lack of funds still burned its fee.
+      failed("C5", "2026-10-25", { TransactionType: "Payment", Account: address, Destination: exchange, Amount: "999000000", Fee: "15" }, [root(address, "300000015", "300000000")], "tecUNFUNDED_PAYMENT"),
+      // Someone else's escrow finished to this address: 20 XRP arrived from its owner.
+      entry("C4", "2026-10-24", { TransactionType: "EscrowFinish", Account: exchange, Owner: other, OfferSequence: 9, Fee: "10" }, [root(address, "280000015", "300000015")]),
+      // This address's own escrow back to itself, finished by itself: 50 XRP less the fee.
+      entry("C3", "2026-10-23", { TransactionType: "EscrowFinish", Account: address, Owner: address, OfferSequence: 3, Fee: "10" }, [root(address, "230000025", "280000015")]),
+      // Locked 50 XRP in escrow for itself.
+      entry("C2", "2026-10-22", { TransactionType: "EscrowCreate", Account: address, Destination: address, Amount: "50000000", Fee: "10" }, [root(address, "280000035", "230000025")]),
+      // A partial payment: 1,000 XRP asked, 280.000035 delivered, and the account created with it.
+      entry("C1", "2026-10-21", { TransactionType: "Payment", Account: other, Destination: address, Amount: "1000000000", Flags: 131072, Fee: "12" }, [created(address, "280000035")]),
+      // Someone else's check to this address, and someone else's escrow of an issued token: no XRP of this address moved.
+      entry("C0", "2026-10-21", { TransactionType: "CheckCreate", Account: other, Destination: address, SendMax: "5000000", Fee: "12" }, [root(other, "100", "88")]),
+    ]
+    const { stub } = urlStub({ [XRPL_SERVERS[0]!]: [json({ result: { transactions, status: "success" } })] })
+    const parsed = await xrpl(address, { fetch: stub }).transactions!()
+    expect(parsed.map(({ id, quantity, fee, counterparty, kind }) => [id, quantity, fee, counterparty, kind])).toEqual([
+      ["C6", 5, 0.000012, other, "receive"],
+      ["C5", 0, 0.000015, null, "fee"],
+      ["C4", 20, 0, other, "receive"],
+      ["C3", 50, 0.00001, null, "escrow"],
+      ["C2", -50, 0.00001, null, "escrow"],
+      ["C1", 280.000035, 0, other, "receive"],
+    ])
+    // Every change, fees included, adds up to the balance after the newest transaction.
+    const drops = parsed.reduce((sum, row) => sum + Math.round((row.quantity - row.fee) * 1e6), 0)
+    expect(drops).toBe(304_999_988)
+  })
+})
+
+describe("XRP Ledger history of a real address", () => {
+  // `account_tx` and `account_info` for rRedactedXrpAddress01xxxxxxxxxxx, recorded from s1.ripple.com at validated
+  // ledger 107932070 (2026-10-27): 25 transactions, of which 9 payments changed its XRP balance.
+  const address = "rRedactedXrpAddress01xxxxxxxxxxx"
+  const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/xrpl-redacted-${name}.json`, import.meta.url), "utf8"))
+  const accountTx = fixture("account_tx")
+  const accountInfo = fixture("account_info")
+  const read = async () => {
+    const { stub } = urlStub({ [XRPL_SERVERS[0]!]: [json(accountTx)] })
+    return xrpl(address, { fetch: stub }).transactions!()
+  }
+
+  it("reads the payments and leaves out other people's checks and token escrows", async () => {
+    expect(accountTx.result.transactions).toHaveLength(25)
+    const parsed = await read()
+    const sender = "rRedactedXrpAddress06xxxxxxxxxxx"
+    expect(parsed.map(({ date, kind, quantity, fee, counterparty }) => [date, kind, quantity, fee, counterparty])).toEqual([
+      ["2026-08-26", "receive", 0.000001, 0, "rRedactedXrpAddress04xxxxxxxxxxx"],
+      ["2026-08-26", "receive", 0.000001, 0, "rRedactedXrpAddress04xxxxxxxxxxx"],
+      ["2026-08-23", "receive", 0.000001, 0, "rRedactedXrpAddress10xxxxxxxxxxx"],
+      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
+      ["2026-08-01", "receive", 3559.800466, 0, sender],
+      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
+      ["2026-08-01", "receive", 43788.683248, 0, sender],
+      ["2026-08-01", "receive", 0.000002, 0, "rRedactedXrpAddress05xxxxxxxxxxx"],
+      ["2026-08-01", "receive", 13.7, 0, sender],
+    ])
+    expect(new Set(parsed.map((row) => row.id)).size).toBe(9)
+  })
+
+  it("adds up to the balance on the ledger", async () => {
+    const parsed = await read()
+    // The account was created by its first payment, so before it the address held nothing.
+    const drops = parsed.reduce((sum, row) => sum + Math.round((row.quantity - row.fee) * 1e6), 0)
+    expect(String(drops)).toBe(accountInfo.result.account_data.Balance)
+    const [holding] = await xrpl(address, { fetch: urlStub({ [XRPL_SERVERS[0]!]: [json(accountInfo)] }).stub }).balances()
+    expect(holding!.quantity).toBe(0)
   })
 })
 
