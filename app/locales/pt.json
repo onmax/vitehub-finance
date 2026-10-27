@@ -1533,5 +1533,9 @@
   "enterAnAmountAboveZero": "Escreva um valor acima de zero.",
   "categorizeWithAi": "Categorizar com IA",
   "aiGuess": "Sugestão da IA, sem certeza suficiente para a aplicar:",
-  "useCategory": "Usar {category}"
+  "useCategory": "Usar {category}",
+  "ruleExclude": "Excluir também o que corresponder",
+  "ruleExcludeHelp": "Deixa-as fora da lista de transações e de todos os totais, como os arredondamentos da Revolut. Pode continuar a mostrá-las em Transações.",
+  "showExcluded": "Mostrar {count} excluídas",
+  "hideExcluded": "Ocultar excluídas"
 }

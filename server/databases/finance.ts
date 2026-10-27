@@ -214,6 +214,8 @@ export const rule = sqliteTable(
     categoryId: text("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
+    /** Also excludes what it matches: out of the lists (until people show it) and out of every total. */
+    exclude: integer("exclude", { mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [index("rule_household_idx").on(table.householdId)],

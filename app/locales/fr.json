@@ -1533,5 +1533,9 @@
   "enterAnAmountAboveZero": "Saisissez un montant supérieur à zéro.",
   "categorizeWithAi": "Catégoriser avec l’IA",
   "aiGuess": "Proposition de l’IA, pas assez sûre pour l’appliquer :",
-  "useCategory": "Utiliser {category}"
+  "useCategory": "Utiliser {category}",
+  "ruleExclude": "Exclure aussi ce qui correspond",
+  "ruleExcludeHelp": "Les retire de la liste des transactions et de tous les totaux, comme les arrondis de Revolut. Vous pouvez toujours les afficher dans Transactions.",
+  "showExcluded": "Afficher {count} exclues",
+  "hideExcluded": "Masquer les exclues"
 }

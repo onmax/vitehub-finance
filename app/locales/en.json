@@ -1533,5 +1533,9 @@
   "enterAnAmountAboveZero": "Enter an amount above zero.",
   "categorizeWithAi": "Categorize with AI",
   "aiGuess": "AI’s guess, not sure enough to set it:",
-  "useCategory": "Use {category}"
+  "useCategory": "Use {category}",
+  "ruleExclude": "Also exclude what it matches",
+  "ruleExcludeHelp": "Leaves them out of the transactions list and every total, like Revolut’s round-ups. You can still show them on Transactions.",
+  "showExcluded": "Show {count} excluded",
+  "hideExcluded": "Hide excluded"
 }

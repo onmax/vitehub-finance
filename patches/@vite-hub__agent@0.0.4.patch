@@ -22,7 +22,7 @@ index f45f8774f011f4137b65f5e3e075813bf7e63121..5a46ff6befa50259ea4b4f159dee6093
  				why: "[vitehub] Provider Agent Drivers are not included in Worker builds. They start local Codex or Claude Code processes, which require a Node.js host.",
  				fix: "Use a { model } or { run } Driver in Worker builds, or deploy Agents that use provider Drivers to a Node.js host."
 diff --git a/dist/agent-driver-ghtKCAbH.js b/dist/agent-driver-ghtKCAbH.js
-index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f434254ba1850 100644
+index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..e1461b61d75ae01c7df9bc159e00ff69408f5760 100644
 --- a/dist/agent-driver-ghtKCAbH.js
 +++ b/dist/agent-driver-ghtKCAbH.js
 @@ -41,6 +41,11 @@ function optionalString(value) {
@@ -95,7 +95,48 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  	};
  }
  function toEntry(value) {
-@@ -119,12 +160,22 @@ function toJevQuestion(question) {
+@@ -84,19 +125,28 @@ function validateQuestionCriteria(name, question) {
+ 		if (count < 2 || count > 10) throw agentDiagnostics.AGENT_R0937({ message: `[vitehub] Jev question "${name}" score criteria must have between 2 and 10 levels.` });
+ 	}
+ }
+-function hasValidChoiceAnswer(question, answer) {
+-	if (!isRuntimeRecord(answer) || answer.type !== "choice" || !hasRuntimeType(answer.choice, "string") || !isRuntimeRecord(answer.probabilities)) return false;
+-	if (!hasRuntimeType(answer.confidence, "number") || !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1) return false;
+-	if (!isRuntimeRecord(question.criteria) || !Object.hasOwn(question.criteria, answer.choice)) return false;
+-	const probabilities = answer.probabilities;
++/**
++ * A choice answer with its probabilities over every option, or why it has none. Jev rounds each probability, so with
++ * many options they can sum a little off 1 and leave out options it gave 0; within 2% the distribution is rescaled.
++ */
++function normalizeChoiceAnswer(question, answer) {
++	if (!isRuntimeRecord(answer) || answer.type !== "choice" || !hasRuntimeType(answer.choice, "string") || !isRuntimeRecord(answer.probabilities)) return "it has no choice or probabilities";
++	if (!isRuntimeRecord(question.criteria) || !Object.hasOwn(question.criteria, answer.choice)) return `"${answer.choice}" isn't one of its options`;
+ 	const labels = Object.keys(question.criteria);
+-	const probabilityLabels = Object.keys(probabilities);
+-	if (labels.length !== probabilityLabels.length || probabilityLabels.some((label) => !Object.hasOwn(question.criteria, label))) return false;
+-	const total = labels.reduce((sum, label) => {
+-		const probability = probabilities[label];
+-		return sum + (hasRuntimeType(probability, "number") && Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability : NaN);
+-	}, 0);
+-	return Number.isFinite(total) && Math.abs(total - 1) <= 1e-6;
++	const given = Object.keys(answer.probabilities);
++	if (given.some((label) => !Object.hasOwn(question.criteria, label))) return "it has probabilities for options it wasn't asked about";
++	const values = labels.map((label) => Object.hasOwn(answer.probabilities, label) ? answer.probabilities[label] : 0);
++	if (values.some((value) => !hasRuntimeType(value, "number") || !Number.isFinite(value) || value < 0 || value > 1)) return "a probability isn't a number from 0 to 1";
++	const total = values.reduce((sum, value) => sum + value, 0);
++	if (Math.abs(total - 1) > 0.02) return `its probabilities sum to ${Number(total.toFixed(4))} over ${given.length} of ${labels.length} options`;
++	const probabilities = Object.fromEntries(labels.map((label, index) => [label, values[index] / total]));
++	const n = labels.length;
++	const confidence = Math.max(0, Math.round((Math.max(...Object.values(probabilities)) - 1 / n) / (1 - 1 / n) * 100) / 100);
++	return {
++		...answer,
++		confidence,
++		probabilities
++	};
+ }
+ function finiteNumber(value) {
+ 	return hasRuntimeType(value, "number") && Number.isFinite(value) ? value : void 0;
+@@ -119,12 +169,22 @@ function toJevQuestion(question) {
  * and maps the answers as `advocaat.ask()` does.
  */
  async function requestJev(advocaat, state, batch, options) {
@@ -120,7 +161,7 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  	const answers = Object.create(null);
  	for (const [name, answer] of Object.entries(result.answers)) {
  		const question = batch[name];
-@@ -186,7 +237,7 @@ function waitForRetry(attempt, signal) {
+@@ -186,7 +246,7 @@ function waitForRetry(attempt, signal) {
  * Both keep the provider error as `cause` and expose `status`, `providerStatus`, and `requestId`.
  */
  async function requestJevWithRetry(advocaat, state, batch, options) {
@@ -129,7 +170,7 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  	for (let attempt = 0;; attempt++) try {
  		return await requestJev(advocaat, state, batch, options);
  	} catch (error) {
-@@ -197,18 +248,15 @@ async function requestJevWithRetry(advocaat, state, batch, options) {
+@@ -197,18 +257,15 @@ async function requestJevWithRetry(advocaat, state, batch, options) {
  			providerStatus: status,
  			requestId: errorRequestId(error)
  		};
@@ -157,7 +198,7 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  		if (!(status === void 0 ? error instanceof TypeError && isRuntimeRecord(error) && "cause" in error : retryableJevStatuses.has(status))) throw error;
  		if (attempt + 1 >= jevAttempts) throw Object.assign(agentDiagnostics.AGENT_R1010({
  			provider,
-@@ -424,11 +472,14 @@ async function askJev(context, state, questions) {
+@@ -424,11 +481,14 @@ async function askJev(context, state, questions) {
  	const entry = toEntry(state);
  	const batches = jevQuestionBatches(entry, wire);
  	const advocaat = await loadAdvocaat();
@@ -174,7 +215,7 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  			count: batches.length,
  			index: batchIndex
  		});
-@@ -438,7 +489,7 @@ async function askJev(context, state, questions) {
+@@ -438,14 +498,18 @@ async function askJev(context, state, questions) {
  				signal: context.abortSignal
  			});
  			await observed.usage(response);
@@ -183,7 +224,20 @@ index 3999ee88c6a7e1a64cf95fca86a8f5e23dce0341..6b94525c1a982bbd5cbc8e07467f4342
  			if (usage) context.recordUsage?.(usage);
  			context.abortSignal?.throwIfAborted();
  			for (const name of Object.keys(batch)) {
-@@ -764,4 +815,4 @@ function normalizeAgentDriver(options) {
+ 				if (!Object.hasOwn(response.answers, name)) throw new Error(`[vitehub] Jev response is missing answer "${name}".`);
+-				const answer = response.answers[name];
+ 				const question = questions[name];
+-				if (question.type === "choice" && !hasValidChoiceAnswer(question, answer)) throw new Error(`[vitehub] Jev choice answer "${name}" is missing a valid probability distribution.`);
++				let answer = response.answers[name];
++				if (question.type === "choice") {
++					const normalized = normalizeChoiceAnswer(question, answer);
++					if (typeof normalized === "string") throw new Error(`[vitehub] Jev choice answer "${name}" is missing a valid probability distribution: ${normalized}.`);
++					answer = normalized;
++				}
+ 				const scoreAnswer = isRuntimeRecord(answer) && answer.type === "score" ? answer : void 0;
+ 				output[name] = question?.type === "score" && scoreAnswer ? {
+ 					...scoreAnswer,
+@@ -764,4 +828,4 @@ function normalizeAgentDriver(options) {
  	throw agentDiagnostics.AGENT_R0497({ message: "[vitehub] Agent Driver is required. Expected a built-in driver name, tagged built-in configuration, or custom { model }, { run }, or { ask } driver." });
  }
  //#endregion

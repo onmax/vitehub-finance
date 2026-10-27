@@ -175,8 +175,11 @@ export interface TransactionPage {
   items: Transaction[]
   /** Pass back as `cursor` for the next page; null at the end. */
   nextCursor: string | null
-  /** Sums over every match of the filters, not just this page, in the household's currency. */
-  totals: { inMinor: number; outMinor: number; count: number }
+  /**
+   * Sums over every match of the filters, not just this page, in the household's currency. `excluded` counts the
+   * excluded matches left out of the page (`hideExcluded`); 0 when they're shown.
+   */
+  totals: { inMinor: number; outMinor: number; count: number; excluded: number }
 }
 
 export interface Overview {

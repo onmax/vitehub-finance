@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { TransactionPage } from "#shared/api"
 
-// An account's latest transactions, compact, with a link to the full, filterable list.
+// An account's latest transactions without the excluded ones, compact, with a link to the full, filterable list.
 const props = defineProps<{ accountId: string; currency: string }>()
 const { data, status, error, refresh } = useScopedFetch<TransactionPage | null>("/api/transactions", {
   key: "transactions",
   unscoped: true,
-  query: () => ({ account: props.accountId, limit: 12 }),
+  query: () => ({ account: props.accountId, excluded: "hide", limit: 12 }),
   default: () => null,
 })
 const { find } = useCategories()

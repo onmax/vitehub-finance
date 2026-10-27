@@ -23,6 +23,8 @@ export interface TransactionFilters {
   from?: string
   to?: string
   direction?: "in" | "out"
+  /** Leave excluded transactions out of the page; `totals.excluded` counts them. */
+  hideExcluded?: boolean
   cursor?: string
   limit?: number
 }
@@ -138,23 +140,28 @@ export async function searchTransactions(
   const after = cursor
     ? or(lt(transaction.date, cursor.date), and(eq(transaction.date, cursor.date), lt(transaction.id, cursor.id)))
     : undefined
-  const rows = await selectVisible(who, scope, and(...conditions, after))
+  const shown = filters.hideExcluded ? eq(transaction.excluded, false) : undefined
+  const rows = await selectVisible(who, scope, and(...conditions, shown, after))
     .orderBy(desc(transaction.date), desc(transaction.id))
     .limit(limit + 1)
   const page = rows.slice(0, limit)
   const last = page.at(-1)
   const nextCursor = rows.length > limit && last ? encodeCursor({ date: last.row.date, id: last.row.id }) : null
 
-  let totals = { inMinor: 0, outMinor: 0, count: 0 }
+  let totals = { inMinor: 0, outMinor: 0, count: 0, excluded: 0 }
   if (options.totals !== false) {
     const { convert } = await baseCurrency(who)
-    totals = await sumMatches(who, scope, and(...conditions), convert)
+    const sums = await sumMatches(who, scope, and(...conditions), convert)
+    totals = filters.hideExcluded ? { ...sums, count: sums.count - sums.excluded } : { ...sums, excluded: 0 }
   }
   const partner = await transferPartners(who, page)
   return { items: page.map((row) => toTransaction(row, who, partner(row))), nextCursor, totals }
 }
 
-/** In and out (positive) over the matches, without excluded rows; `count` counts every match the caller may see. */
+/**
+ * In and out (positive) over the matches, without excluded rows; `count` counts every match the caller may see, and
+ * `excluded` the excluded ones among them.
+ */
 async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, convert: Converter) {
   const rows = await db
     .select({
@@ -162,6 +169,7 @@ async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, con
       inMinor: sql<number>`coalesce(sum(case when ${transaction.excluded} = 0 and ${transaction.amountMinor} > 0 then ${transaction.amountMinor} else 0 end), 0)`,
       outMinor: sql<number>`coalesce(sum(case when ${transaction.excluded} = 0 and ${transaction.amountMinor} < 0 then -${transaction.amountMinor} else 0 end), 0)`,
       count: sql<number>`count(*)`,
+      excluded: sql<number>`coalesce(sum(case when ${transaction.excluded} = 1 then 1 else 0 end), 0)`,
     })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
@@ -172,8 +180,9 @@ async function sumMatches(who: Member, scope: Scope, where: SQL | undefined, con
       inMinor: sum.inMinor + convert(Number(row.inMinor), row.currency),
       outMinor: sum.outMinor + convert(Number(row.outMinor), row.currency),
       count: sum.count + Number(row.count),
+      excluded: sum.excluded + Number(row.excluded),
     }),
-    { inMinor: 0, outMinor: 0, count: 0 },
+    { inMinor: 0, outMinor: 0, count: 0, excluded: 0 },
   )
 }
 

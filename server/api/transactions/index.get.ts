@@ -18,6 +18,7 @@ export default defineHandler(async (event): Promise<TransactionPage> => {
     from: text("from"),
     to: text("to"),
     direction: direction === "in" || direction === "out" ? direction : undefined,
+    hideExcluded: query.get("excluded") === "hide",
     cursor: text("cursor"),
     limit: query.has("limit") ? Number.parseInt(query.get("limit")!, 10) : undefined,
   })

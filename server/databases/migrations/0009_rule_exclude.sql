@@ -1,0 +1,1 @@
+ALTER TABLE `rule` ADD `exclude` integer DEFAULT false NOT NULL;

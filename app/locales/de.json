@@ -1533,5 +1533,9 @@
   "enterAnAmountAboveZero": "Gib einen Betrag über null ein.",
   "categorizeWithAi": "Mit KI kategorisieren",
   "aiGuess": "Vorschlag der KI, zu unsicher zum Setzen:",
-  "useCategory": "{category} verwenden"
+  "useCategory": "{category} verwenden",
+  "ruleExclude": "Treffer auch ausschließen",
+  "ruleExcludeHelp": "Nimmt sie aus der Umsatzliste und allen Summen, etwa Revolut-Rundungen. In Umsätzen kannst du sie weiterhin einblenden.",
+  "showExcluded": "{count} ausgeschlossene anzeigen",
+  "hideExcluded": "Ausgeschlossene ausblenden"
 }

@@ -1533,5 +1533,9 @@
   "enterAnAmountAboveZero": "Escribe un importe mayor que cero.",
   "categorizeWithAi": "Categorizar con IA",
   "aiGuess": "Propuesta de la IA, sin seguridad suficiente para aplicarla:",
-  "useCategory": "Usar {category}"
+  "useCategory": "Usar {category}",
+  "ruleExclude": "Excluir también lo que coincida",
+  "ruleExcludeHelp": "Las deja fuera de la lista de movimientos y de todos los totales, como los redondeos de Revolut. Puedes mostrarlas en Movimientos.",
+  "showExcluded": "Mostrar {count} excluidos",
+  "hideExcluded": "Ocultar excluidos"
 }

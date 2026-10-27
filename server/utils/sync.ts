@@ -2,7 +2,7 @@ import { and, eq, inArray, min } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
 import { db } from "vite-hub/database/drizzle"
 import { balanceSnapshot, connection, financialAccount, holding, householdSettings, rule, syncRun, transaction } from "../databases/config"
-import { categorize, dedupeKeys, isDate, type Rule } from "../providers/dedupe"
+import { dedupeKeys, matchRule, isDate, type Rule } from "../providers/dedupe"
 import { providerFor, WALLET_PROVIDERS } from "../providers/index"
 import { providerMessageCode, ProviderError, type ProviderAccount, type ProviderHolding, type ProviderTransaction } from "../providers/types"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
@@ -26,12 +26,12 @@ const TRANSACTION_CHUNK = 4
 const HOLDING_CHUNK = 12
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
-  return db.select({ match: rule.match, categoryId: rule.categoryId }).from(rule).where(eq(rule.householdId, householdId))
+  return db.select({ match: rule.match, categoryId: rule.categoryId, exclude: rule.exclude }).from(rule).where(eq(rule.householdId, householdId))
 }
 
 /**
  * Inserts the rows this account doesn't have yet (by dedupe key) with categories from the rules, and returns how many were
- * new. A row the provider calls a transfer gets `transferCategoryId` when no rule matches. Existing rows, and so
+ * new. A row the provider calls a transfer gets `transferCategoryId` when no rule matches; an excluding rule excludes it. Existing rows, and so
  * hand-picked categories, are never touched.
  */
 export async function insertTransactions(
@@ -48,8 +48,8 @@ export async function insertTransactions(
   let added = 0
   for (let index = 0; index < unique.length; index += TRANSACTION_CHUNK) {
     const values = unique.slice(index, index + TRANSACTION_CHUNK).map((row) => {
-      const ruled = categorize(rules, row)
-      const categoryId = ruled ?? (row.transfer ? transferCategoryId : undefined)
+      const ruled = matchRule(rules, row)
+      const categoryId = ruled?.categoryId ?? (row.transfer ? transferCategoryId : undefined)
       return {
         id: crypto.randomUUID(),
         householdId: account.householdId,
@@ -64,6 +64,7 @@ export async function insertTransactions(
         counterparty: row.counterparty || undefined,
         categoryId: categoryId ?? undefined,
         categorySource: categoryId ? ("rule" as const) : undefined,
+        excluded: ruled?.exclude || undefined,
       }
     })
     const inserted = await db

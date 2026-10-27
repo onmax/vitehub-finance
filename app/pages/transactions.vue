@@ -2,7 +2,8 @@
 import type { Transaction, TransactionPage } from "#shared/api"
 
 // Every transaction the caller may see, filtered by the URL's query (so a filtered view can be shared or reloaded):
-// `view` (all, mine, in, out), `q`, `account`, `category` (an id or "none"), `from`, `to`. Pages load by cursor as
+// `view` (all, mine, in, out), `q`, `account`, `category` (an id or "none"), `from`, `to`, and `excluded=show` to list
+// excluded transactions too (they're left out otherwise, and out of every total either way). Pages load by cursor as
 // you scroll. Changing a category shows at once and offers to apply it to similar transactions.
 useHead({ get title() { return translate('transactions') } })
 type View = "all" | "mine" | "in" | "out"
@@ -34,6 +35,7 @@ const account = param("account")
 const category = param("category")
 const from = param("from")
 const to = param("to")
+const showExcluded = computed({ get: () => read("excluded") === "show", set: (value: boolean) => setQuery({ excluded: value ? "show" : "" }) })
 
 // The box updates at once; the URL and the request follow a pause in typing.
 const search = ref(read("q"))
@@ -54,9 +56,10 @@ const filters = computed(() => ({
   direction: view.value === "in" || view.value === "out" ? view.value : undefined,
   // "Mine" narrows this table to your own accounts, whatever the page-wide scope says.
   scope: view.value === "mine" ? "me" : undefined,
+  excluded: showExcluded.value ? undefined : "hide",
   limit: 50,
 }))
-const empty = (): TransactionPage => ({ items: [], nextCursor: null, totals: { inMinor: 0, outMinor: 0, count: 0 } })
+const empty = (): TransactionPage => ({ items: [], nextCursor: null, totals: { inMinor: 0, outMinor: 0, count: 0, excluded: 0 } })
 const { data: page, status, error, refresh } = useScopedFetch<TransactionPage>("/api/transactions", {
   key: "transactions",
   query: filters,
@@ -192,6 +195,16 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
             <span class="text-muted">{{ $t('out') }}</span>
             <Money :minor="totals.outMinor ? -totals.outMinor : 0" class="font-medium text-highlighted" />
           </span>
+          <UButton
+            v-if="showExcluded || totals.excluded"
+            color="neutral"
+            variant="link"
+            size="sm"
+            :icon="showExcluded ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+            :label="showExcluded ? $t('hideExcluded') : $t('showExcluded', { count: formatCount(totals.excluded) })"
+            class="ms-auto -me-2 px-2"
+            @click="showExcluded = !showExcluded"
+          />
         </template>
       </div>
     </template>

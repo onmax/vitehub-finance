@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm"
+import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import { financialAccount, rule, transaction } from "../databases/config"
 import type { Member } from "./identity"
@@ -65,32 +65,35 @@ export function similarMatch(row: { description: string; counterparty: string | 
   return match.length >= 3 ? match : null
 }
 
-/** A rule for `match`, reusing an identical one. */
-export async function ensureRule(householdId: string, match: string, categoryId: string) {
+/** A rule for `match`, reusing an identical one (and turning its `exclude` on when asked). */
+export async function ensureRule(householdId: string, match: string, categoryId: string, exclude = false) {
   const [existing] = await db
     .select()
     .from(rule)
     .where(and(eq(rule.householdId, householdId), eq(rule.match, match), eq(rule.categoryId, categoryId)))
     .limit(1)
-  if (existing) return existing
-  const [created] = await db.insert(rule).values({ id: crypto.randomUUID(), householdId, match, categoryId }).returning()
+  if (existing && (existing.exclude || !exclude)) return existing
+  if (existing) return (await db.update(rule).set({ exclude }).where(eq(rule.id, existing.id)).returning())[0]!
+  const [created] = await db.insert(rule).values({ id: crypto.randomUUID(), householdId, match, categoryId, exclude }).returning()
   return created!
 }
 
 /**
- * Gives `categoryId` to the caller's editable, uncategorized, unlocked transactions that match. Accounts they may
- * only view, or not see, stay untouched; the sync applies the rule to new transactions everywhere.
+ * Gives `categoryId` to the caller's editable, uncategorized, unlocked transactions that match. With `exclude`, it
+ * also excludes every match whose category no one picked by hand. Accounts they may only view, or not see, stay
+ * untouched; the sync applies the rule to new transactions everywhere.
  */
 export async function applyRule(
   who: Pick<Member, "userId" | "householdId">,
   match: string,
   categoryId: string,
-  options: { ownOnly?: boolean } = {},
+  options: { ownOnly?: boolean; exclude?: boolean } = {},
 ) {
   const accounts = options.ownOnly
     ? and(eq(financialAccount.householdId, who.householdId), eq(financialAccount.ownerId, who.userId))
     : editableAccounts(who)
   const editable = db.select({ id: financialAccount.id }).from(financialAccount).where(accounts)
+  if (options.exclude) await excludeMatches(and(eq(transaction.householdId, who.householdId), inArray(transaction.accountId, editable))!, match)
   const updated = await db
     .update(transaction)
     .set({ categoryId, categorySource: "rule" })
@@ -112,7 +115,9 @@ export async function applyRulesTo(householdId: string, accountIds: string[]) {
   if (!accountIds.length) return
   const rules = await db.select().from(rule).where(eq(rule.householdId, householdId))
   for (const entry of rules)
-    for (let index = 0; index < accountIds.length; index += 80)
+    for (let index = 0; index < accountIds.length; index += 80) {
+      const accounts = and(eq(transaction.householdId, householdId), inArray(transaction.accountId, accountIds.slice(index, index + 80)))!
+      if (entry.exclude) await excludeMatches(accounts, entry.match)
       await db
         .update(transaction)
         .set({ categoryId: entry.categoryId, categorySource: "rule" })
@@ -125,4 +130,20 @@ export async function applyRulesTo(householdId: string, accountIds: string[]) {
             ruleMatches(entry.match),
           ),
         )
+    }
+}
+
+/** Excludes the matches of `match` in `accounts` whose category no one picked by hand, and that aren't locked. */
+async function excludeMatches(accounts: SQL, match: string) {
+  await db
+    .update(transaction)
+    .set({ excluded: true })
+    .where(
+      and(
+        accounts,
+        eq(transaction.categoryLocked, false),
+        or(isNull(transaction.categorySource), ne(transaction.categorySource, "manual")),
+        ruleMatches(match),
+      ),
+    )
 }

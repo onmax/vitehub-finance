@@ -56,6 +56,8 @@ export function isDate(value: string) {
 export interface Rule {
   match: string
   categoryId: string
+  /** Matches are excluded too: out of the lists and every total. */
+  exclude?: boolean
 }
 
 /**
@@ -76,10 +78,10 @@ export function startsWord(haystack: string, needle: string) {
 }
 
 /**
- * The category for a row: the rule whose `match` (case-insensitive) starts a word in the description or counterparty;
- * the longest match wins. server/utils/categorize.ts `ruleMatches` is the same test in SQL.
+ * The rule for a row: the one whose `match` (case-insensitive) starts a word in the description or counterparty; the
+ * longest match wins. server/utils/categorize.ts `ruleMatches` is the same test in SQL.
  */
-export function categorize(rules: Rule[], row: { description: string; counterparty?: string | null }) {
+export function matchRule(rules: Rule[], row: { description: string; counterparty?: string | null }) {
   const haystack = `${row.description.toLowerCase()}\n${(row.counterparty ?? "").toLowerCase()}`
   let best: Rule | null = null
   for (const rule of rules) {
@@ -87,5 +89,8 @@ export function categorize(rules: Rule[], row: { description: string; counterpar
     if (!needle.trim() || !startsWord(haystack, needle)) continue
     if (!best || needle.length > best.match.length) best = rule
   }
-  return best?.categoryId ?? null
+  return best
 }
+
+/** The category the matching rule gives a row, or null. */
+export const categorize = (rules: Rule[], row: { description: string; counterparty?: string | null }) => matchRule(rules, row)?.categoryId ?? null
