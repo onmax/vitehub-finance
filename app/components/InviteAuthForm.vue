@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Sign in or create an account without leaving the page: an invitation (/invite/<id>) or an agent's consent (/oauth).
-// Email and password or a passkey; the two-factor code, when the account has one, is asked for right here.
+// Email and password or a passkey; the two-factor code, when the account has one, is asked for right here. A sign-up
+// sends the invitation's id, which is what lets it through on a server without Email (server/utils/sign-up.ts); with
+// Email, it waits for the address to be confirmed and comes back here from the link.
 const props = withDefaults(
   defineProps<{
     email?: string
@@ -8,15 +10,18 @@ const props = withDefaults(
     lockEmail?: boolean
     allowSignUp?: boolean
     initialMode?: "sign-in" | "sign-up"
+    /** The invitation being answered, sent with a sign-up. */
+    invitationId?: string
   }>(),
   { email: "", allowSignUp: true, initialMode: "sign-in" },
 )
 const emit = defineEmits<{ done: [] }>()
 
 const { $auth } = useNuxtApp()
+const route = useRoute()
 const { locale } = useLanguage()
 const session = useAuthSession()
-const mode = ref<"sign-in" | "sign-up" | "2fa">(props.initialMode)
+const mode = ref<"sign-in" | "sign-up" | "2fa" | "sent">(props.initialMode)
 const state = reactive({ name: "", email: props.email, password: "", code: "" })
 watch(
   () => props.email,
@@ -37,6 +42,7 @@ async function signIn() {
   error.value = ""
   try {
     const { data, error: failure } = await $auth.signIn.email({ email: state.email.trim(), password: state.password })
+    if (failure?.code === "EMAIL_NOT_VERIFIED") throw new Error(translate('confirmYourEmailFirst'))
     if (failure) throw Object.assign(new Error(failure.status === 401 ? translate('thatEmailAndPasswordDonTMatch') : failure.message), { code: failure.code })
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
       mode.value = "2fa"
@@ -68,12 +74,26 @@ async function signUp() {
   pending.value = "password"
   error.value = ""
   try {
-    const { error: failure } = await $auth.signUp.email({ language: locale.value, name: state.name.trim(), email: state.email.trim(), password: state.password })
+    const { data, error: failure } = await $auth.signUp.email({
+      language: locale.value,
+      name: state.name.trim(),
+      email: state.email.trim(),
+      password: state.password,
+      callbackURL: route.fullPath,
+      ...(props.invitationId ? { invitationId: props.invitationId } : {}),
+    })
     if (failure) {
+      if (failure.code === "SIGN_UP_WRONG_INVITATION") throw new Error(translate('signUpWrongInvitation'))
+      if (failure.code === "SIGN_UP_NEEDS_INVITATION") throw new Error(translate('signUpNeedsInvitation'))
       // The server's user hook refuses emails outside FINANCE_ALLOWED_EMAILS that no household invited.
       if (failure.status === 422 || failure.status === 403 || /create user/i.test(failure.message ?? ""))
         throw new Error(translate('thisEmailCanTSignUpHereUseTheEmail'))
       throw Object.assign(new Error(failure.message), { code: failure.code })
+    }
+    // No session yet: the address is confirmed first.
+    if (!data?.token) {
+      mode.value = "sent"
+      return
     }
     await finish()
   } catch (cause) {
@@ -121,7 +141,15 @@ const switchMode = (next: "sign-in" | "sign-up") => {
 </script>
 
 <template>
-  <UForm :state="state" :validate="validate" :validate-on="['blur']" class="flex flex-col gap-4" @submit="submit">
+  <UAlert
+    v-if="mode === 'sent'"
+    color="neutral"
+    variant="subtle"
+    icon="i-lucide-mail-check"
+    :title="$t('checkYourEmail')"
+    :description="$t('confirmEmailSent', { email: state.email.trim() })"
+  />
+  <UForm v-else :state="state" :validate="validate" :validate-on="['blur']" class="flex flex-col gap-4" @submit="submit">
     <template v-if="mode === '2fa'">
       <p class="text-sm text-muted">
         {{ backup ? $t('enterOneOfTheBackupCodesYouSavedWhenYou') : $t('enterThe6DigitCodeFromYourAuthenticatorApp') }}

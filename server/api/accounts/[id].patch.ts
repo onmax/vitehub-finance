@@ -13,6 +13,7 @@ import { setManualHoldings } from "../../utils/holdings"
 import { setMyInvestorUnits } from "../../utils/myinvestor"
 import { Holdings, Kind, Minor, Name, param, Permission, readInput, Visibility } from "../../utils/input"
 import { recordSnapshot } from "../../utils/snapshots"
+import { BROWSER_ONLY_ACCOUNT_FIELDS, requireBrowser } from "../../utils/request-policy"
 
 const Body = v.object({
   name: v.optional(Name),
@@ -29,12 +30,14 @@ const Body = v.object({
  * Who sees an account and what others may do with it is the owner's call (`canManage`); renaming, archiving, and the
  * rest need `canEdit`. A synced account's balance comes from its provider, so only manual ones take `balanceMinor`, or
  * `holdings` (what it holds, which then sets the balance at today's prices). A MyInvestor account takes `holdings` too:
- * MyInvestor can't report its units, so they're its connection's credentials.
+ * MyInvestor can't report its units, so they're its connection's credentials. Sharing and archiving happen in the
+ * browser: an agent's token can't make a private account visible to the household.
  */
 export default defineHandler(async (event): Promise<AccountSummary> => {
   const who = await requireMember(event)
   const account = await requireAccount(who, param(event))
   const body = await readInput(event, Body)
+  if (BROWSER_ONLY_ACCOUNT_FIELDS.some((field) => body[field] !== undefined)) requireBrowser(who)
   if ((body.visibility !== undefined || body.householdPermission !== undefined) && !canManage(account, who.userId))
     throw new HTTPError({ status: 403, statusText: "Only the account's owner can change who sees it." })
   const { visibility, householdPermission, balanceMinor, holdings, ...rest } = body

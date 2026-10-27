@@ -3,15 +3,17 @@ import { oauthProvider } from "@better-auth/oauth-provider"
 import { passkey } from "@better-auth/passkey"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { jwt, lastLoginMethod, magicLink, organization, twoFactor } from "better-auth/plugins"
-import { and, eq, gt, isNull } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import { defineAuth } from "vite-hub/auth"
 import { db, schema } from "vite-hub/database/drizzle"
-import { send } from "#mailer"
-import { invitation, member, session } from "./databases/config"
+import { send, sendsEmail } from "#mailer"
+import { member, session } from "./databases/config"
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
 import { DEMO_LOCKED, DEMO_LOCKED_PATHS, isDemo, isDemoPerson, seedingEmails } from "./demo/mode"
 import { isDemoEmail } from "../shared/demo"
 import { isAllowedEmail } from "./utils/allowed"
+import { DISABLED_AUTH_PATHS } from "./utils/disabled-auth-paths"
+import { pendingInvitation, signUpRefusal } from "./utils/sign-up"
 import { erasePeople, householdsOf } from "./utils/erase"
 import { emailLanguage, requestLanguage } from "./utils/language"
 import { translator } from "./utils/translate"
@@ -25,10 +27,14 @@ import { createHousehold } from "./utils/household"
  *
  * Email and password, a passkey, or (when the build has Email) a magic link; two-factor is optional per person.
  * `FINANCE_ALLOWED_EMAILS` keeps a private ViteHub Finance private: only those emails, plus anyone a household invited, can sign up.
+ * A password sign-up must belong to whoever reads that mailbox, or someone could claim an address (and the invitation
+ * waiting for it) first: with Email, nobody signs in until the link sent to it is opened; without, it takes the
+ * invitation link for that email, or being the instance's first person (`signUpRefusal`, server/utils/sign-up.ts).
  * The demo (`FINANCE_DEMO=1`) takes no sign-ups at all: only its seed creates its two made-up people.
  *
  * A household is a Better Auth organization. Signing up makes your own, unless an invitation is waiting for your
- * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in.
+ * email: then /invite/<id> adds you to that household instead. Each session points at the household you're in. People
+ * leave or are removed only through ViteHub Finance's endpoints (`DISABLED_AUTH_PATHS`, server/utils/disabled-auth-paths.ts).
  *
  * Nobody signs up under the demo's domain but the seed's own two (server/demo/seed.ts). Those two can't use the endpoints
  * that change who signs in or who's in the household (`DEMO_LOCKED_PATHS`, server/demo/mode.ts); everyone else can.
@@ -63,12 +69,28 @@ export default defineAuth(({ env, requestOrigin }) => ({
       },
     },
   },
-  emailAndPassword: { enabled: true, minPasswordLength: 10 },
-  // `/token` is the JWT plugin's session-to-JWT endpoint, which nothing in ViteHub Finance needs.
-  disabledPaths: ["/token"],
+  emailAndPassword: { enabled: true, minPasswordLength: 10, requireEmailVerification: sendsEmail },
+  // Only a build with Email confirms addresses; without one, `signUpRefusal` decides (hooks.before).
+  emailVerification: {
+    sendOnSignUp: sendsEmail,
+    // Signing in before confirming sends a fresh link.
+    sendOnSignIn: sendsEmail,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user: person, url }, request) => {
+      // The demo's people are made up (and created verified); nothing goes to their domain.
+      if (isDemoEmail(person.email)) return
+      const t = await translator(await emailLanguage(person.email, requestLanguage(request?.headers)))
+      await send({ to: person.email, subject: t("emailVerifySubject"), text: t("emailVerifyBody", { url }) })
+    },
+  },
+  disabledPaths: DISABLED_AUTH_PATHS,
   hooks: {
-    // The demo's people, and any request about one of their emails, can't change sign-in or households.
     before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/sign-up/email" && !sendsEmail && !isDemo()) {
+        const refusal = await signUpRefusal(ctx.body, env.finance.allowedEmails.unseal())
+        if (refusal) throw new APIError("FORBIDDEN", refusal)
+      }
+      // The demo's people, and any request about one of their emails, can't change sign-in or households.
       if (!isDemo() || !DEMO_LOCKED_PATHS.has(ctx.path)) return
       const body = (ctx.body ?? {}) as { email?: unknown; newEmail?: unknown }
       const named = [body.email, body.newEmail].filter((value): value is string => typeof value === "string")
@@ -81,7 +103,8 @@ export default defineAuth(({ env, requestOrigin }) => ({
     user: {
       create: {
         before: async (person, context) => {
-          if (isDemoEmail(person.email)) return seedingEmails.has(person.email.toLowerCase()) ? undefined : false
+          // The seed's made-up people count as verified, so the demo signs them in by password whether or not the build has Email.
+          if (isDemoEmail(person.email)) return seedingEmails.has(person.email.toLowerCase()) ? { data: { ...person, emailVerified: true } } : false
           // The demo has only its two made-up people, so it never holds anyone's real data. A private instance is open to
           // its allowed emails and the people a household invited.
           if (isDemo()) return false
@@ -167,18 +190,3 @@ export default defineAuth(({ env, requestOrigin }) => ({
 }))
 
 const demoLocked = () => new APIError("FORBIDDEN", { message: DEMO_LOCKED, code: "DEMO_LOCKED" })
-
-async function pendingInvitation(email: string) {
-  const [row] = await db
-    .select({ id: invitation.id })
-    .from(invitation)
-    .where(
-      and(
-        eq(invitation.email, email.toLowerCase()),
-        eq(invitation.status, "pending"),
-        gt(invitation.expiresAt, new Date()),
-      ),
-    )
-    .limit(1)
-  return row ?? null
-}

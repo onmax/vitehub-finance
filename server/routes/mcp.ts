@@ -1,6 +1,6 @@
 import { defineHandler } from "h3"
 import { mcpFor } from "../mcp"
-import { bearerFrom } from "../utils/identity"
+import { bearerFrom } from "../utils/request-policy"
 
 export default defineHandler(async (event) => {
   // Without a token the answer is a 401 that never reads the body. Release it first: wrangler's dev proxy drops the

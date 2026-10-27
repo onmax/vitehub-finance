@@ -6,3 +6,6 @@ export async function send(message: { to: string; subject: string; text: string 
   console.info(`[finance] Email not configured. Would send to ${message.to}: ${message.subject}\n${message.text}`)
   return { sent: false as const }
 }
+
+/** Nothing can prove a new account's address is its owner's, so password sign-up needs an invitation (server/auth.ts). */
+export const sendsEmail = false
