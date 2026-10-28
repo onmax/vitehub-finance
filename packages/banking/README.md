@@ -1,5 +1,8 @@
 # @vitehub-finance/banking
 
+[![ViteHub Finance](https://comark-ui.onmax.me/badge.svg?label=part%20of&value=ViteHub%20Finance&icon=package)](https://github.com/onmax/vitehub-finance)
+[![Guide](https://comark-ui.onmax.me/badge.svg?label=docs&value=banking)](https://finance.onmax.me/docs/providers/banks)
+
 One client for bank accounts through open banking (PSD2). A provider lists banks, sends people to their bank for
 consent, and reads the consented accounts' balances and booked transactions, all in one model. It uses only `fetch` and
 WebCrypto, so it runs on Cloudflare Workers, Node, Deno, and Bun.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UContentNavigation from "@nuxt/ui/components/content/ContentNavigation.vue"
 // /docs, signed in or not: a header with the way into the app, then the page (pages/docs/[...slug].vue lays out the
 // tree, the page, and its sections). On phones the tree opens from the header's menu button.
 const { loggedIn } = useAuthSession()

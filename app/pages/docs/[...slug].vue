@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import UContentNavigation from "@nuxt/ui/components/content/ContentNavigation.vue"
+import UContentSurround from "@nuxt/ui/components/content/ContentSurround.vue"
+import UContentToc from "@nuxt/ui/components/content/ContentToc.vue"
 import { MarkdownDocument } from "@comark/vue"
+import comarkUi, { criticCss } from "comark-ui/vue"
 
-// One docs page (docs/*.md through server/content.ts): the tree on the left, the page, its sections on the right, and
-// the previous and next pages under it. Comark renders the Markdown with Nuxt UI's Prose components, so `::tip`,
-// `::steps`, and tables look like the rest of the app.
+const { components } = comarkUi({ chips: { download: false }, badge: { download: false } })
+useHead({ style: [{ key: "comark-critic", textContent: criticCss }] })
 definePageMeta({ layout: "docs" })
 const route = useRoute()
 const path = computed(() => route.path.replace(/\/+$/, "") || "/docs")
@@ -35,7 +38,7 @@ const toc = computed(() => (page.value?.meta.toc as { links?: DocsTocLink[] } | 
     <template v-if="page">
       <UPageHeader :title="page.data.title" :description="page.data.description" :headline="headline" />
       <UPageBody>
-        <MarkdownDocument :value="{ nodes: page.nodes }" />
+        <MarkdownDocument :value="{ nodes: page.nodes }" :components="components" />
         <USeparator v-if="surround.some(Boolean)" />
         <UContentSurround :surround="surround" />
       </UPageBody>

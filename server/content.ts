@@ -3,6 +3,7 @@
 // so a Worker, which has no file system, reads the same pages as Node. Keys keep their number prefixes (`2.providers/`),
 // which order the sidebar; Comark drops them from the paths, and the `/docs` prefix makes each path its page's URL.
 import toc from "comark/plugins/toc"
+import comarkUi from "comark-ui/html"
 import { contentSource, defineContent } from "vite-hub/content"
 import { defineSource } from "vite-hub/source"
 import { useStorage } from "nitro/storage"
@@ -25,5 +26,5 @@ const docs = defineSource({
 
 export const content = defineContent({
   source: contentSource(docs, { prefix: "/docs" }),
-  markdown: { plugins: [toc()] },
+  markdown: { plugins: [...comarkUi({ chips: { download: false }, badge: { download: false } }).plugins, toc()] },
 })

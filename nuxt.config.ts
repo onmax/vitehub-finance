@@ -148,8 +148,8 @@ export default defineNuxtConfig({
     colorMode: true,
     // Geist is self-hosted from Fontsource (see `css`).
     fonts: false,
-    // Prose components (ProseH2, ProseCallout, ProseSteps…) and ContentNavigation/ContentToc render /docs.
-    prose: true,
+    // Comark UI renders Markdown; Nuxt UI supplies the docs navigation and page layout.
+    prose: false,
     content: true,
     theme: { colors: ["primary", "secondary", "success", "info", "warning", "error", "neutral"] },
   },
@@ -306,6 +306,12 @@ export default defineNuxtConfig({
   },
 
   hooks: {
+    "components:extend": function (components) {
+      // Nuxt UI enables prose with its navigation. Comark UI owns the Markdown components.
+      for (let index = components.length - 1; index >= 0; index--) {
+        if (components[index]?.filePath.includes("@nuxt/ui/dist/runtime/components/prose/")) components.splice(index, 1)
+      }
+    },
     // The CLI nightly adds a dev-only socket-cleanup plugin that this Nuxt nightly's server import protection rejects.
     "nitro:config": function (config) {
       config.plugins = config.plugins?.filter((plugin) => !plugin.includes("dev-close-sockets"))
