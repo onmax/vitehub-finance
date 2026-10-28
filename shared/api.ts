@@ -290,11 +290,13 @@ export interface RuleSuggestion {
 export interface Overview {
   currency: string
   netWorthMinor: number
-  /** Daily net worth for the last 90 days, oldest first. */
+  /** Daily net worth within the last 90 days, starting at the first recorded balance, including zero. */
   netWorthSeries: Array<{ date: string; valueMinor: number }>
   month: {
     month: string
     label: string
+    /** Cumulative money in and out from the first of the month through today, oldest first. */
+    series: Array<{ date: string; inMinor: number; outMinor: number }>
     inMinor: number
     outMinor: number
     previousInMinor: number

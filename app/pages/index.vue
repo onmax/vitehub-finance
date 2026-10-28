@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The overview: net worth and its 90 days, this month against the last, the month's money flow, where the money went,
+// The overview: four financial metrics, 90 days of balances, the month's money flow, where the money went,
 // what's due soon, connections that need someone, and the latest transactions. A new household sees how to start instead.
 useHead({ get title() { return translate('overview') } })
 const { data: overview, status, error, refresh } = useOverview()
@@ -31,11 +31,11 @@ const empty = computed(() => overview.value && overview.value.accountCount === 0
         <OverviewSkeleton v-else-if="!overview && status !== 'error'" />
         <OverviewEmpty v-else-if="empty" />
         <template v-else-if="overview">
+          <OverviewMetrics :overview="overview" />
           <div class="grid gap-x-10 gap-y-12 lg:grid-cols-3">
-            <OverviewNetWorth :overview="overview" class="lg:col-span-2" />
-            <OverviewMonth :overview="overview" />
+            <OverviewNetWorth :overview="overview" class="lg:col-span-3" />
             <OverviewSetup class="lg:col-span-3" />
-            <OverviewFlow class="lg:col-span-3" />
+            <OverviewFlow id="money-flow" class="lg:col-span-3" />
             <div class="flex flex-col gap-12">
               <OverviewSpending :overview="overview" />
               <OverviewUpcoming :overview="overview" />

@@ -1856,5 +1856,17 @@
   "errorStripeKeyRejected": "Stripe a refusé cette clé. Vérifiez-la ou créez une nouvelle clé restreinte.",
   "errorStripePermissions": "Accordez à la clé Stripe un accès en lecture à Accounts et Balance, puis reconnectez-vous.",
   "stripePrivacy": "Stripe se connecte avec une clé restreinte. Nous stockons les soldes et montants du registre, frais, dates de règlement et identifiants des opérations. Nous ne demandons ni profils clients ni données de carte. La clé est chiffrée au repos ; révoquez-la dans Stripe pour couper l’accès.",
-  "stripeKeyStorage": "La clé est stockée chiffrée et sert uniquement à lire l’identité, les soldes et le registre de votre compte Stripe."
+  "stripeKeyStorage": "La clé est stockée chiffrée et sert uniquement à lire l’identité, les soldes et le registre de votre compte Stripe.",
+  "overviewSavingsRate": "Taux d’épargne",
+  "overviewPercentagePoints": "{value} pt",
+  "overviewComparedSamePeriod": "par rapport à la même période le mois dernier",
+  "overviewSavingsNeedsIncome": "Aucun revenu ce mois-ci pour le moment",
+  "overviewNoPreviousIncome": "Aucun revenu le mois dernier à comparer",
+  "overviewSavingsDefinition": "Revenus restants après les dépenses, divisés par les revenus. Les virements sont exclus.",
+  "overviewTrendNeedsHistory": "Données insuffisantes pour une tendance",
+  "overviewNoBalanceComparison": "Davantage d’historique des soldes est nécessaire",
+  "overviewWorthTrend": "Patrimoine quotidien, jusqu’aux 30 derniers jours",
+  "overviewCumulativeTrend": "{metric}, totaux quotidiens cumulés ce mois-ci",
+  "overviewSavingsTrend": "Taux d’épargne selon les revenus et dépenses cumulés ce mois-ci",
+  "overviewBalanceHistory": "Historique des soldes"
 }

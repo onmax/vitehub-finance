@@ -11,7 +11,7 @@ import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
 import { stakingView } from "./staking"
 import { netWorthSeries } from "./series"
-import { cashFlow, searchTransactions, spendingByCategory } from "./transactions"
+import { cashFlow, cashFlowSeries, searchTransactions, spendingByCategory } from "./transactions"
 
 const UNCATEGORIZED = { categoryId: null, name: "Uncategorized", icon: "i-lucide-circle-help", color: "neutral" }
 const SOON = 14 * 24 * 60 * 60 * 1000
@@ -32,7 +32,8 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
     convert,
   )
 
-  const thisMonth = await cashFlow(who, { scope, from: monthStart(month), to: today }, convert)
+  const monthSeries = await cashFlowSeries(who, { scope, from: monthStart(month), to: today }, convert)
+  const thisMonth = monthSeries.at(-1) ?? { inMinor: 0, outMinor: 0 }
   const previousThrough = `${previous}-${String(Math.min(Number(today.slice(8)), Number(monthEnd(previous).slice(8)))).padStart(2, "0")}`
   const lastMonth = await cashFlow(who, { scope, from: monthStart(previous), to: previousThrough }, convert)
 
@@ -75,6 +76,7 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
     month: {
       month,
       label: monthLabel(month, "long"),
+      series: monthSeries,
       inMinor: thisMonth.inMinor,
       outMinor: thisMonth.outMinor,
       previousInMinor: lastMonth.inMinor,
@@ -129,7 +131,8 @@ async function netWorthHistory(
       return value === null ? null : convert(value, account.currency)
     })
   })
-  return netWorthSeries(dates, values)
+  const firstKnown = dates.findIndex((_, day) => values.some((account) => account[day] !== null))
+  return firstKnown === -1 ? [] : netWorthSeries(dates, values).slice(firstKnown)
 }
 
 /** Connections feeding visible accounts that failed, expired, or whose bank consent ends within 14 days. */

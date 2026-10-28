@@ -1856,5 +1856,17 @@
   "errorStripeKeyRejected": "Stripe hat diesen Schlüssel abgelehnt. Prüfe ihn oder erstelle einen neuen eingeschränkten Schlüssel.",
   "errorStripePermissions": "Gib dem Stripe-Schlüssel Lesezugriff auf Accounts und Balance und verbinde dich erneut.",
   "stripePrivacy": "Stripe wird mit einem eingeschränkten Schlüssel verbunden. Wir speichern Zahlungsguthaben, Umsätze, Gebühren, Abrechnungsdaten und Umsatzkennungen. Kundenprofile und Kartendaten werden nicht abgerufen. Der Schlüssel wird verschlüsselt gespeichert. Widerrufe ihn in Stripe, um den Zugriff zu beenden.",
-  "stripeKeyStorage": "Der Schlüssel wird verschlüsselt gespeichert und nur zum Lesen deiner Stripe-Kontokennung, Guthaben und Umsätze verwendet."
+  "stripeKeyStorage": "Der Schlüssel wird verschlüsselt gespeichert und nur zum Lesen deiner Stripe-Kontokennung, Guthaben und Umsätze verwendet.",
+  "overviewSavingsRate": "Sparquote",
+  "overviewPercentagePoints": "{value} Pp.",
+  "overviewComparedSamePeriod": "im Vergleich zum gleichen Zeitraum im Vormonat",
+  "overviewSavingsNeedsIncome": "Diesen Monat noch keine Einnahmen",
+  "overviewNoPreviousIncome": "Keine Einnahmen im Vormonat zum Vergleich",
+  "overviewSavingsDefinition": "Verbleibende Einnahmen nach Ausgaben, geteilt durch Einnahmen. Umbuchungen sind ausgeschlossen.",
+  "overviewTrendNeedsHistory": "Nicht genug Daten für einen Verlauf",
+  "overviewNoBalanceComparison": "Mehr Kontostandsverlauf erforderlich",
+  "overviewWorthTrend": "Tägliches Nettovermögen, bis zu den letzten 30 Tagen",
+  "overviewCumulativeTrend": "{metric}, kumulierte Tagessummen dieses Monats",
+  "overviewSavingsTrend": "Sparquote aus kumulierten Einnahmen und Ausgaben dieses Monats",
+  "overviewBalanceHistory": "Kontostandsverlauf"
 }

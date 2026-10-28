@@ -1,22 +1,9 @@
 <script setup lang="ts">
 import type { Overview } from "#shared/api"
 
-// Net worth now, how it moved over the last 90 days, and the daily line. Days before ViteHub Finance recorded any balance are
-// left out instead of drawn as zero, so a new household doesn't see a cliff.
 const props = defineProps<{ overview: Overview }>()
 const { format } = useMoney()
-
-const points = computed(() => {
-  const series = props.overview.netWorthSeries
-  const first = series.findIndex((point) => point.valueMinor !== 0)
-  return (first === -1 ? [] : series.slice(first)).map((point) => ({ date: point.date, value: point.valueMinor }))
-})
-const change = computed(() => {
-  const first = points.value[0]
-  if (!first || points.value.length < 2) return null
-  const delta = props.overview.netWorthMinor - first.value
-  return { delta, share: first.value ? delta / Math.abs(first.value) : null, since: first.date }
-})
+const points = computed(() => props.overview.netWorthSeries.map((point) => ({ date: point.date, value: point.valueMinor })))
 // Where the money is: each kind of account's share of net worth, or each account's when they're all one kind.
 const { data: accounts } = useAccounts()
 const parts = computed(() => {
@@ -44,25 +31,15 @@ const axis = (value: number) => format(Math.round(value), props.overview.currenc
 </script>
 
 <template>
-  <SectionCard :title="$t('netWorth')" to="/accounts" :link-label="$t('accounts')">
-    <p class="text-3xl font-semibold tracking-[-0.02em] text-highlighted">
-      <Money :minor="overview.netWorthMinor" :currency="overview.currency" original="below" align="start" />
-    </p>
-    <p v-if="change" class="mt-1 flex items-center gap-1 text-sm text-muted">
-      <UIcon :name="change.delta >= 0 ? 'i-lucide-trending-up' : 'i-lucide-trending-down'" class="size-4" aria-hidden="true" />
-      <span class="money" :class="change.delta > 0 && 'money-in'">{{ format(change.delta, overview.currency, { signed: true }) }}</span>
-      <span v-if="change.share !== null" class="money">({{ formatPercent(change.share, { signed: true, digits: 1 }) }})</span>
-      <span>{{ $t('since', { value1: formatDay(change.since, { relative: false }) }) }}</span>
-    </p>
-    <p v-else class="mt-1 text-sm text-muted">{{ $t('balancesUpdateEveryDayTheChartFillsInFromTomorrow') }}</p>
+  <SectionCard :title="$t('overviewBalanceHistory')" to="/accounts" :link-label="$t('accounts')">
     <AreaChart
       v-if="points.length >= 2"
-      class="mt-4"
       :points="points"
       :format="axis"
       :label="$t('netWorthLast90Days')"
       :height="200"
     />
+    <p v-else class="py-10 text-center text-sm text-muted">{{ $t('balancesUpdateEveryDayTheChartFillsInFromTomorrow') }}</p>
     <div v-if="parts.length > 1" class="mt-auto pt-5">
       <div class="flex h-2 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
         <span v-for="group in parts.filter((item) => item.share > 0)" :key="group.id" class="h-full" :style="{ width: `${group.share * 100}%`, background: group.color }" />

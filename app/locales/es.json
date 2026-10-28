@@ -1856,5 +1856,17 @@
   "errorStripeKeyRejected": "Stripe ha rechazado esta clave. Revísala o crea una nueva clave restringida.",
   "errorStripePermissions": "Da a la clave de Stripe acceso de lectura a Accounts y Balance y vuelve a conectar.",
   "stripePrivacy": "Stripe se conecta con una clave restringida. Guardamos saldos y movimientos, comisiones, fechas de liquidación e identificadores. No solicitamos perfiles de clientes ni datos de tarjetas. La clave se cifra en reposo; revócala en Stripe para finalizar el acceso.",
-  "stripeKeyStorage": "La clave se guarda cifrada y solo se usa para leer la identidad, los saldos y los movimientos de tu cuenta de Stripe."
+  "stripeKeyStorage": "La clave se guarda cifrada y solo se usa para leer la identidad, los saldos y los movimientos de tu cuenta de Stripe.",
+  "overviewSavingsRate": "Tasa de ahorro",
+  "overviewPercentagePoints": "{value} pp",
+  "overviewComparedSamePeriod": "vs. el mismo período del mes pasado",
+  "overviewSavingsNeedsIncome": "Aún no hay ingresos este mes",
+  "overviewNoPreviousIncome": "No hay ingresos del mes pasado para comparar",
+  "overviewSavingsDefinition": "Ingresos restantes tras los gastos, divididos entre los ingresos. Se excluyen las transferencias.",
+  "overviewTrendNeedsHistory": "No hay suficientes datos para una tendencia",
+  "overviewNoBalanceComparison": "Se necesita más historial de saldos",
+  "overviewWorthTrend": "Patrimonio diario, hasta los últimos 30 días",
+  "overviewCumulativeTrend": "{metric}, totales diarios acumulados de este mes",
+  "overviewSavingsTrend": "Tasa de ahorro según los ingresos y gastos acumulados de este mes",
+  "overviewBalanceHistory": "Historial de saldos"
 }

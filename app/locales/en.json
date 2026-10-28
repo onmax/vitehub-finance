@@ -1856,5 +1856,17 @@
   "errorStripeKeyRejected": "Stripe rejected this key. Check it or create a new restricted key.",
   "errorStripePermissions": "Give the Stripe key Read access to Accounts and Balance, then connect again.",
   "stripePrivacy": "Stripe connects with a restricted key. We store payment balances and ledger amounts, fees, settlement dates, and transaction identifiers. We do not request customer profiles or card details. The key is encrypted at rest; revoke it in Stripe to end access.",
-  "stripeKeyStorage": "The key is encrypted at rest and used only to read your Stripe account identity, balances, and ledger."
+  "stripeKeyStorage": "The key is encrypted at rest and used only to read your Stripe account identity, balances, and ledger.",
+  "overviewSavingsRate": "Savings rate",
+  "overviewPercentagePoints": "{value} pp",
+  "overviewComparedSamePeriod": "vs. the same period last month",
+  "overviewSavingsNeedsIncome": "No income this month yet",
+  "overviewNoPreviousIncome": "No income last month to compare",
+  "overviewSavingsDefinition": "Income left after spending, divided by income. Transfers are excluded.",
+  "overviewTrendNeedsHistory": "Not enough data for a trend",
+  "overviewNoBalanceComparison": "More balance history needed",
+  "overviewWorthTrend": "Daily net worth, up to the last 30 days",
+  "overviewCumulativeTrend": "{metric}, cumulative daily totals this month",
+  "overviewSavingsTrend": "Savings rate from cumulative income and spending this month",
+  "overviewBalanceHistory": "Balance history"
 }

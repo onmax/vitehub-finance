@@ -15,7 +15,7 @@ import { baseCurrency, type Converter } from "./accounts"
 import { applyRule, ensureRule, textMatches } from "./categorize"
 import { similarMatch } from "./rule-suggestions-core"
 import { decodeCursor, encodeCursor } from "./cursor"
-import { isIsoDate } from "./dates"
+import { eachDay, isIsoDate } from "./dates"
 import type { Member } from "./identity"
 import { detectRecurring } from "./recurring"
 import { unpairTransfer } from "./transfers"
@@ -329,6 +329,12 @@ const isRefund = sql`(${allocationAmount} > 0 and coalesce(${category.kind}, '')
 /** Category kinds that are not spending or income: moving money between your own accounts. */
 const notTransfer = or(isNull(category.kind), ne(category.kind, "transfer"))!
 
+const flowSums = {
+  inMinor: sql<number>`coalesce(sum(case when ${allocationAmount} > 0 and not ${isRefund} then ${allocationAmount} else 0 end), 0)`,
+  // Refunds take back what they refund: money out is net of them.
+  outMinor: sql<number>`coalesce(sum(case when ${allocationAmount} < 0 or ${isRefund} then -${allocationAmount} else 0 end), 0)`,
+}
+
 export interface FlowOptions {
   scope: Scope
   from: string
@@ -347,9 +353,7 @@ export async function cashFlow(who: Member, options: FlowOptions, convert: Conve
   const rows = await db
     .select({
       currency: transaction.currency,
-      inMinor: sql<number>`coalesce(sum(case when ${allocationAmount} > 0 and not ${isRefund} then ${allocationAmount} else 0 end), 0)`,
-      // Refunds take back what they refund: money out is net of them.
-      outMinor: sql<number>`coalesce(sum(case when ${allocationAmount} < 0 or ${isRefund} then -${allocationAmount} else 0 end), 0)`,
+      ...flowSums,
     })
     .from(transaction)
     .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
@@ -366,6 +370,41 @@ export async function cashFlow(who: Member, options: FlowOptions, convert: Conve
     { inMinor: 0, outMinor: 0 },
   )
   return { ...totals, outMinor: Math.max(0, totals.outMinor) }
+}
+
+/** Daily cumulative totals, converting each currency's running sum so the last point matches cashFlow's rounding. */
+export async function cashFlowSeries(who: Member, options: FlowOptions, convert: Converter) {
+  const rows = await db
+    .select({ date: transaction.date, currency: transaction.currency, ...flowSums })
+    .from(transaction)
+    .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+    .leftJoin(transactionReview, eq(transactionReview.transactionId, transaction.id))
+    .leftJoin(allocationSource, sql`1 = 1`)
+    .leftJoin(category, eq(category.id, allocationCategory))
+    .where(flowConditions(who, options))
+    .groupBy(transaction.date, transaction.currency)
+  const days = new Map<string, typeof rows>()
+  for (const row of rows) {
+    const day = days.get(row.date) ?? []
+    day.push(row)
+    days.set(row.date, day)
+  }
+  const currencies = new Map<string, { inMinor: number; outMinor: number }>()
+  return eachDay(options.from, options.to).map((date) => {
+    for (const row of days.get(date) ?? []) {
+      const running = currencies.get(row.currency) ?? { inMinor: 0, outMinor: 0 }
+      running.inMinor += Number(row.inMinor)
+      running.outMinor += Number(row.outMinor)
+      currencies.set(row.currency, running)
+    }
+    let inMinor = 0
+    let outMinor = 0
+    for (const [currency, running] of currencies) {
+      inMinor += convert(running.inMinor, currency)
+      outMinor += convert(running.outMinor, currency)
+    }
+    return { date, inMinor, outMinor: Math.max(0, outMinor) }
+  })
 }
 
 function flowConditions(who: Member, options: FlowOptions) {

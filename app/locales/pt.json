@@ -1856,5 +1856,17 @@
   "errorStripeKeyRejected": "O Stripe rejeitou esta chave. Verifica-a ou cria uma nova chave restrita.",
   "errorStripePermissions": "Dá à chave do Stripe acesso de leitura a Accounts e Balance e volta a ligar.",
   "stripePrivacy": "O Stripe liga-se com uma chave restrita. Guardamos saldos e montantes do registo, comissões, datas de liquidação e identificadores de transações. Não pedimos perfis de clientes nem dados de cartões. A chave é guardada encriptada; revoga-a no Stripe para terminar o acesso.",
-  "stripeKeyStorage": "A chave é guardada encriptada e usada apenas para ler a identidade, os saldos e o registo da tua conta Stripe."
+  "stripeKeyStorage": "A chave é guardada encriptada e usada apenas para ler a identidade, os saldos e o registo da tua conta Stripe.",
+  "overviewSavingsRate": "Taxa de poupança",
+  "overviewPercentagePoints": "{value} pp",
+  "overviewComparedSamePeriod": "face ao mesmo período do mês passado",
+  "overviewSavingsNeedsIncome": "Ainda sem rendimentos este mês",
+  "overviewNoPreviousIncome": "Sem rendimentos do mês passado para comparar",
+  "overviewSavingsDefinition": "Rendimentos restantes após as despesas, divididos pelos rendimentos. As transferências são excluídas.",
+  "overviewTrendNeedsHistory": "Dados insuficientes para uma tendência",
+  "overviewNoBalanceComparison": "É necessário mais histórico de saldos",
+  "overviewWorthTrend": "Património diário, até aos últimos 30 dias",
+  "overviewCumulativeTrend": "{metric}, totais diários acumulados deste mês",
+  "overviewSavingsTrend": "Taxa de poupança com base nos rendimentos e despesas acumulados deste mês",
+  "overviewBalanceHistory": "Histórico de saldos"
 }
