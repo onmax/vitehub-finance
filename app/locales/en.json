@@ -868,7 +868,6 @@
   "signInToChooseWhetherItCanReadYourHousehold": "Sign in to choose whether it can read your household’s finances.",
   "allowToReadYourHouseholdSFinances": "Allow {value1} to read your household’s finances?",
   "itActsAsAndCan": "It acts as {value1} and can:",
-  "neverManagePeopleOrHouseholdSettings": "Never manage people or household settings",
   "allowReturnsTo": "Allow returns to {value1}.",
   "allowGivesThisAccessTo": "Allow gives this access to",
   "onlyAllowItIfYouStartedThisConnectionFromAn": ". Only allow it if you started this connection from an agent that runs there.",
@@ -1642,5 +1641,7 @@
   "stakingCoverage": "Covers {value1} to {value2}, from public data.",
   "overviewStaking": "Staking",
   "overviewStakingStaked": "{value1} staked",
-  "overviewStakingRewards": "{value1} identified rewards"
+  "overviewStakingRewards": "{value1} identified rewards",
+  "addTransactionsAndManualAccountsYouGiveIt": "Add transactions and manual accounts you give it, like rows from a statement",
+  "neverDeleteShareConnectOrManagePeople": "Never delete or share accounts, connect banks or wallets, or manage people and household settings"
 }

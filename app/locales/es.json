@@ -860,7 +860,6 @@
   "signInToChooseWhetherItCanReadYourHousehold": "Inicia sesión para decidir si puede leer las finanzas de tu hogar.",
   "allowToReadYourHouseholdSFinances": "¿Permitir que {value1} lea las finanzas de tu hogar?",
   "itActsAsAndCan": "Actúa como {value1} y puede:",
-  "neverManagePeopleOrHouseholdSettings": "Nunca gestionar personas ni ajustes del hogar",
   "allowReturnsTo": "Al permitirlo, vuelves a {value1}.",
   "allowGivesThisAccessTo": "Al permitirlo, das este acceso a",
   "onlyAllowItIfYouStartedThisConnectionFromAn": ". Permítelo solo si has iniciado la conexión desde un agente que se ejecuta ahí.",
@@ -1642,5 +1641,7 @@
   "stakingCoverage": "Cubre del {value1} al {value2}, con datos públicos.",
   "overviewStaking": "Staking",
   "overviewStakingStaked": "{value1} en staking",
-  "overviewStakingRewards": "{value1} en recompensas identificadas"
+  "overviewStakingRewards": "{value1} en recompensas identificadas",
+  "addTransactionsAndManualAccountsYouGiveIt": "Añadir movimientos y cuentas manuales que le des, como filas de un extracto",
+  "neverDeleteShareConnectOrManagePeople": "Nunca borrar ni compartir cuentas, conectar bancos o carteras, ni gestionar personas o ajustes del hogar"
 }

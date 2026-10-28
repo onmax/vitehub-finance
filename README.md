@@ -27,8 +27,9 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers o
   pay for, large subscriptions.
 - **Forecast** of the next 3–12 months, and "can we afford it?".
 - **Budgets and goals**, shared or personal.
-- **MCP server** at `/mcp` (OAuth 2.1, or a `fin_` API key): seven tools for overview, accounts, transactions,
-  spending, forecast, recurring payments, and categorizing.
+- **MCP server** at `/mcp` (OAuth 2.1, or a `fin_` API key): four tools. `get_finances` reads the overview, accounts
+  (with holdings and staking), spending, recurring payments, and the forecast; `search_transactions` finds and sums
+  transactions; `update_transaction` sets categories and notes; `add_transactions` adds rows from any statement.
 - Sign in with a password, a passkey, or a magic link; optional two-factor.
 - English, Spanish, French, German, and European Portuguese, with a saved language preference, localized amounts and dates, and translated emails.
 

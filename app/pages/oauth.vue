@@ -62,6 +62,7 @@ const can = [
   translate('readTheAccountsBalancesAndTransactionsYouCanSee'),
   translate('readRecurringPaymentsBudgetsGoalsAndTheForecast'),
   translate('categorizeTransactionsAndAddNotesWhereYouMayEdit'),
+  translate('addTransactionsAndManualAccountsYouGiveIt'),
 ]
 </script>
 
@@ -97,7 +98,7 @@ const can = [
           <UIcon name="i-lucide-check" class="mt-0.5 size-4 shrink-0 text-muted" />{{ item }}
         </li>
         <li class="flex gap-2">
-          <UIcon name="i-lucide-x" class="mt-0.5 size-4 shrink-0 text-muted" />{{ $t('neverManagePeopleOrHouseholdSettings') }} </li>
+          <UIcon name="i-lucide-x" class="mt-0.5 size-4 shrink-0 text-muted" />{{ $t('neverDeleteShareConnectOrManagePeople') }} </li>
       </ul>
       <p v-if="destination?.local" class="mt-4 text-xs text-muted">{{ $t('allowReturnsTo', { value1: destination.label }) }}</p>
       <UAlert

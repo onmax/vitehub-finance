@@ -321,4 +321,4 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `POST /api/connections/:id/reconnect` | | `{ url }` (bank connections) |
 | `DELETE /api/connections/:id` | `keepAccounts=1` | `{ ok }` |
 | `GET /api/connections/:id/runs` | | `SyncRun[]` |
-| `POST /mcp` | OAuth bearer or `fin_` API key | MCP (Streamable HTTP) |
+| `POST /mcp` | OAuth bearer or `fin_` API key | MCP (Streamable HTTP): `get_finances` (read, by `view`), `search_transactions`, `update_transaction`, `add_transactions` (server/mcp/tools; views in server/mcp/views.ts) |

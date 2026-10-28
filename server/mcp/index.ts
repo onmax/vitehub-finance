@@ -2,13 +2,10 @@ import { useLogger } from "evlog/nitro/v3"
 import { createMcpHandler, createMcpOAuth, type McpHandler, type McpOAuth } from "nitro-mcp-toolkit"
 import { identify } from "../utils/identity"
 import { MCP_INSTRUCTIONS, MCP_SERVER_INFO } from "./info"
-import categorizeTransaction from "./tools/categorize_transaction"
-import getForecast from "./tools/get_forecast"
-import getOverview from "./tools/get_overview"
-import listAccounts from "./tools/list_accounts"
-import listRecurring from "./tools/list_recurring"
+import addTransactions from "./tools/add_transactions"
+import getFinances from "./tools/get_finances"
 import searchTransactions from "./tools/search_transactions"
-import spendingByCategory from "./tools/spending_by_category"
+import updateTransaction from "./tools/update_transaction"
 
 /**
  * ViteHub Finance's MCP server (nitro-mcp-toolkit on h3-mcp), one file per tool. Each tool is a thin wrapper over the utils the
@@ -37,14 +34,15 @@ export function mcpFor(origin: string) {
   })
   const mcp = createMcpHandler({
     ...MCP_SERVER_INFO,
-    description: "Household finance: accounts, transactions, recurring payments, spending, and a cash-flow forecast.",
+    description: "Household finance: accounts, holdings and staking, transactions, recurring payments, spending, and a cash-flow forecast.",
     websiteUrl: origin,
     icons: [{ src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }],
     instructions: MCP_INSTRUCTIONS,
     // MCP clients send no Origin; the access token, not the origin, is the boundary.
     origin: false,
     auth: oauth.auth,
-    tools: [getOverview, listAccounts, searchTransactions, spendingByCategory, getForecast, listRecurring, categorizeTransaction],
+    // Four tools: two read (get_finances, search_transactions), two write (update_transaction, add_transactions).
+    tools: [getFinances, searchTransactions, updateTransaction, addTransactions],
     // Every tool call lands on the request's wide event: which tool, how long, and the reason it failed. Never its
     // arguments or result, which hold the household's transactions.
     onToolCall: ({ name, result, durationMs, event }) => {
