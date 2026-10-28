@@ -47,7 +47,7 @@ with `public/samples/household-sample.csv`.
 ## Connect banks
 
 1. Create an application at [enablebanking.com](https://enablebanking.com). A restricted production app is free for
-   your own accounts: link each account in Enable Banking's control panel first.
+   your own accounts: link each account once in Enable Banking's control panel, then connect it in the app.
 2. Register `https://<your domain>/api/connect/callback` as its redirect URL.
 3. Set `ENABLE_BANKING_APP_ID` and `ENABLE_BANKING_PRIVATE_KEY` (the app's PKCS#8 PEM; convert a PKCS#1 key with
    `openssl pkcs8 -topk8 -nocrypt -in key.pem`).
