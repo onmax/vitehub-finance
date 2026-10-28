@@ -37,6 +37,7 @@ const { insertTransactions, syncConnection } = await import("../../server/utils/
 const { seal, unseal } = await import("../../server/utils/crypto")
 const { forecast } = await import("../../server/utils/forecast")
 const { stripeTransaction } = await import("../../server/providers/stripe")
+const { default: disconnectStripe } = await import("../../server/api/connections/[id].delete")
 const { default: connectStripe } = await import("../../server/api/connect/stripe.post")
 
 beforeAll(migrate)
@@ -140,8 +141,23 @@ describe("Stripe persistence", () => {
 })
 
 describe("Stripe connection", () => {
-  const app = new H3().post("/api/connect/stripe", connectStripe)
+  const app = new H3().post("/api/connect/stripe", connectStripe).delete("/api/connections/:id", disconnectStripe)
   const post = (key: string) => app.request("/api/connect/stripe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) })
+
+  it("keeps history when disconnected and clears the provider settlement balance", async () => {
+    const [owner] = await household("stripe-disconnect", ["stripe-disconnect-owner"])
+    caller.member = owner!
+    const link = await addConnection({ householdId: owner!.householdId, ownerId: owner!.userId, provider: "stripe" })
+    const account = await addAccount({ householdId: owner!.householdId, ownerId: owner!.userId, connectionId: link.id,
+      kind: "other", balanceMinor: 9700, paymentBalance: { availableMinor: 0, pendingMinor: 9700 } })
+    await insertTransactions(account, [{ externalId: "txn_history", date: "2026-10-01", amountMinor: 9700,
+      currency: "EUR", description: "Stripe charge", payment }], [])
+    expect((await app.request(`/api/connections/${link.id}?keepAccounts=1`, { method: "DELETE" })).status).toBe(200)
+    const [kept] = await db.select().from(financialAccount).where(eq(financialAccount.id, account.id))
+    expect(kept).toMatchObject({ connectionId: null, externalId: null, paymentBalance: null, balanceMinor: 9700 })
+    expect(await db.select().from(transaction).where(eq(transaction.accountId, account.id))).toHaveLength(1)
+    expect(await db.select().from(connection).where(eq(connection.id, link.id))).toEqual([])
+  })
 
   it("reuses the merchant connection after key rotation and stores credentials sealed", async () => {
     const [owner] = await household("stripe-connect", ["stripe-connect-owner"])

@@ -23,7 +23,7 @@ export default defineHandler(async (event) => {
     if (config && credentials?.sessionId) await deleteSession(config, credentials.sessionId)
   }
   if (event.url.searchParams.get("keepAccounts") === "1")
-    await db.update(financialAccount).set({ connectionId: null, externalId: null }).where(eq(financialAccount.connectionId, row.id))
+    await db.update(financialAccount).set({ connectionId: null, externalId: null, paymentBalance: null }).where(eq(financialAccount.connectionId, row.id))
   else {
     const accounts = await db.select({ id: financialAccount.id }).from(financialAccount).where(eq(financialAccount.connectionId, row.id))
     await eraseAccounts(accounts.map(account => account.id))
