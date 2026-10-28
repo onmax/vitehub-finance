@@ -25,7 +25,7 @@ onMounted(() => {
 <template>
   <UDashboardPanel id="connect-banks">
     <template #header>
-      <PageNavbar :title="$t('banks')" :scoped="false" />
+      <PageNavbar :title="$t('banks')" />
     </template>
     <template #body>
       <div class="mx-auto flex w-full max-w-4xl flex-col gap-10">

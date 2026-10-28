@@ -1,8 +1,10 @@
 <script setup lang="ts">
-// A page's top bar: its title, the Me / Household toggle, and the page's own actions on the right. On phones, where the
-// sidebar folds away, a bell carries the open alerts' count.
+// A page's top bar: its title, whose money it shows (switched in the sidebar's header), and the page's own actions on the
+// right. On phones, where the sidebar folds away, a bell carries the open alerts' count.
 withDefaults(defineProps<{ title: string; scoped?: boolean }>(), { scoped: true })
 const route = useRoute()
+const scope = useScope()
+const { data: me } = useMe()
 const { data: alerts } = useAlerts()
 const ALERT_COLOR = { critical: "error", warning: "warning", info: "neutral" } as const
 </script>
@@ -13,8 +15,18 @@ const ALERT_COLOR = { critical: "error", warning: "warning", info: "neutral" } a
       <UDashboardSidebarCollapse class="hidden lg:inline-flex" :aria-label="$t('toggleSidebar')" />
       <slot name="leading" />
     </template>
+    <template #trailing>
+      <UBadge
+        v-if="scoped"
+        color="neutral"
+        variant="subtle"
+        size="sm"
+        :icon="scope === 'me' ? 'i-lucide-user' : 'i-lucide-users'"
+        :label="scope === 'me' ? $t('personal') : (me?.household.name ?? $t('household'))"
+        class="max-w-40 truncate"
+      />
+    </template>
     <template #right>
-      <ScopeToggle v-if="scoped" />
       <slot name="right" />
       <UChip
         v-if="route.path !== '/alerts' && alerts?.open"

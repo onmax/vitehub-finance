@@ -3,7 +3,7 @@ import { AccountCreateModal, CsvImportModal } from "#components"
 import type { ConnectPage } from "~/utils/connect-catalog"
 
 /**
- * What the connect pages share: the connections that belong on the page (`connectPageOf`), the one just linked
+ * What the connect pages share: the connections that belong on the page (`connectPageOf`) in the current view, the one just linked
  * highlighted for a few seconds, and scrolling to `#bank`, `#wallet`… once the list above has loaded, so the section
  * doesn't move after the scroll. A connect dialog calls `linked` when the server linked something and `land` when people
  * leave its success screen.
@@ -12,7 +12,6 @@ export function useConnectPage(page: ConnectPage) {
   const route = useRoute()
   const { data: all, status, error, refresh } = useScopedFetch<ConnectionSummary[]>("/api/connections", {
     key: "connections",
-    unscoped: true,
     default: () => [],
   })
   const connections = computed(() => all.value.filter((connection) => connectPageOf(connection.provider) === page))

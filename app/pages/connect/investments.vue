@@ -7,7 +7,7 @@ useHead({ get title() { return translate('investments') } })
 <template>
   <UDashboardPanel id="connect-investments">
     <template #header>
-      <PageNavbar :title="$t('investments')" :scoped="false" />
+      <PageNavbar :title="$t('investments')" />
     </template>
     <template #body>
       <ConnectCatalogPage page="/connect/investments" :list-title="$t('catalogYourInvestmentAccounts')" :aliases="{ broker: 'ibkr' }">

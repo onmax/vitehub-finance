@@ -10,7 +10,7 @@ useHead({ get title() { return translate('crypto') } })
 <template>
   <UDashboardPanel id="connect-crypto">
     <template #header>
-      <PageNavbar :title="$t('crypto')" :scoped="false" />
+      <PageNavbar :title="$t('crypto')" />
     </template>
     <template #body>
       <ConnectCatalogPage page="/connect/crypto" :list-title="$t('catalogYourExchangesAndWallets')">

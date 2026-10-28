@@ -7,7 +7,7 @@ import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
 import { useRuntimeConfig } from "nitro/runtime-config"
 import { useServerEnv } from "#vitehub/env/server"
-import type { Bank, ConnectionSummary, SyncRun } from "#shared/api"
+import type { Bank, ConnectionSummary, Scope, SyncRun } from "#shared/api"
 import { connection, financialAccount, syncRun, user as users } from "../databases/config"
 import type { Institution } from "@vitehub-finance/banking"
 import { listBanks, startAuth, type EnableBankingConfig } from "../providers/enable-banking"
@@ -184,10 +184,11 @@ export async function lastErrorFor(who: Pick<Member, "userId">, row: Pick<Connec
 }
 
 /**
- * The caller's own connections plus other members' that feed at least one shared account. Lists only the accounts the
- * caller may see; credentials never leave the server.
+ * The caller's own connections, plus in the household view other members' that feed at least one shared account. Lists
+ * only the accounts the caller may see; credentials never leave the server.
  */
-export async function listConnections(who: Member, onlyId?: string): Promise<ConnectionSummary[]> {
+export async function listConnections(who: Member, options: { scope?: Scope; onlyId?: string } = {}): Promise<ConnectionSummary[]> {
+  const { scope = "household", onlyId } = options
   const rows = await db
     .select({ connection, ownerName: users.name })
     .from(connection)
@@ -208,7 +209,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
       visible.set(account.connectionId, [...(visible.get(account.connectionId) ?? []), { id: account.id, name: account.name }])
   }
   const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
-  const listed = rows.filter(({ connection: row }) => row.ownerId === who.userId || shared.has(row.id))
+  const listed = rows.filter(({ connection: row }) => row.ownerId === who.userId || (scope === "household" && shared.has(row.id)))
   return Promise.all(
     listed.map(async ({ connection: row, ownerName }) => ({
       id: row.id,
@@ -230,7 +231,7 @@ export async function listConnections(who: Member, onlyId?: string): Promise<Con
 }
 
 export async function connectionSummary(who: Member, id: string) {
-  const [summary] = await listConnections(who, id)
+  const [summary] = await listConnections(who, { onlyId: id })
   if (!summary) throw fail(404, "No such connection.")
   return summary
 }

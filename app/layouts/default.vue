@@ -2,7 +2,7 @@
 import type { NavigationMenuItem } from "@nuxt/ui"
 import type { AccountSummary } from "#shared/api"
 
-// The signed-in shell: shadcn's sidebar (household header, main pages, what's syncing, Household and Settings, the
+// The signed-in shell: shadcn's sidebar (whose money it shows, main pages, what's syncing, Household and Settings, the
 // account menu) on Nuxt UI's dashboard, collapsible to icons and resizable on desktop, a drawer on phones. ⌘K opens AppSearch; `g` then
 // a letter jumps to a page.
 const route = useRoute()
@@ -102,7 +102,7 @@ defineShortcuts(
       }"
     >
       <template #header="{ collapsed }">
-        <HouseholdMenu :collapsed="collapsed" />
+        <ViewMenu :collapsed="collapsed" />
       </template>
 
       <template #default="{ collapsed }">

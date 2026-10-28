@@ -19,7 +19,7 @@ export function cachedUnlessRefreshed(key: string, nuxtApp: ReturnType<typeof us
   return nuxtApp.payload.data[key] ?? nuxtApp.static.data[key]
 }
 
-/** Whether the household has more than one person: the Me / Household toggle and owner labels only matter then. */
+/** Whether the household has more than one person: owner labels and shared-account details only matter then. */
 export function useShared() {
   const { data: me } = useMe()
   return computed(() => (me.value?.members.length ?? 1) > 1)

@@ -7,7 +7,8 @@ import type { SyncStatus } from "#shared/api"
 // pages that show synced data refresh, so the dashboard never waits on a stale answer. Others refresh it by its key
 // ("sync-status") after starting a sync.
 defineProps<{ collapsed?: boolean }>()
-const { data: status, refresh } = useFetch<SyncStatus | null>("/api/sync/status", { key: "sync-status", default: () => null, lazy: true })
+const scope = useScope()
+const { data: status, refresh } = useFetch<SyncStatus | null>("/api/sync/status", { key: "sync-status", query: { scope }, default: () => null, lazy: true })
 
 const syncing = computed(() => status.value?.syncing ?? [])
 const attention = computed(() => status.value?.attention ?? [])

@@ -3,6 +3,7 @@ import { defineHandler } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import type { SyncStatus } from "#shared/api"
 import { syncRun } from "../../databases/config"
+import { scopeOf } from "../../utils/access"
 import { listConnections } from "../../utils/connections"
 import { requireMember } from "../../utils/identity"
 import { needsAttention } from "../../utils/overview"
@@ -10,10 +11,14 @@ import { needsAttention } from "../../utils/overview"
 /** A run older than this that never finished died with its Worker; it isn't syncing any more. */
 const STALE_MS = 15 * 60 * 1000
 
-/** The caller's syncing at a glance, for the sidebar: running syncs, connections that need someone, the last sync. */
+/**
+ * The caller's syncing at a glance, for the sidebar: running syncs, connections that need someone, the last sync. In the
+ * personal view (`?scope=me`), only their own connections.
+ */
 export default defineHandler(async (event): Promise<SyncStatus> => {
   const who = await requireMember(event)
-  const [connections, attention] = await Promise.all([listConnections(who), needsAttention(who, "household")])
+  const scope = scopeOf(event)
+  const [connections, attention] = await Promise.all([listConnections(who, { scope }), needsAttention(who, scope)])
   const ids = connections.map((row) => row.id)
   const running = ids.length
     ? await db

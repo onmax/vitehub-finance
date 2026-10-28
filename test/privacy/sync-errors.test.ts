@@ -63,6 +63,15 @@ async function setUp(householdId: string) {
 const joint: ProviderAccount = { externalId: "joint", name: "Joint", kind: "checking", currency: "EUR", balanceMinor: 1000, transactions: [] }
 const secret: ProviderAccount = { externalId: "secret", name: "Secret savings", kind: "savings", currency: "EUR", error: "Account IBAN ES00 1234 is blocked by the bank." }
 
+describe("whose connections a member sees", () => {
+  it("lists only their own in the personal view, and a partner's shared bank in the household view", async () => {
+    const { lucia, pablo, link } = await setUp("views")
+    expect((await listConnections(pablo, { scope: "me" })).map((row) => row.id)).toEqual([])
+    expect((await listConnections(pablo, { scope: "household" })).map((row) => row.id)).toEqual([link.id])
+    expect((await listConnections(lucia, { scope: "me" })).map((row) => row.id)).toEqual([link.id])
+  })
+})
+
 describe("a sync where a private account fails", () => {
   it("tells members a generic, translatable reason, and the owner the details in the sync runs", async () => {
     const { lucia, pablo, link } = await setUp("partial")
