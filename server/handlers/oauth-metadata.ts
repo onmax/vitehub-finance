@@ -1,8 +1,15 @@
 import { oauthProviderAuthServerMetadata, oauthProviderOpenIdConfigMetadata } from "@better-auth/oauth-provider"
 import { defineHandler } from "h3"
 import { mcpFor } from "../mcp"
-import { MCP_SERVER_INFO } from "../mcp/info"
 import { authFor } from "../utils/identity"
+
+// Browser-based MCP clients read the protected resource document from another origin; okmcp's handler sends no CORS.
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, HEAD, OPTIONS",
+  "access-control-allow-headers": "*",
+  "access-control-max-age": "86400",
+}
 
 /**
  * OAuth discovery for MCP clients, at the bare and path-suffixed well-known URLs they try: RFC 9728 protected
@@ -12,10 +19,10 @@ import { authFor } from "../utils/identity"
 export default defineHandler(async (event) => {
   const path = event.url.pathname
   if (path.startsWith("/.well-known/oauth-protected-resource")) {
-    const response = mcpFor(event.url.origin).oauth.metadataHandler(event)
-    if (response.status === 204) return response
-    // Clients show ViteHub Finance's name before they have an access token.
-    return Response.json({ ...(await response.json()), resource_name: MCP_SERVER_INFO.title }, { headers: response.headers })
+    if (event.req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS })
+    const response = await mcpFor(event.url.origin).metadata.fetch(event.req)
+    for (const [name, value] of Object.entries(CORS)) response.headers.set(name, value)
+    return response
   }
   const auth = authFor(event)
   if (path.startsWith("/.well-known/openid-configuration")) return oauthProviderOpenIdConfigMetadata(auth)(event.req)

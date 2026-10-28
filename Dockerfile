@@ -4,6 +4,7 @@ WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
 COPY patches ./patches
+COPY vendor ./vendor
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 RUN pnpm run postinstall && FINANCE_HOST=node pnpm build

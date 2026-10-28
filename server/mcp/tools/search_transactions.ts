@@ -1,4 +1,4 @@
-import { defineMcpTool } from "nitro-mcp-toolkit"
+import { defineTool } from "okmcp"
 import * as v from "valibot"
 import { householdCurrency } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"
@@ -9,7 +9,7 @@ import { toolInput } from "../schema"
 
 const date = (what: string) => v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/), v.description(what)))
 
-export default defineMcpTool({
+export default defineTool({
   name: "search_transactions",
   title: "Search transactions",
   description:

@@ -1,17 +1,17 @@
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 7031e13e10e1b5cb18bb6852470b24b2dc3f22bd..93b2e5d17607ef83d4ce1313334cf9f2ab10f1a5 100644
+index f954a99..5910dbf 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -386,6 +386,8 @@ function normalizeModernError(error) {
+@@ -217,6 +217,8 @@ function normalizeModernError(error) {
  			status: 500
  		};
  	}
 +	// Patched (drop): the client only sees "Internal error", so say what it was where the server logs.
-+	console.error("[h3-mcp] internal error", error);
++	console.error("[okmcp] internal error", error);
  	return {
  		code: JSON_RPC_INTERNAL_ERROR,
  		message: "Internal error",
-@@ -2010,6 +2012,10 @@ function toServerInfoMeta(options) {
+@@ -2229,6 +2231,10 @@ function toServerInfoMeta(options) {
  		version: options.version
  	};
  	if (options.title !== void 0) info.title = options.title;
@@ -23,19 +23,19 @@ index 7031e13e10e1b5cb18bb6852470b24b2dc3f22bd..93b2e5d17607ef83d4ce1313334cf9f2
  }
  function _asObject(value) {
 diff --git a/dist/modern/index.mjs b/dist/modern/index.mjs
-index 1fa1fcde46c3ea00bfca517ec7872db4a258eace..09ae7f23ed790865bf258de470d7a19af91efa37 100644
+index c427fa8..d077804 100644
 --- a/dist/modern/index.mjs
 +++ b/dist/modern/index.mjs
-@@ -374,6 +374,8 @@ function normalizeModernError(error) {
+@@ -205,6 +205,8 @@ function normalizeModernError(error) {
  			status: 500
  		};
  	}
 +	// Patched (drop): the client only sees "Internal error", so say what it was where the server logs.
-+	console.error("[h3-mcp] internal error", error);
++	console.error("[okmcp] internal error", error);
  	return {
  		code: JSON_RPC_INTERNAL_ERROR,
  		message: "Internal error",
-@@ -1512,6 +1514,10 @@ function toServerInfoMeta(options) {
+@@ -1713,6 +1715,10 @@ function toServerInfoMeta(options) {
  		version: options.version
  	};
  	if (options.title !== void 0) info.title = options.title;
