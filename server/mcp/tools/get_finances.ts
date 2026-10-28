@@ -1,12 +1,12 @@
 import { HTTPError } from "h3"
-import { defineMcpTool } from "nitro-mcp-toolkit"
+import { defineTool } from "okmcp"
 import * as v from "valibot"
 import { requireMember } from "../../utils/identity"
 import { ScopeInput } from "../format"
 import { toolInput } from "../schema"
 import { accountsView, accountView, forecastView, overviewView, recurringView, spendingView } from "../views"
 
-export default defineMcpTool({
+export default defineTool({
   name: "get_finances",
   title: "Household finances",
   description: [

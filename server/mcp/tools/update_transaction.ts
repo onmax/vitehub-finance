@@ -1,5 +1,5 @@
 import { HTTPError } from "h3"
-import { defineMcpTool } from "nitro-mcp-toolkit"
+import { defineTool } from "okmcp"
 import * as v from "valibot"
 import { refuseDemoPerson } from "../../demo/mode"
 import { requireMember } from "../../utils/identity"
@@ -8,7 +8,7 @@ import { categoryNames, resolveCategory } from "../categories"
 import { ScopeInput, text, transactionLine } from "../format"
 import { toolInput } from "../schema"
 
-export default defineMcpTool({
+export default defineTool({
   name: "update_transaction",
   title: "Update a transaction",
   description:

@@ -17,8 +17,9 @@ patchedDependencies:
   '@vite-hub/agent@0.0.4': patches/@vite-hub__agent@0.0.4.patch
   '@vite-hub/env@0.0.4': patches/@vite-hub__env@0.0.4.patch
   vite-hub@0.0.4: patches/vite-hub@0.0.4.patch
-  # Logs the error behind a JSON-RPC "Internal error"; upstream returns it without a trace.
-  h3-mcp@0.2.0: patches/h3-mcp@0.2.0.patch
+  # Logs the error behind a JSON-RPC "Internal error" (upstream returns it without a trace), and puts the description,
+  # icons, and website in modern serverInfo as legacy initialize does. Rebase or drop it when the okmcp pin moves.
+  okmcp@0.2.1-main.2239349: patches/okmcp@0.2.1-main.2239349.patch
   # `nuxt dev` on the nightly CLI gives Vite no httpServer, and virtual modules resolve bare imports from the root.
   nitro@3.0.260610-beta: patches/nitro@3.0.260610-beta.patch
   # Keeps Nuxt's dev-only module URL out of the Workers bundle.
@@ -41,7 +42,6 @@ allowBuilds:
   workerd: true
 
 minimumReleaseAgeExclude:
-  - nitro-mcp-toolkit@0.4.0
   - wrangler@4.148.0
   - "@better-auth/*"
   - better-auth@1.7.10
