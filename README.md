@@ -1,10 +1,14 @@
 # ViteHub Finance
 
+[![Built with ViteHub](https://comark-ui.onmax.me/badge.svg?label=built%20with&value=ViteHub&icon=package)](https://vitehub.dev)
+[![Comark UI](https://comark-ui.onmax.me/badge.svg?label=docs&value=Comark%20UI&icon=comark)](https://comark-ui.onmax.me)
+[![Documentation](https://comark-ui.onmax.me/badge.svg?label=docs&value=finance.onmax.me)](https://finance.onmax.me/docs)
+
 Your household's money in one place. ViteHub Finance pulls transactions from your banks, exchanges, wallets, and broker every day, lets
 you share accounts with a partner while keeping others private, finds subscriptions you both pay for, and forecasts
 where your balance is heading. Your agents can read it over MCP.
 
-Built on [ViteHub](https://vitehub.dev) and Nuxt 5. Runs on Cloudflare Workers or any Node host.
+Built on [ViteHub](https://vitehub.dev) and Nuxt 5, with [Comark UI](https://comark-ui.onmax.me) for the documentation. Runs on Cloudflare Workers or any Node host.
 
 ## What it does
 

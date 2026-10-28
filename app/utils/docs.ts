@@ -1,15 +1,10 @@
 import { createContentClient, type ContentFetch } from "vite-hub/content/client"
 
 /** A page, or a folder of pages, in the docs' tree. */
-export type DocsNavigationItem = import("@nuxt/content").ContentNavigationItem
+export type DocsNavigationItem = import("comark-content").NavigationItem
 
 /** A section in a page's table of contents (comark/plugins/toc). */
-export interface DocsTocLink {
-  id: string
-  text: string
-  depth: number
-  children?: DocsTocLink[]
-}
+export type DocsTocLink = import("comark/plugins/toc").TocLink
 
 // Typed by URL, `$fetch` checks every server route against a plain string and runs out of stack.
 const fetchContent: ContentFetch = (url, options) => ($fetch as unknown as ContentFetch)(url, options)
@@ -27,7 +22,7 @@ export const useDocsNavigation = () =>
     async () => {
       // The `/docs` prefix wraps everything in one root item, /docs itself; the sidebar starts below it. Links are
       // exact, or /docs would stay highlighted on every page under it.
-      const tree = (await docsClient().navigation()) as DocsNavigationItem[]
+      const tree = await docsClient().navigation()
       const exact = (items: DocsNavigationItem[]): DocsNavigationItem[] =>
         items.map((item) => ({ ...item, exact: true, ...(item.children ? { children: exact(item.children) } : {}) }))
       return exact(tree.length === 1 && tree[0]!.path === "/docs" && tree[0]!.children ? tree[0]!.children : tree)

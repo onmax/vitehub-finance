@@ -1,5 +1,8 @@
 # @vitehub-finance/brokers
 
+[![ViteHub Finance](https://comark-ui.onmax.me/badge.svg?label=part%20of&value=ViteHub%20Finance&icon=package)](https://github.com/onmax/vitehub-finance)
+[![Guide](https://comark-ui.onmax.me/badge.svg?label=docs&value=brokers)](https://finance.onmax.me/docs/providers/ibkr)
+
 One client for brokerage accounts. Brokers are read with read-only tokens, and every provider answers in one model: per
 account, its open positions at the broker's own prices and its cash per currency, and over the period the broker reports
 on, its trades, cash movements (deposits, withdrawals, dividends, tax, interest, fees), and daily value. It uses only `fetch`, so it runs on

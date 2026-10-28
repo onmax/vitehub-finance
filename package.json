@@ -20,7 +20,7 @@
     "@better-auth/api-key": "1.7.10",
     "@better-auth/oauth-provider": "1.7.10",
     "@better-auth/passkey": "1.7.10",
-    "@comark/vue": "0.7.0",
+    "@comark/vue": "0.8.1",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@iconify-json/lucide": "^1.2.147",
@@ -35,8 +35,8 @@
     "@vueuse/nuxt": "^14.4.0",
     "advocaat": "0.0.6",
     "better-auth": "1.7.10",
-    "comark": "0.7.0",
-    "comark-content": "0.4.1",
+    "comark": "0.8.1",
+    "comark-content": "0.4.3",
     "d3-sankey": "^0.12.3",
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
@@ -51,7 +51,9 @@
     "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@5bc8735",
     "vue": "3.5.44",
     "vue-i18n": "^11.4.16",
-    "vue-router": "5.2.0"
+    "vue-router": "5.2.0",
+    "comark-ui": "0.7.2",
+    "@comark/html": "0.8.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260825.1",

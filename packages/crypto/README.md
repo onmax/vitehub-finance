@@ -1,5 +1,8 @@
 # @vitehub-finance/crypto
 
+[![ViteHub Finance](https://comark-ui.onmax.me/badge.svg?label=part%20of&value=ViteHub%20Finance&icon=package)](https://github.com/onmax/vitehub-finance)
+[![Guide](https://comark-ui.onmax.me/badge.svg?label=docs&value=crypto)](https://finance.onmax.me/docs/providers/kraken)
+
 One client for crypto balances. Exchanges are read with read-only API keys, wallets from public endpoints by address,
 and every provider answers in one model: what it holds, coin by coin, and for wallets with a public history, what moved. It uses only `fetch` and WebCrypto, so it runs on
 Cloudflare Workers, Node, Deno, and Bun.
