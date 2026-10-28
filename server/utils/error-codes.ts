@@ -85,7 +85,7 @@ const CODES: Record<string, string> = {
   "Sign in as the person who started connecting this bank, then try again.": "errorSignInAsThePersonWhoStartedConnectingThis",
   "The bank didn't confirm access. Connect the bank again.": "errorTheBankDidnTConfirmAccessConnectTheBank",
   "Bank connections aren't set up on this server.": "errorBankConnectionsArenTSetUpOnThisServer",
-  "The bank shared no accounts. Try again and select at least one.": "errorTheBankSharedNoAccountsTryAgainAndSelect",
+  "The bank shared no accounts. Select at least one at the bank. If you did, link it in the Enable Banking control panel first.": "errorTheBankSharedNoAccountsSelectAtLeastOne",
   "Your bank allows about 4 syncs a day. Try again in a few hours.": "errorYourBankAllowsAbout4SyncsADayTry",
   "Too many tries. Wait a minute and try again.": "errorTooManyTriesWaitAMinute",
   "This connection is already syncing. Wait for it to finish.": "errorThisConnectionIsAlreadySyncing"

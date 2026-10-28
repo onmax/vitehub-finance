@@ -1,5 +1,5 @@
 import { errorCode } from "../../utils/error-codes"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { defineHandler, redirect } from "h3"
 import { db } from "vite-hub/database/drizzle"
@@ -19,6 +19,9 @@ import { seal, unseal } from "../../utils/crypto"
 import { identify } from "../../utils/identity"
 import { matchReconnectedAccounts } from "../../utils/sync"
 
+const NO_ACCOUNTS =
+  "The bank shared no accounts. Select at least one at the bank. If you did, link it in the Enable Banking control panel first."
+
 const toConnect = (query: Record<string, string>) => redirect(`/connect/banks?${new URLSearchParams(query)}`, 302)
 
 /**
@@ -35,12 +38,10 @@ export default defineHandler(async (event) => {
 
   const failed = async (message: string) => {
     log.warn(message, { callback: { outcome: "failed", connectionId: row?.id } })
-    // A new link that failed is an error; an existing connection keeps its status and shows why.
-    if (row)
-      await db
-        .update(connection)
-        .set({ ...(row.status === "pending" ? { status: "error" as const } : {}), lastError: message, lastErrorCode: errorCode(message) })
-        .where(eq(connection.id, row.id))
+    // A new link that failed leaves nothing behind, like one abandoned at the bank: kept, the next sync would replace
+    // this message with "no credentials". An existing connection keeps its status and shows why.
+    if (row?.status === "pending") await db.delete(connection).where(and(eq(connection.id, row.id), eq(connection.status, "pending")))
+    else if (row) await db.update(connection).set({ lastError: message, lastErrorCode: errorCode(message) }).where(eq(connection.id, row.id))
     return toConnect({ error: message.slice(0, 200), error_code: errorCode(message) })
   }
 
@@ -73,7 +74,8 @@ export default defineHandler(async (event) => {
     if (!config) return failed("Bank connections aren't set up on this server.")
 
     const session = await createSession(config, code)
-    if (!session.accounts.length) return failed("The bank shared no accounts. Try again and select at least one.")
+    // A restricted Enable Banking app (one activated by linking its owner's accounts) gets an empty list for any other.
+    if (!session.accounts.length) return failed(NO_ACCOUNTS)
     const previous = await unseal<EnableBankingCredentials>(row.credentials).catch(() => null)
     await matchReconnectedAccounts(row.id, session.accounts)
     await db

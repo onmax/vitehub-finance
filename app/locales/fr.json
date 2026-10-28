@@ -1239,7 +1239,7 @@
   "errorThisConnectionNoLongerExistsConnectTheBankAgain": "Cette connexion n’existe plus. Reconnectez la banque.",
   "errorSignInAsThePersonWhoStartedConnectingThis": "Connectez-vous avec le compte de la personne qui a lancé cette connexion bancaire, puis réessayez.",
   "errorTheBankDidnTConfirmAccessConnectTheBank": "La banque n’a pas confirmé l’accès. Reconnectez-la.",
-  "errorTheBankSharedNoAccountsTryAgainAndSelect": "La banque n’a partagé aucun compte. Réessayez et sélectionnez-en au moins un.",
+  "errorTheBankSharedNoAccountsSelectAtLeastOne": "La banque n’a partagé aucun compte. Sélectionnez-en au moins un auprès de la banque. Si c’est déjà fait, associez-le d’abord dans le panneau de contrôle d’Enable Banking.",
   "errorYourBankAllowsAbout4SyncsADayTry": "Votre banque autorise environ 4 synchronisations par jour. Réessayez dans quelques heures.",
   "errorTooManyTriesWaitAMinute": "Trop de tentatives. Attendez une minute et réessayez.",
   "errorThisConnectionIsAlreadySyncing": "Cette connexion est déjà en cours de synchronisation. Attendez qu’elle se termine.",
