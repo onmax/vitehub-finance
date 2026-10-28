@@ -14,6 +14,8 @@ export interface TransferCandidate {
   currency: string
   description: string
   counterparty: string | null
+  /** A provider or an existing transfer category identifies this movement. */
+  transfer?: boolean
 }
 
 /** The same move booked on two accounts can land a few days apart (weekends, card settlement). */
@@ -55,7 +57,8 @@ export function namesOwner(text: string, ownerName: string | null | undefined) {
 /** A refund names you as its counterparty, but it is money back from a shop. */
 const REFUND = /^(refund|reembolso|devoluci[oó]n|rückerstattung|återbetalning)\b/i
 
-export function looksLikeTransfer(row: Pick<TransferCandidate, "description" | "counterparty" | "ownerName">) {
+export function looksLikeTransfer(row: Pick<TransferCandidate, "description" | "counterparty" | "ownerName" | "transfer">) {
+  if (row.transfer) return true
   const text = `${row.description}\n${row.counterparty ?? ""}`
   if (REFUND.test(row.description.trim())) return false
   return PATTERNS.some((pattern) => pattern.test(text)) || namesOwner(text, row.ownerName)

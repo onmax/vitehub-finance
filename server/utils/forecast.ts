@@ -31,7 +31,7 @@ const liquid = and(
 export async function forecast(who: Member, scope: Scope, months: number): Promise<PlanningForecast> {
   const { currency, convert } = await baseCurrency(who)
   const today = todayIso()
-  const rows = await selectAccounts(who, scope, liquid)
+  const rows = (await selectAccounts(who, scope, liquid)).filter(row => row.provider !== "stripe")
   const accounts: CoreAccount[] = rows.map((row) => ({
     id: row.account.id,
     name: row.account.name,

@@ -116,3 +116,9 @@
     }
   }
 }
+
+/* Icons follow their surrounding type; brand tiles keep their own optical scale. */
+.iconify:not(.institution-glyph) {
+  width: var(--app-icon-size, 1.15em);
+  height: var(--app-icon-size, 1.15em);
+}

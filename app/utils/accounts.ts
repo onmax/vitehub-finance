@@ -31,8 +31,9 @@ export const ACCOUNT_KIND_ITEMS = (Object.keys(ACCOUNT_KINDS) as AccountKind[]).
   icon: ACCOUNT_KINDS[value].icon,
 }))
 
-export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exchange" | "wallet" | "broker" | "manual" }> = {
+export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exchange" | "wallet" | "broker" | "payment" | "manual" }> = {
   enable_banking: { get label() { return translate('bank') }, kind: "bank" },
+  stripe: { label: "Stripe", kind: "payment" },
   kraken: { label: "Kraken", kind: "exchange" },
   binance: { label: "Binance", kind: "exchange" },
   coinbase: { label: "Coinbase", kind: "exchange" },
@@ -50,6 +51,7 @@ export const PROVIDERS: Record<ProviderId, { label: string; kind: "bank" | "exch
 /** The connect page for a provider: banks and manual accounts, exchanges and wallets, or investment platforms. */
 export function connectPageOf(provider: ProviderId): ConnectPage {
   const kind = PROVIDERS[provider].kind
+  if (kind === "payment") return "/connect/payments"
   if (kind === "broker") return "/connect/investments"
   return kind === "exchange" || kind === "wallet" ? "/connect/crypto" : "/connect/banks"
 }

@@ -66,7 +66,7 @@ export async function detectTransfers(householdId: string) {
   // a transfer because of it.
   const candidates = rows
     .filter((row) => row.amountMinor !== 0)
-    .map((row) => ({ ...row, private: row.visibility === "private" || row.hidden }))
+    .map((row) => ({ ...row, private: row.visibility === "private" || row.hidden, transfer: row.categoryId === transfers }))
   const toBase = await converterTo(await householdCurrency(householdId))
   const pairs = pairTransfers(candidates, toBase)
   for (const pair of pairs) {

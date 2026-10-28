@@ -1,5 +1,8 @@
 // Stable codes preserve English diagnostics for agents while the app translates the code.
 const CODES: Record<string, string> = {
+  "Use a live restricted Stripe key starting with rk_live_.": "errorStripeLiveKey",
+  "Stripe rejected this key. Check it or create a new restricted key.": "errorStripeKeyRejected",
+  "Give the Stripe key Read access to Accounts and Balance, then connect again.": "errorStripePermissions",
   "Budget changes must start this month or later.": "errorBudgetChangesMustStartThisMonthOrLater",
   "Create a new budget to change its category or sharing.": "errorCreateANewBudgetToChangeItsCategoryOrSharing",
   "Budgets need an expense category.": "errorBudgetsNeedAnExpenseCategory",

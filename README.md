@@ -18,6 +18,7 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5, with [Comark UI](https://com
 - **Crypto**: Kraken, Binance, and Coinbase with read-only keys; Bitcoin, Ethereum, Solana, XRP Ledger, and Nimiq
   addresses (staked NIM included). Bitcoin, XRP Ledger, and Nimiq wallets bring their transactions too, valued at each
   day's price and counted as transfers (rewards count as income).
+- **Stripe** under Payments: restricted read-only key, available and pending balances per currency, and net transaction history with fees, refunds, and payouts. [Setup guide](https://finance.onmax.me/docs/providers/stripe).
 - **Interactive Brokers** through a read-only Flex token: positions and cash per currency, valued at IBKR's own prices.
 - **Transfers** between your own accounts (a top-up from another bank, a currency exchange, a broker deposit) are
   found and left out of spending and income.

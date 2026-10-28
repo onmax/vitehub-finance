@@ -31,6 +31,7 @@
     "@vitehub-finance/banking": "workspace:*",
     "@vitehub-finance/brokers": "workspace:*",
     "@vitehub-finance/crypto": "workspace:*",
+    "@vitehub-finance/payments": "workspace:*",
     "@vueuse/core": "^14.4.0",
     "@vueuse/nuxt": "^14.4.0",
     "advocaat": "0.0.6",

@@ -19,6 +19,7 @@ export type ProviderId =
   | "nimiq"
   | "ibkr"
   | "myinvestor"
+  | "stripe"
   | "manual"
 export type ConnectionStatus = "pending" | "active" | "expired" | "error" | "revoked"
 export type Cadence = "weekly" | "monthly" | "quarterly" | "yearly"
@@ -97,7 +98,25 @@ export interface AiCategorizeResult {
   remaining: number
 }
 
+export interface PaymentBalance {
+  availableMinor: number
+  pendingMinor: number
+}
+
+export interface PaymentLedger {
+  grossMinor: number
+  feeMinor: number
+  netMinor: number
+  status: "pending" | "available"
+  availableOn: string
+  type: string
+  reportingCategory: string
+  sourceId: string | null
+}
+
 export interface AccountSummary {
+  /** Payment processor funds in this account's currency; their sum is balanceMinor. */
+  paymentBalance?: PaymentBalance
   id: string
   name: string
   institution: string | null
@@ -200,6 +219,8 @@ export interface Category {
 }
 
 export interface Transaction {
+  /** A processor ledger movement. amountMinor equals netMinor; fees are already deducted. */
+  payment?: PaymentLedger
   review?: TransactionReviewState
   id: string
   accountId: string

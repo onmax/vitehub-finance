@@ -93,6 +93,7 @@ function toTransaction(row: Joined, who: Pick<Member, "userId" | "via">, transfe
     ownerName: row.ownerName,
     date: t.date,
     amountMinor: t.amountMinor,
+    ...(t.payment ? { payment: t.payment } : {}),
     currency: t.currency,
     description: t.description,
     counterparty: t.counterparty,

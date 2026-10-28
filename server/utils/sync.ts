@@ -25,7 +25,7 @@ type AccountRow = typeof financialAccount.$inferSelect
 const DAY = 24 * 60 * 60 * 1000
 const dayString = (time: number) => new Date(time).toISOString().slice(0, 10)
 
-// D1 binds at most 100 parameters per statement: a transaction row binds up to 22 (one per column).
+// D1 binds at most 100 parameters per statement; four transaction rows stay below it, including processor metadata.
 const TRANSACTION_CHUNK = 4
 
 export async function householdRules(householdId: string): Promise<Rule[]> {
@@ -34,8 +34,8 @@ export async function householdRules(householdId: string): Promise<Rule[]> {
 
 /**
  * Inserts the rows this account doesn't have yet (by dedupe key) with categories from the rules, and returns how many were
- * new. A row the provider calls a transfer gets `transferCategoryId` when no rule matches; an excluding rule excludes it. Existing rows, and so
- * hand-picked categories, are never touched.
+ * new. A row the provider calls a transfer gets `transferCategoryId` when no rule matches; an excluding rule excludes
+ * it. Existing rows keep people's edits; processor settlement metadata alone can be refreshed.
  */
 export async function insertTransactions(
   account: Pick<AccountRow, "id" | "householdId">,
@@ -62,6 +62,8 @@ export async function insertTransactions(
         dedupeKey: row.dedupeKey,
         date: row.date,
         amountMinor: row.amountMinor,
+        payment: row.payment,
+        status: row.payment?.status === "pending" ? ("pending" as const) : ("booked" as const),
         currency: row.currency,
         description: row.description.slice(0, 500),
         counterparty: row.counterparty || undefined,
@@ -75,8 +77,18 @@ export async function insertTransactions(
       .insert(transaction)
       .values(values)
       .onConflictDoNothing({ target: [transaction.accountId, transaction.dedupeKey] })
-      .returning({ id: transaction.id })
+      .returning({ dedupeKey: transaction.dedupeKey })
     added += inserted.length
+    const newKeys = new Set(inserted.map((row) => row.dedupeKey))
+    // A processor owns its ledger metadata and settlement state. Categories, notes, exclusions, and privacy stay with
+    // the person; bank rows keep their existing insert-only semantics.
+    for (const row of unique.slice(index, index + TRANSACTION_CHUNK)) {
+      if (!row.payment || newKeys.has(row.dedupeKey)) continue
+      await db.update(transaction).set({
+        payment: row.payment,
+        status: row.payment.status === "pending" ? "pending" : "booked",
+      }).where(and(eq(transaction.accountId, account.id), eq(transaction.dedupeKey, row.dedupeKey)))
+    }
   }
   return added
 }
@@ -122,6 +134,7 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
         kind: remote.kind,
         currency,
         balanceMinor: balance ?? 0,
+        paymentBalance: remote.paymentBalance,
         iban: remote.iban ?? null,
         visibility: household.shareNewAccounts ? "household" : "private",
         balanceUpdatedAt: balance === undefined ? null : now,
@@ -138,6 +151,7 @@ async function applyAccount(context: Context, remote: ProviderAccount) {
         iban: remote.iban ?? account.iban,
         institution: account.institution ?? remote.institution ?? row.institution,
         ...(balance === undefined ? {} : { balanceMinor: balance, balanceUpdatedAt: now }),
+        ...(remote.paymentBalance === undefined ? {} : { paymentBalance: remote.paymentBalance }),
       })
       .where(eq(financialAccount.id, account.id))
   }
@@ -281,7 +295,18 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
           ? dayString(started - 365 * DAY)
           : dayString(row.lastSyncedAt!.getTime() - 10 * DAY)
     const provider = providerFor(row.provider, { enableBanking: bankConfig() })
-    const result = await provider(credentials, { since, initial })
+    const pendingPaymentIds = row.provider === "stripe"
+      ? (await db.select({ externalId: transaction.externalId })
+          .from(transaction)
+          .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
+          .where(and(eq(financialAccount.connectionId, row.id), eq(transaction.status, "pending"))))
+          .flatMap((entry) => entry.externalId ? [entry.externalId] : [])
+      : undefined
+    const paymentCurrencies = row.provider === "stripe"
+      ? (await db.select({ currency: financialAccount.currency }).from(financialAccount).where(eq(financialAccount.connectionId, row.id)))
+          .map((entry) => entry.currency)
+      : undefined
+    const result = await provider(credentials, { since, initial, pendingPaymentIds, paymentCurrencies })
     log.set({ sync: { runId, since, fetchMs: Date.now() - started, accounts: result.accounts.length } })
 
     const [settings] = await db.select().from(householdSettings).where(eq(householdSettings.householdId, row.householdId)).limit(1)
@@ -291,7 +316,7 @@ async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestL
       household: { currency: settings?.currency ?? "EUR", shareNewAccounts: settings?.shareNewAccounts ?? true },
       rules: await householdRules(row.householdId),
       existing: new Map(existingRows.filter((account) => account.externalId).map((account) => [account.externalId!, account] as const)),
-      single: row.provider !== "enable_banking" && result.accounts.length === 1,
+      single: row.provider !== "enable_banking" && row.provider !== "stripe" && result.accounts.length === 1,
     }
 
     let added = 0

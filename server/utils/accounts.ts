@@ -70,6 +70,7 @@ export function toSummary(
     kind: account.kind,
     currency: account.currency,
     balanceMinor: account.balanceMinor,
+    ...(account.paymentBalance ? { paymentBalance: account.paymentBalance } : {}),
     balanceBaseMinor: convert(account.balanceMinor, account.currency),
     iban: account.iban,
     ownerId: account.ownerId,

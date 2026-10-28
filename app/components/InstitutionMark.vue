@@ -14,6 +14,7 @@ const props = withDefaults(
 // Marks for what isn't a bank, on the brand's color. Simple Icons has no Kraken, Interactive Brokers, or Nimiq, and
 // only Coinbase's wordmark, so those are ours (app/assets/icons).
 const PROVIDERS: Partial<Record<ProviderId, { icon: string; bg: string; fg: string }>> = {
+  stripe: { icon: "i-simple-icons-stripe", bg: "#635bff", fg: "#ffffff" },
   binance: { icon: "i-simple-icons-binance", bg: "#1e2026", fg: "#f0b90b" },
   coinbase: { icon: "i-finance-coinbase", bg: "#0052ff", fg: "#ffffff" },
   kraken: { icon: "i-finance-kraken", bg: "#7132f5", fg: "#ffffff" },
@@ -56,7 +57,7 @@ const sizing = computed(() => SIZES[props.size])
     :style="brand ? { background: brand.bg, color: brand.fg } : undefined"
     aria-hidden="true"
   >
-    <UIcon v-if="brand" :name="brand.icon" :class="sizing.glyph" />
+    <UIcon v-if="brand" :name="brand.icon" class="institution-glyph" :class="sizing.glyph" />
     <img
       v-else-if="image"
       :src="image"
@@ -68,7 +69,7 @@ const sizing = computed(() => SIZES[props.size])
       referrerpolicy="no-referrer"
       @error="failed = true"
     />
-    <UIcon v-else-if="fallback" :name="fallback" :class="sizing.glyph" />
+    <UIcon v-else-if="fallback" :name="fallback" class="institution-glyph" :class="sizing.glyph" />
     <span v-else class="font-medium" :class="sizing.text">{{ initials(name ?? provider ?? "?") }}</span>
   </span>
 </template>

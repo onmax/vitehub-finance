@@ -7,12 +7,14 @@ import type { CoinHistory } from "../utils/holdings-history"
 import { BankingError } from "@vitehub-finance/banking"
 import { BrokerError } from "@vitehub-finance/brokers"
 import { CryptoError, type StakingLedger } from "@vitehub-finance/crypto"
-import type { AccountKind } from "../../shared/api"
+import { PaymentsError } from "@vitehub-finance/payments"
+import type { AccountKind, PaymentBalance, PaymentLedger } from "../../shared/api"
 
 /** Sent on every outgoing API call. Workers send none by default, and some APIs refuse requests without one. */
 export const USER_AGENT = "ViteHubFinance/0.1 (+https://github.com/onmax/vitehub-finance)"
 
 export interface ProviderTransaction {
+  payment?: PaymentLedger
   externalId?: string | null
   /** What decides whether a row is new. Providers with flaky ids compute it (see dedupe.ts); the engine fills missing ones. */
   dedupeKey?: string
@@ -52,6 +54,7 @@ export interface ProviderAccount {
   kind: AccountKind
   currency: string
   balanceMinor?: number
+  paymentBalance?: PaymentBalance
   iban?: string | null
   institution?: string | null
   holdings?: ProviderHolding[]
@@ -82,6 +85,10 @@ export interface ProviderResult<C = unknown> {
 }
 
 export interface FetchOptions {
+  /** Processor rows still awaiting settlement, including those outside the incremental date window. */
+  pendingPaymentIds?: string[]
+  /** Previously seen processor currencies, including accounts whose current balance is now zero. */
+  paymentCurrencies?: string[]
   /** `YYYY-MM-DD`: fetch transactions from this day on. Null fetches whatever the provider gives by default: for a wallet, its whole history. */
   since: string | null
   /** The first sync after linking. */
@@ -108,6 +115,11 @@ export class ProviderError extends Error {
 
 /** The packages' errors in the engine's terms: anything the person must fix (a key, an address) is `auth`. */
 export function asProviderError(error: unknown): unknown {
+  if (error instanceof PaymentsError)
+    return new ProviderError(
+      error.code === "invalid_credentials" || error.code === "permissions" || error.code === "live_required" ? "auth" : error.code,
+      error.message,
+    )
   if (error instanceof BankingError) return new ProviderError(error.code === "invalid_credentials" ? "auth" : error.code, error.message)
   if (error instanceof BrokerError) return new ProviderError(error.code === "invalid_credentials" ? "auth" : error.code, error.message)
   if (error instanceof CryptoError)

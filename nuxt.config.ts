@@ -260,7 +260,7 @@ export default defineNuxtConfig({
         // Our own brand marks (app/assets/icons), named in shared/banks.ts and InstitutionMark.
         ...["coinbase", "degiro", "ibkr", "kraken", "myinvestor", "nimiq", "scalable-capital", "trade-republic"].map((name) => `finance:${name}`),
         // Bank marks (shared/banks.ts).
-        ...["revolut", "n26", "wise", "bunq", "monzo", "caixabank", "starlingbank", "deutschebank", "commerzbank", "barclays", "hsbc", "paypal", "klarna", "sparkasse"].map(
+        ...["stripe", "revolut", "n26", "wise", "bunq", "monzo", "caixabank", "starlingbank", "deutschebank", "commerzbank", "barclays", "hsbc", "paypal", "klarna", "sparkasse"].map(
           (name) => `simple-icons:${name}`,
         ),
       ],

@@ -1,7 +1,7 @@
 # ViteHub Finance
 
 Household finance on ViteHub. People sign up, get a household (a Better Auth organization), invite a partner, connect
-banks (Enable Banking, PSD2), crypto exchanges, wallets, and Interactive Brokers, and see their money together: accounts, transactions,
+banks (Enable Banking, PSD2), Stripe, crypto exchanges, wallets, and Interactive Brokers, and see their money together: accounts, transactions,
 recurring payments, budgets, goals, and a cash-flow forecast. An MCP server lets their agents read it.
 
 Private by default (`FINANCE_ALLOWED_EMAILS`), or public (`FINANCE_DEMO=1`: anyone signs up, plus a demo household),
@@ -89,7 +89,7 @@ forkable, deployable to Cloudflare or any Node host.
 
 ## Packages
 
-A pnpm workspace: the app at the root, and three clients in `packages/` that know nothing about the app.
+A pnpm workspace: the app at the root, and provider clients in `packages/` that know nothing about the app.
 
 - `@vitehub-finance/banking`: open banking. `BankingProvider` (institutions, authorize, completeAuthorization,
   balance, transactions, revoke), `readAccounts`, `BankingError`. Providers: `./enable-banking`, `./fake`.
@@ -107,6 +107,11 @@ A pnpm workspace: the app at the root, and three clients in `packages/` that kno
   prices the funds someone says they hold at Morningstar's latest NAV (MyInvestor has no API for them; its current
   account is a bank), and `morningstar().search()` finds a fund by ISIN or name. `./fake` for tests.
 
+- `@vitehub-finance/payments`: Stripe Payments balances and net ledger movements through a live restricted key.
+  `stripe({ key }).verify()` checks merchant identity and permissions; `.read({ since, pendingIds })` reads history and
+  revisits pending settlement rows. The app adapter stores typed amounts and identifiers, with generic descriptions.
+  Settlement refreshes preserve manual edits. Stripe accounts stay outside cash forecasts even after a kind change.
+
 Packages import with `.ts` extensions and only erasable TypeScript, so Node runs their source directly. Their errors
 become the app's `ProviderError` in `server/providers/types.ts` (`asProviderError`); `server/providers/*` are thin
 adapters that keep what the app stores (sealed credentials) and add dedupe keys. A new exchange or chain goes in the
@@ -115,9 +120,10 @@ crypto package, a new broker in the brokers package; the app only needs its id i
 
 ## Connect
 
-Three pages, each listing the household's connections of its kind and then how to add more: `/connect/banks` (Enable
+Four pages, each listing the household's connections of its kind and then how to add more: `/connect/banks` (Enable
 Banking's country and bank picker, manual accounts, CSV import), `/connect/crypto` (exchanges and wallets), and
-`/connect/investments` (Interactive Brokers, MyInvestor, plus platforms that can't be connected yet). `connectPageOf(provider)`
+`/connect/investments` (Interactive Brokers, MyInvestor, plus platforms that can't be connected yet), and
+`/connect/payments` (Stripe). `connectPageOf(provider)`
 (app/utils/accounts.ts) says which page a connection belongs on; the sidebar badges each page for connections needing
 someone. `/connect` and `/connect/crypto#broker` redirect, keeping query and hash.
 
@@ -130,7 +136,7 @@ someone. `/connect` and `/connect/crypto#broker` redirect, keeping query and has
   `#ibkr/connect` the dialog.
 - A step (app/components/connect/) renders a `UForm` with `useConnectFlow().formId`; the dialog's primary button submits
   it, so validation runs on submit. It calls `flow.next()`, or on the last step `flow.connect(request, fallback)` with
-  the existing endpoint (`/api/connect/exchange`, `/wallet`, `/broker`). New provider: add the entry and, if no step
+  the existing endpoint (`/api/connect/exchange`, `/wallet`, `/broker`, `/stripe`). New provider: add the entry and, if no step
   fits, a step component.
 
 ## Sync

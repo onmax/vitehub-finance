@@ -39,6 +39,9 @@ const AI_PRIVACY = { typesafe: "aiPrivacyTypesafe", vercel: "aiPrivacyVercel", c
     <p> {{ $t('banksConnectThrough') }} <a href="https://enablebanking.com" target="_blank" rel="noopener">Enable Banking</a>{{ $t('aLicensedAccountInformationServiceProviderUnderPsd2YouGive') }} </p>
     <p> {{ $t('exchangesConnectWithReadOnlyApiKeysYouCreateInteractive') }} </p>
 
+    <h2>{{ $t('payments') }}</h2>
+    <p>{{ $t('stripePrivacy') }}</p>
+
     <h2>{{ $t('aiCategories') }}</h2>
     <p> {{ $t('whenNoRuleCategorizesATransactionThisInstanceAsks') }} <a href="https://typesafe.ai" target="_blank" rel="noopener">TypeSafe</a>{{ $t('sJevModelToSuggestOneItSendsTheTransaction') }} </p>
     <p>{{ legal?.ai ? $t(AI_PRIVACY[legal.ai]) : $t('aiPrivacyNoKey') }}</p>

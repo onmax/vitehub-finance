@@ -21,6 +21,13 @@ const row = (accountId: string, date: string, amountMinor: number, currency: str
 })
 
 describe("transfer pairs", () => {
+  it("pairs a provider-marked Stripe payout with its bank deposit without classifying customer receipts as transfers", () => {
+    const payout = row("stripe", "2026-10-01", -9700, "EUR", "Stripe payout", { transfer: true })
+    const bank = row("bank", "2026-10-03", 9700, "EUR", "STRIPE")
+    const charge = row("stripe", "2026-10-01", 9700, "EUR", "Stripe charge")
+    expect(pairTransfers([payout, bank, charge], toBase)).toEqual([{ out: payout, in: bank }])
+    expect(looksLikeTransfer(charge)).toBe(false)
+  })
   it("pairs a card top-up from another bank with the inflow it became, across currencies", () => {
     const lunar = row("lunar-dkk", "2026-10-08", -2_688_131, "DKK", "Revolut", { counterparty: "Revolut**9014*" })
     const topUp = row("revolut-sek", "2026-10-07", 4_000_000, "SEK", "Top-Up by *4821")

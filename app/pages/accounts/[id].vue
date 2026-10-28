@@ -33,7 +33,7 @@ watch(
   () => account.value && account.value.history.length < 2 && account.value.id,
   async (accountId) => {
     estimated.value = null
-    if (!accountId || !account.value) return
+    if (!accountId || !account.value || account.value.paymentBalance) return
     const balance = account.value.balanceMinor
     const page = await $fetch<TransactionPage>("/api/transactions", {
       query: { account: accountId, limit: 200, from: addDays(today(), -180) },
@@ -184,6 +184,14 @@ function updated(next: AccountSummary) {
               </p>
             </div>
           </header>
+
+          <section v-if="account.paymentBalance" class="rounded-lg border border-default p-4" :aria-label="$t('stripeSettlement')">
+            <dl class="grid grid-cols-2 gap-4 text-sm">
+              <div><dt class="text-muted">{{ $t('stripeAvailable') }}</dt><dd class="mt-1 font-medium text-highlighted"><Money :minor="account.paymentBalance.availableMinor" :currency="account.currency" /></dd></div>
+              <div><dt class="text-muted">{{ $t('stripePending') }}</dt><dd class="mt-1 font-medium text-highlighted"><Money :minor="account.paymentBalance.pendingMinor" :currency="account.currency" /></dd></div>
+            </dl>
+            <p class="mt-3 text-xs text-muted">{{ $t('stripeForecastHelp') }}</p>
+          </section>
 
           <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div class="flex min-w-0 flex-col gap-10">

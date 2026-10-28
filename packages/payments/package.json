@@ -1,0 +1,11 @@
+{
+  "name": "@vitehub-finance/payments",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only payment processor balances and ledger movements.",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "valibot": "^1.4.2" }
+}

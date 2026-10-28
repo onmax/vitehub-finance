@@ -105,6 +105,17 @@ const guess = computed(() => (props.transaction && !props.transaction.categoryId
         <UBadge v-if="transaction.hidden" color="neutral" variant="outline" icon="i-lucide-lock" :label="$t('onlyYou')" />
       </div>
 
+      <section v-if="transaction.payment" class="rounded-lg border border-default p-4" :aria-label="$t('stripeSettlement')">
+        <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
+          <dt class="text-muted">{{ $t('stripeGross') }}</dt><dd class="text-right"><Money :minor="transaction.payment.grossMinor" :currency="transaction.currency" /></dd>
+          <dt class="text-muted">{{ $t('stripeFees') }}</dt><dd class="text-right"><Money :minor="transaction.payment.feeMinor" :currency="transaction.currency" /></dd>
+          <dt class="font-medium">{{ $t('stripeNet') }}</dt><dd class="text-right font-medium"><Money :minor="transaction.payment.netMinor" :currency="transaction.currency" /></dd>
+          <dt class="text-muted">{{ $t('stripeSettlement') }}</dt><dd class="text-right">{{ $t(transaction.payment.status === 'available' ? 'stripeAvailable' : 'stripePending') }}</dd>
+          <dt class="text-muted">{{ $t('stripeAvailableOn') }}</dt><dd class="text-right">{{ formatDate(transaction.payment.availableOn.slice(0, 10)) }}</dd>
+        </dl>
+        <p class="mt-3 text-xs text-muted">{{ $t('stripeNetHelp') }}</p>
+      </section>
+
       <p v-if="transaction.transferWith" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-pretty text-muted">
         <UIcon name="i-lucide-arrow-left-right" class="mt-0.5 size-4 shrink-0" />
         <span> {{ $t('moved', { value1: transaction.amountMinor < 0 ? "to" : "from" }) }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>{{ $t('soItIsnTSpendingOrIncomePickAnotherCategory') }} </span>
@@ -179,12 +190,12 @@ const guess = computed(() => (props.transaction && !props.transaction.categoryId
         <dt class="text-muted">{{ $t('date') }}</dt>
         <dd class="money text-right">{{ formatDate(transaction.date) }}</dd>
         <dt class="text-muted">{{ $t('status') }}</dt>
-        <dd class="text-right">{{ transaction.status === "pending" ? $t('pendingAtTheBank') : $t('booked') }}</dd>
+        <dd class="text-right">{{ transaction.status === 'pending' ? $t(transaction.payment ? 'stripePending' : 'pendingAtTheBank') : $t('booked') }}</dd>
         <template v-if="transaction.counterparty">
           <dt class="text-muted">{{ $t('counterparty') }}</dt>
           <dd class="text-right break-words">{{ transaction.counterparty }}</dd>
         </template>
-        <dt class="text-muted">{{ $t('bankDescription') }}</dt>
+        <dt class="text-muted">{{ $t(transaction.payment ? 'description' : 'bankDescription') }}</dt>
         <dd class="text-right font-mono text-xs break-all text-toned">{{ transaction.description }}</dd>
       </dl>
     </template>

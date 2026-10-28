@@ -3,14 +3,15 @@
 // and investment platforms are tiles on /connect/crypto and /connect/investments. The server says which ones it can
 // connect (`GET /api/connect/providers`); `soon` ones can't be connected anywhere yet.
 import type { Component } from "vue"
+import StripeKey from "~/components/connect/StripeKey.vue"
 import ExchangeKey from "~/components/connect/ExchangeKey.vue"
 import IbkrConnect from "~/components/connect/IbkrConnect.vue"
 import MyInvestorFunds from "~/components/connect/MyInvestorFunds.vue"
 import WalletAddress from "~/components/connect/WalletAddress.vue"
 import type { ConnectionSummary, ProviderId, ProviderInfo } from "#shared/api"
 
-export type ConnectKind = "bank" | "exchange" | "wallet" | "investment"
-export type ConnectPage = "/connect/banks" | "/connect/crypto" | "/connect/investments"
+export type ConnectKind = "bank" | "exchange" | "wallet" | "investment" | "payment"
+export type ConnectPage = "/connect/banks" | "/connect/crypto" | "/connect/investments" | "/connect/payments"
 
 /** How a provider lets ViteHub Finance in. */
 export type AuthMethod = "consent" | "api-key" | "address" | "flex-token" | "holdings"
@@ -55,6 +56,7 @@ export const CONNECT_KINDS: Record<ConnectKind, { readonly label: string; readon
   bank: { get label() { return translate('banks') }, get one() { return translate('bank') }, page: "/connect/banks" },
   exchange: { get label() { return translate('catalogExchanges') }, get one() { return translate('catalogExchange') }, page: "/connect/crypto" },
   wallet: { get label() { return translate('catalogWallets') }, get one() { return translate('wallet') }, page: "/connect/crypto" },
+  payment: { get label() { return translate("payments") }, get one() { return translate("paymentPlatform") }, page: "/connect/payments" },
   investment: { get label() { return translate('catalogInvestmentPlatforms') }, get one() { return translate('catalogInvestmentPlatform') }, page: "/connect/investments" },
 }
 
@@ -138,6 +140,20 @@ function comingSoon(id: string, name: string, domain: string, description: () =>
 }
 
 export const CATALOG: CatalogProvider[] = [
+  {
+    id: "stripe",
+    provider: "stripe",
+    name: "Stripe",
+    kind: "payment",
+    domain: "stripe.com",
+    get description() { return translate("stripeDescription") },
+    get reads() { return [translate("stripeReadsBalances"), translate("stripeReadsLedger"), translate("catalogReadsDaily")] },
+    get cannot() { return [translate("stripeCannotWrite"), translate("stripeCannotCustomerData")] },
+    auth: "api-key",
+    get authDetail() { return translate("stripeKeyInstructions") },
+    docs: providerDocs("stripe"),
+    steps: [step("key", () => translate("stripeRestrictedKey"), StripeKey, () => translate("catalogCheckAndConnect"))],
+  },
   exchange("kraken", "Kraken", "kraken.com", () => translate('inKrakenOpenSettingsApiAndCreateAKeyWith')),
   exchange("binance", "Binance", "binance.com", () => translate('inBinanceOpenApiManagementAndCreateASystemGenerated')),
   exchange("coinbase", "Coinbase", "coinbase.com", () => translate('inTheCoinbaseDeveloperPlatformCreateASecretApiKey')),

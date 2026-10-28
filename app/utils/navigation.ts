@@ -20,6 +20,7 @@ export const CONNECT_PAGES = [
   { get label() { return translate('banks') }, icon: "i-lucide-landmark", to: "/connect/banks", key: "c" },
   { get label() { return translate('crypto') }, icon: "i-lucide-bitcoin", to: "/connect/crypto", key: "k" },
   { get label() { return translate('investments') }, icon: "i-lucide-trending-up", to: "/connect/investments", key: "i" },
+  { get label() { return translate("payments") }, icon: "i-lucide-credit-card", to: "/connect/payments", key: "p" },
 ] as const
 
 export const SECONDARY_PAGES = [

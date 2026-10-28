@@ -24,6 +24,7 @@ const BROWSER_ONLY_ROUTES = [
   "POST /api/connect/bank",
   "POST /api/connect/broker",
   "POST /api/connect/exchange",
+  "POST /api/connect/stripe",
   "POST /api/connect/wallet",
   "DELETE /api/connections/[id]",
   "POST /api/connections/[id]/reconnect",

@@ -3,6 +3,7 @@
 import { sql } from "drizzle-orm"
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
 import { organization, user } from "./auth"
+import type { PaymentBalance, PaymentLedger } from "../../shared/api"
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`
 const createdAt = () => integer("created_at", { mode: "timestamp_ms" }).default(now).notNull()
@@ -50,7 +51,7 @@ export const connection = sqliteTable(
     householdId: householdId(),
     ownerId: ownerId(),
     provider: text("provider", {
-      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "polygon", "solana", "xrpl", "nimiq", "ibkr", "myinvestor", "manual"],
+      enum: ["enable_banking", "kraken", "binance", "coinbase", "bitcoin", "ethereum", "polygon", "solana", "xrpl", "nimiq", "ibkr", "myinvestor", "stripe", "manual"],
     }).notNull(),
     name: text("name").notNull(),
     institution: text("institution"),
@@ -93,6 +94,7 @@ export const financialAccount = sqliteTable(
     kind: text("kind", { enum: ACCOUNT_KINDS }).notNull().default("checking"),
     currency: text("currency").notNull().default("EUR"),
     balanceMinor: integer("balance_minor").notNull().default(0),
+    paymentBalance: text("payment_balance", { mode: "json" }).$type<PaymentBalance>(),
     iban: text("iban"),
     // `private`: only the owner sees it. `household`: every member sees it and its transactions.
     visibility: text("visibility", { enum: ["private", "household"] })
@@ -221,6 +223,7 @@ export const transaction = sqliteTable(
     // The provider's id when it sends one; banks often don't, so `dedupeKey` decides what's new.
     externalId: text("external_id"),
     dedupeKey: text("dedupe_key").notNull(),
+    payment: text("payment", { mode: "json" }).$type<PaymentLedger>(),
     date: text("date").notNull(),
     amountMinor: integer("amount_minor").notNull(),
     currency: text("currency").notNull(),

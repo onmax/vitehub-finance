@@ -5,12 +5,14 @@ import { cryptoProvider } from "./crypto"
 import { enableBanking, type EnableBankingConfig } from "./enable-banking"
 import { ibkrProvider } from "./ibkr"
 import { myinvestorProvider } from "./myinvestor"
+import { stripeProvider } from "./stripe"
 import { ProviderError, type Provider } from "./types"
 
 export const BANK_PROVIDERS = ["enable_banking"] as const
 export const EXCHANGE_PROVIDERS = EXCHANGE_IDS
 export const WALLET_PROVIDERS = CHAIN_IDS
 export const BROKER_PROVIDERS = ["ibkr", "myinvestor"] as const
+export const PAYMENT_PROVIDERS = ["stripe"] as const
 
 export function providerFor(id: ProviderId, config: { enableBanking: EnableBankingConfig | null }): Provider<any> {
   switch (id) {
@@ -22,6 +24,8 @@ export function providerFor(id: ProviderId, config: { enableBanking: EnableBanki
       return ibkrProvider
     case "myinvestor":
       return myinvestorProvider
+    case "stripe":
+      return stripeProvider
     case "manual":
       throw new ProviderError("auth", "Manual accounts have nothing to sync.")
     default:

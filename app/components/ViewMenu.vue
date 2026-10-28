@@ -35,7 +35,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 </script>
 
 <template>
-  <UDropdownMenu :items="items" :content="{ align: 'start', sideOffset: 4 }" :ui="{ content: 'w-64', itemDescription: 'text-pretty' }">
+  <UDropdownMenu :items="items" :content="{ align: 'start', sideOffset: 4 }" :ui="{ content: 'w-72 max-w-[calc(100vw-2rem)]', item: 'items-start py-2.5', itemLeadingIcon: 'mt-0.5', itemDescription: 'whitespace-normal text-pretty', itemLabel: 'whitespace-normal' }">
     <button
       type="button"
       class="flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 text-left transition-colors duration-150 hover:bg-accented/60 focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:bg-accented"
