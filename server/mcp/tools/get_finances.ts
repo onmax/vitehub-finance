@@ -32,7 +32,7 @@ export default defineTool({
   ),
   handler: async ({ view, account, month, months, archived, scope }, event) => {
     const who = await requireMember(event)
-    const seen = scope ?? "household"
+    const seen = scope ?? "me"
     switch (view ?? "overview") {
       case "accounts":
         return accountsView(who, seen, archived ?? false)

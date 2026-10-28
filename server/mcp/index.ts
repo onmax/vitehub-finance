@@ -1,6 +1,6 @@
 import { useLogger } from "evlog/nitro/v3"
 import { type H3Event, HTTPError } from "h3"
-import { type CallToolResult, defineMcpHandler, McpJsonRpcError, type ToolDefinition } from "okmcp"
+import { type CallToolResult, defineMcpHandler, type ToolDefinition } from "okmcp"
 import { protectedResourceMetadata } from "okmcp/oauth"
 import { identify } from "../utils/identity"
 import { MCP_INSTRUCTIONS, MCP_SERVER_INFO } from "./info"
@@ -93,7 +93,7 @@ function reported<T extends ToolDefinition<any>>(tool: T): T {
 }
 
 function failed(error: unknown): CallToolResult {
-  if (McpJsonRpcError.isMcpJsonRpcError(error)) throw error
-  const text = HTTPError.isError(error) ? `[${error.status}] ${error.message}` : error instanceof Error ? error.message : String(error)
-  return { content: [{ type: "text", text }], isError: true }
+  // Anything else is a bug: okmcp answers "Internal error" and logs it, so no internal detail reaches the model.
+  if (!HTTPError.isError(error)) throw error
+  return { content: [{ type: "text", text: `[${error.status}] ${error.message}` }], isError: true }
 }

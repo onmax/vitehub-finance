@@ -1,7 +1,7 @@
 import { H3 } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { beforeAll, describe, expect, it, vi } from "vitest"
-import { member, organization, user } from "../../server/databases/config"
+import { financialAccount, householdSettings, member, organization, user } from "../../server/databases/config"
 import oauthMetadata from "../../server/handlers/oauth-metadata"
 import { tools } from "../../server/mcp"
 import mcpRoute from "../../server/routes/mcp"
@@ -43,6 +43,15 @@ beforeAll(async () => {
   await db.insert(user).values({ id: "lucia", name: "Lucía", email: "lucia@example.com" })
   await db.insert(organization).values({ id: "home", name: "Home", slug: "home" })
   await db.insert(member).values({ id: "m1", organizationId: "home", userId: "lucia", role: "owner" })
+  // Pablo shares one account with the household and keeps one private.
+  await db.insert(user).values({ id: "pablo", name: "Pablo", email: "pablo@example.com" })
+  await db.insert(member).values({ id: "m2", organizationId: "home", userId: "pablo", role: "member" })
+  await db.insert(householdSettings).values({ householdId: "home", currency: "EUR" }).onConflictDoNothing()
+  await db.insert(financialAccount).values([
+    { id: "lucia-main", householdId: "home", ownerId: "lucia", name: "Lucía current", visibility: "private" },
+    { id: "pablo-joint", householdId: "home", ownerId: "pablo", name: "Pablo joint", visibility: "household" },
+    { id: "pablo-own", householdId: "home", ownerId: "pablo", name: "Pablo savings", visibility: "private" },
+  ])
 })
 
 describe("tools/list", () => {
@@ -62,6 +71,26 @@ describe("tools/list", () => {
       for (const schema of [tool.inputSchema, tool.outputSchema])
         if (schema && "~standard" in schema && schema["~standard"].jsonSchema)
           expect(() => schema["~standard"].jsonSchema.input({ target: "draft-2020-12", libraryOptions: { errorMode: "throw" } }), tool.name).not.toThrow()
+  })
+})
+
+describe("whose money an agent sees", () => {
+  const accounts = async (args: object) => {
+    const { body } = await rpc("tools/call", { name: "get_finances", arguments: { view: "accounts", ...args } })
+    return body.result.content.map((block: { text: string }) => block.text).join("\n") as string
+  }
+
+  it("shows the user's own accounts by default, like the app's Personal view", async () => {
+    const text = await accounts({})
+    expect(text).toContain("Lucía current")
+    expect(text).not.toContain("Pablo")
+  })
+
+  it("adds what others shared with scope household, never their private accounts", async () => {
+    const text = await accounts({ scope: "household" })
+    expect(text).toContain("Lucía current")
+    expect(text).toContain("Pablo joint")
+    expect(text).not.toContain("Pablo savings")
   })
 })
 

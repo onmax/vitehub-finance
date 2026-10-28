@@ -33,7 +33,7 @@ export default defineTool({
     const names = await categoryNames(who)
     const page = await searchTransactions(who, {
       ...filters,
-      scope: scope ?? "household",
+      scope: scope ?? "me",
       category: category ? await resolveCategory(who, category, names) : undefined,
       limit: limit ?? 25,
     })

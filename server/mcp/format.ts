@@ -6,7 +6,7 @@ import { formatMoney } from "#shared/money"
 export const ScopeInput = v.optional(
   v.pipe(
     v.picklist(["household", "me"]),
-    v.description("household (default): the user's accounts plus the ones others shared. me: only the user's own accounts."),
+    v.description("me (default): only the user's own accounts, like the app's Personal view. household: the user's accounts plus the ones others shared."),
   ),
 )
 
