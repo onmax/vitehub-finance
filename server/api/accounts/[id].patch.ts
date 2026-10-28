@@ -5,7 +5,7 @@ import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import type { AccountSummary } from "#shared/api"
 import { canEdit, canManage } from "#shared/access"
-import { financialAccount } from "../../databases/config"
+import { financialAccount, goal } from "../../databases/config"
 import { requireAccount } from "../../utils/access"
 import { accountSummary } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"
@@ -56,7 +56,12 @@ export default defineHandler(async (event): Promise<AccountSummary> => {
     ...(householdPermission ? { householdPermission } : {}),
     ...(balanceMinor !== undefined ? { balanceMinor, balanceUpdatedAt: new Date() } : {}),
   }
-  if (Object.keys(set).length) await db.update(financialAccount).set(set).where(eq(financialAccount.id, account.id))
+  if (visibility && visibility !== account.visibility) {
+    await db.batch([
+      db.update(financialAccount).set(set).where(eq(financialAccount.id, account.id)),
+      db.update(goal).set({ allocationReviewed: false }).where(eq(goal.accountId, account.id)),
+    ])
+  } else if (Object.keys(set).length) await db.update(financialAccount).set(set).where(eq(financialAccount.id, account.id))
   if (balanceMinor !== undefined) await recordSnapshot(account.id, balanceMinor)
   if (holdings !== undefined && !account.connectionId) await setManualHoldings(account, holdings)
   return (await accountSummary(who, account.id))!

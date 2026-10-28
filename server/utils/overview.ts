@@ -33,7 +33,8 @@ export async function overview(who: Member, scope: Scope): Promise<Overview> {
   )
 
   const thisMonth = await cashFlow(who, { scope, from: monthStart(month), to: today }, convert)
-  const lastMonth = await cashFlow(who, { scope, from: monthStart(previous), to: monthEnd(previous) }, convert)
+  const previousThrough = `${previous}-${String(Math.min(Number(today.slice(8)), Number(monthEnd(previous).slice(8)))).padStart(2, "0")}`
+  const lastMonth = await cashFlow(who, { scope, from: monthStart(previous), to: previousThrough }, convert)
 
   const spending = await categorySpending(who, scope, month, convert)
 

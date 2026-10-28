@@ -307,3 +307,81 @@ describe("applyScenario", () => {
     expect(result.lowest.date >= "2026-11-20").toBe(true)
   })
 })
+
+describe('planning scenarios', () => {
+  const base = () => ({ currency: 'EUR', ...buildForecast(input({ accounts: [account('main', 10000), account('savings', 200000)], months: 3 })) })
+  it('charges the paying account and keeps every account chart consistent with the household', () => {
+    const forecast = base()
+    const view = applyScenario(forecast, { ...NO_SCENARIO, accountId: 'main', oneOff: { date: '2026-11-02', amountMinor: 15000, accountId: 'main' } })
+    expect(view.accounts.find(item => item.id === 'main')!.lowest.balanceMinor).toBe(-5000)
+    expect(view.accounts.find(item => item.id === 'savings')!.endMinor).toBe(200000)
+    expect(view.safety!.availableMinor).toBe(-5000)
+    expect(view.days.at(-1)!.balanceMinor).toBe(195000)
+    expect(view.payments.find(payment => payment.seriesId === 'plan:purchase')).toMatchObject({ date: '2026-11-02', amountMinor: -15000 })
+  })
+  it('protects only explicit goal allocations and the paying account reserve', () => {
+    const forecast = { ...base(), planning: { accounts: [], fxAt: null, reconstructedHistory: true, budgetMonthlyMinor: null, protectedGoals: [{ id: 'goal', name: 'Holiday', accountId: 'main', allocatedMinor: 4000, monthlyNeededMinor: 0 }] } }
+    const scenario = { ...NO_SCENARIO, accountId: 'main', minimumReserveMinor: 7000 }
+    expect(applyScenario(forecast, scenario).safety).toMatchObject({ availableMinor: -1000, reserveMinor: 11000 })
+    expect(applyScenario(forecast, { ...scenario, protectGoals: false }).safety).toMatchObject({ availableMinor: 3000, reserveMinor: 7000 })
+  })
+  it('delays salary beyond the horizon without counting it early', () => {
+    const forecast = { currency: 'EUR', ...buildForecast(input({ months: 1, series: [series('salary', 50000, '2026-10-28')] })) }
+    const view = applyScenario(forecast, { ...NO_SCENARIO, incomeDelayDays: 7 })
+    expect(view.payments).toEqual([])
+    expect(view.days.at(-1)!.balanceMinor).toBe(100000)
+    expect(view.accounts[0]!.endMinor).toBe(100000)
+    expect(view.months[0]!.incomeMinor).toBe(0)
+  })
+  it('puts recurring planned events into payments, month totals and account balances', () => {
+    const forecast = base()
+    const view = applyScenario(forecast, { ...NO_SCENARIO, events: [{ id: 'bonus', name: 'Bonus', kind: 'income', accountId: 'main', amountMinor: 12000, date: '2026-10-31', cadence: 'monthly', endDate: '2026-11-30' }] })
+    expect(view.payments.filter(payment => payment.seriesId === 'plan:bonus').map(payment => payment.date)).toEqual(['2026-10-31', '2026-11-30'])
+    expect(view.months.map(month => month.incomeMinor)).toEqual([12000, 12000, 0])
+    expect(view.accounts[0]!.endMinor).toBe(34000)
+  })
+  it('replaces variable spending with the budget estimate once and leaves recurring bills counted', () => {
+    const forecast = { ...base(), planning: { accounts: [], fxAt: null, reconstructedHistory: true, protectedGoals: [], budgetMonthlyMinor: 3000 } }
+    const view = applyScenario(forecast, { ...NO_SCENARIO, accountId: 'main', spendingMode: 'budget' })
+    expect(view.months.find(month => month.month === '2026-11')!.variableOutMinor).toBe(3000)
+    expect(view.accounts[0]!.endMinor).toBe(view.days.at(-1)!.balanceMinor - 200000)
+  })
+})
+
+describe('split-aware forecast history', () => {
+  it('counts split allocations of a recurring charge as one full occurrence', () => {
+    const rent = series('split-rent', -10000, '2026-11-01')
+    const history = paid(rent, 6).flatMap((row, index) => [{ ...row, transactionId: `payment:${index}`, amountMinor: -6000 }, { ...row, transactionId: `payment:${index}`, amountMinor: -4000 }])
+    const result = buildForecast(input({ series: [rent], rows: history }))
+    expect(result.series[0]).toMatchObject({ amountMinor: -10000, occurrences: 6 })
+    expect(result.payments.find(payment => payment.date === '2026-11-01')!.amountMinor).toBe(-10000)
+  })
+})
+
+describe('cash safety versus credit debt', () => {
+  it('keeps card debt in net position without treating it as an overdrawn cash account', () => {
+    const forecast = { currency: 'EUR', ...buildForecast(input({ accounts: [account('main', 10000), account('card', -20000, 'credit')], months: 1 })) }
+    const view = applyScenario(forecast, { ...NO_SCENARIO, accountId: 'main' })
+    expect(view.days[0]!.balanceMinor).toBe(-10000)
+    expect(view.riskDate).toBe(TODAY)
+    expect(view.accounts.find(item => item.id === 'card')!.endMinor).toBe(-20000)
+    expect(view.accountSafety.map(item => item.accountId)).toEqual(['main'])
+    expect(view.safety).toMatchObject({ name: 'main', availableMinor: 10000 })
+    expect(view.cashRiskDate).toBeNull()
+  })
+  it('does not turn a credit-card balance into available cash when a card pays a purchase', () => {
+    const forecast = { currency: 'EUR', ...buildForecast(input({ accounts: [account('main', 10000), account('card', -20000, 'credit')], months: 1 })) }
+    const view = applyScenario(forecast, { ...NO_SCENARIO, accountId: 'card', oneOff: { date: TODAY, amountMinor: 5000, accountId: 'card' } })
+    expect(view.safety).toBeNull()
+    expect(view.accounts.find(item => item.id === 'card')!.endMinor).toBe(-25000)
+    expect(view.accountSafety[0]!.availableMinor).toBe(10000)
+    expect(view.cashRiskDate).toBeNull()
+  })
+  it('names another cash account with the actual shortfall while the paying account stays positive', () => {
+    const forecast = { currency: 'EUR', ...buildForecast(input({ accounts: [account('main', 10000), account('bills', 1000), account('card', -20000, 'credit')], series: [series('rent', -2000, '2026-10-27', { accountId: 'bills' })], months: 1 })) }
+    const view = applyScenario(forecast, { ...NO_SCENARIO, accountId: 'main' })
+    expect(view.safety!.availableMinor).toBe(10000)
+    expect(view.accountSafety.find(item => item.availableMinor < 0)).toMatchObject({ accountId: 'bills', name: 'bills', projectedMinor: -1000, reserveMinor: 0, availableMinor: -1000 })
+    expect(view.accountSafety.some(item => item.accountId === 'card')).toBe(false)
+  })
+})

@@ -3,14 +3,19 @@ import type { Budget } from "#shared/api"
 
 // A category's budget for the month: how much is spent, a bar that turns amber past 85% and red past 100%, and what's
 // left or over in words (color never says it alone).
-const props = defineProps<{ budget: Budget; currency: string }>()
+const props = defineProps<{ budget: Budget; currency: string; month?: string }>()
 const emit = defineEmits<{ edit: []; remove: [] }>()
 const { find } = useCategories()
 const { format } = useMoney()
 const category = computed(() => find(props.budget.categoryId))
-const share = computed(() => (props.budget.amountMinor > 0 ? props.budget.spentMinor / props.budget.amountMinor : 0))
+const available = computed(() => props.budget.availableMinor ?? props.budget.amountMinor)
+const share = computed(() => (available.value > 0 ? props.budget.spentMinor / available.value : 0))
 const state = computed(() => (share.value > 1 ? "over" : share.value >= 0.85 ? "close" : "ok"))
-const left = computed(() => props.budget.amountMinor - props.budget.spentMinor)
+const left = computed(() => available.value - props.budget.spentMinor)
+const transactionsLink = computed(() => {
+  const month = props.month ?? currentMonth()
+  return { path: "/transactions", query: { category: props.budget.categoryId, from: `${month}-01`, to: addDays(`${addMonths(month, 1)}-01`, -1) } }
+})
 const items = [
   [
     { get label() { return translate('editBudget') }, icon: "i-lucide-pencil", onSelect: () => emit("edit") },
@@ -24,18 +29,17 @@ const items = [
     <CategoryIcon :icon="category?.icon" :color="category?.color" />
     <div class="min-w-0 flex-1">
       <div class="flex items-baseline justify-between gap-3">
-        <button
-          type="button"
+        <ULink
+          :to="transactionsLink"
           class="min-w-0 cursor-pointer truncate rounded-sm text-left text-sm font-medium text-highlighted hover:underline focus-visible:outline-2 focus-visible:outline-primary"
           :title="category?.name"
-          @click="emit('edit')"
         >
           {{ category?.name ?? $t('deletedCategory') }}
-        </button>
+        </ULink>
         <p class="shrink-0 text-sm text-muted">
           <span class="money text-highlighted">{{ format(budget.spentMinor, currency) }}</span>
           <span class="hidden sm:inline"> {{ $t('of') }} </span><span class="sm:hidden"> / </span>
-          <span class="money">{{ format(budget.amountMinor, currency, { compact: true }) }}</span>
+          <span class="money">{{ format(available, currency, { compact: true }) }}</span>
         </p>
       </div>
       <UProgress
@@ -55,6 +59,14 @@ const items = [
         <template v-if="left >= 0">{{ $t('left', { value1: format(left, currency), value2: Math.round(share * 100) }) }}</template>
         <template v-else>{{ $t('over', { value1: format(-left, currency), value2: Math.round(share * 100) }) }}</template>
       </p>
+      <p v-if="budget.carryEnabled" class="mt-1 text-xs text-muted">
+        {{ $t('budgetCarryBreakdown', { monthly: format(budget.amountMinor, currency), carried: format(budget.carriedMinor ?? 0, currency) }) }}
+        <span v-if="budget.carryStartMonth"> · {{ $t('budgetCarrySince', { month: formatMonth(budget.carryStartMonth) }) }}</span>
+      </p>
+      <p v-if="budget.projectedSpendMinor != null" class="mt-1 text-xs text-muted">
+        {{ $t('budgetPaceProjection', { amount: format(budget.projectedSpendMinor, currency) }) }}
+      </p>
+      <p v-if="budget.nextChangeMonth" class="mt-1 text-xs text-muted">{{ $t('budgetNextScheduledChange', { month: formatMonth(budget.nextChangeMonth) }) }}</p>
     </div>
     <UDropdownMenu :items="items" :content="{ align: 'end' }">
       <UButton

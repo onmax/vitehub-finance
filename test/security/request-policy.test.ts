@@ -57,6 +57,12 @@ const AGENT_ROUTES = [
   "PATCH /api/rules/[id]",
   "POST /api/rules",
   "POST /api/rules/suggestions/dismiss",
+  "PATCH /api/setup",
+  "POST /api/forecast/plans",
+  "PATCH /api/forecast/plans/[id]",
+  "DELETE /api/forecast/plans/[id]",
+  "POST /api/transactions/bulk",
+  "POST /api/transactions/undo",
   "POST /api/transactions/categorize",
   "PATCH /api/transactions/[id]",
 ]

@@ -5,13 +5,25 @@ import type { Transaction } from "#shared/api"
 // Mercury's transactions table: date, who and what (with a monogram), category (changeable in place), account and
 // owner, and the amount on the right. On phones it becomes a list grouped by day. A row opens its details.
 const props = defineProps<{ rows: Transaction[]; loading?: boolean; shared?: boolean }>()
+const selected = defineModel<string[]>("selected", { default: () => [] })
 const emit = defineEmits<{ open: [transaction: Transaction]; category: [transaction: Transaction, categoryId: string | null] }>()
 
 const desktop = useMediaQuery("(min-width: 768px)")
 const { find } = useCategories()
 const title = (row: Transaction) => row.counterparty || row.description
 
+const editable = computed(() => props.rows.filter((row) => row.canEdit))
+const allSelected = computed(() => editable.value.length > 0 && editable.value.every((row) => selected.value.includes(row.id)))
+const partiallySelected = computed(() => editable.value.some((row) => selected.value.includes(row.id)) && !allSelected.value)
+function toggle(id: string, value: boolean) {
+  selected.value = value ? [...new Set([...selected.value, id])] : selected.value.filter((item) => item !== id)
+}
+function toggleAll(value: boolean) {
+  const ids = new Set(editable.value.map((row) => row.id))
+  selected.value = value ? [...new Set([...selected.value, ...ids])] : selected.value.filter((id) => !ids.has(id))
+}
 const columns = computed<TableColumn<Transaction>[]>(() => [
+  { id: "select", meta: { class: { th: "w-12", td: "w-12" } } },
   { accessorKey: "date", header: translate('date'), meta: { class: { th: "w-24", td: "w-24 money text-muted" } } },
   { id: "description", header: translate('description'), meta: { class: { td: "max-w-0" } } },
   { id: "category", header: translate('category'), meta: { class: { th: "w-48", td: "w-48 py-1.5" } } },
@@ -67,6 +79,12 @@ function onKeydown(event: KeyboardEvent) {
       }"
       @keydown="onKeydown"
     >
+      <template #select-header>
+        <UCheckbox :model-value="partiallySelected ? 'indeterminate' : allSelected" :aria-label="$t('transactionSelectPage')" :disabled="!editable.length" @update:model-value="(value) => toggleAll(value === true)" @click.stop />
+      </template>
+      <template #select-cell="{ row }">
+        <UCheckbox :model-value="selected.includes(row.original.id)" :aria-label="$t('transactionSelectOne', { name: title(row.original) })" :disabled="!row.original.canEdit" @update:model-value="(value) => toggle(row.original.id, value === true)" @click.stop />
+      </template>
       <template #date-cell="{ row }">{{ formatDay(row.original.date) }}</template>
       <template #description-cell="{ row }">
         <div class="flex min-w-0 items-center gap-3" :class="row.original.excluded && 'opacity-60'">
@@ -85,6 +103,8 @@ function onKeydown(event: KeyboardEvent) {
             </p>
           </div>
           <UBadge v-if="row.original.status === 'pending'" color="neutral" variant="outline" size="sm" :label="$t('pending')" class="shrink-0" />
+          <UIcon v-if="row.original.review?.reviewedAt" name="i-lucide-circle-check" class="size-4 shrink-0 text-success" :aria-label="$t('transactionReviewed')" />
+          <UBadge v-if="row.original.review?.assignedTo" color="neutral" variant="outline" size="sm" icon="i-lucide-user-round-check" :label="$t('transactionAssigned')" />
           <UBadge v-if="row.original.excluded" color="neutral" variant="outline" size="sm" icon="i-lucide-eye-off" :label="$t('excluded')" class="shrink-0" />
           <UBadge v-if="row.original.hidden" color="neutral" variant="outline" size="sm" icon="i-lucide-lock" :label="$t('onlyYou')" class="shrink-0" />
         </div>
@@ -92,7 +112,7 @@ function onKeydown(event: KeyboardEvent) {
       <template #category-cell="{ row }">
         <div class="flex items-center">
           <CategorySelect
-            v-if="row.original.canEdit"
+            v-if="row.original.canEdit && !row.original.review?.splits.length"
             :model-value="row.original.categoryId"
             variant="ghost"
             size="sm"
@@ -103,7 +123,7 @@ function onKeydown(event: KeyboardEvent) {
           />
           <span v-else class="flex min-w-0 flex-1 items-center gap-2 text-sm" :title="$t('thisAccountIsSharedViewOnly')">
             <CategoryIcon :icon="find(row.original.categoryId)?.icon" :color="find(row.original.categoryId)?.color" size="sm" />
-            <span class="truncate">{{ find(row.original.categoryId)?.name ?? $t('uncategorized') }}</span>
+            <span class="truncate">{{ row.original.review?.splits.length ? $t('transactionSplitCount', { count: row.original.review.splits.length }) : find(row.original.categoryId)?.name ?? $t('uncategorized') }}</span>
             <UIcon v-if="row.original.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 shrink-0 text-dimmed" :aria-label="$t('suggestedByAi')" />
           </span>
         </div>
@@ -133,7 +153,8 @@ function onKeydown(event: KeyboardEvent) {
           {{ formatDay(group.date) }}
         </h3>
         <ul class="divide-y divide-default">
-          <li v-for="row in group.items" :key="row.id">
+          <li v-for="row in group.items" :key="row.id" class="flex items-center ps-4">
+            <UCheckbox :model-value="selected.includes(row.id)" :aria-label="$t('transactionSelectOne', { name: title(row) })" :disabled="!row.canEdit" @update:model-value="(value) => toggle(row.id, value === true)" />
             <button
               type="button"
               class="flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left transition-colors duration-150 active:bg-elevated"
@@ -144,12 +165,14 @@ function onKeydown(event: KeyboardEvent) {
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-1.5 text-sm font-medium text-highlighted">
                   <span class="truncate">{{ title(row) }}</span>
+                  <UIcon v-if="row.review?.reviewedAt" name="i-lucide-circle-check" class="size-3.5 shrink-0 text-success" :aria-label="$t('transactionReviewed')" />
+                  <UIcon v-if="row.review?.assignedTo" name="i-lucide-user-round-check" class="size-3.5 shrink-0 text-muted" :aria-label="$t('transactionAssigned')" />
                   <UIcon v-if="row.hidden" name="i-lucide-lock" class="size-3.5 shrink-0 text-dimmed" :aria-label="$t('onlyYouSeeThis')" />
                 </span>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted">
                   <span v-if="row.transferWith" class="truncate">{{ row.accountName }} {{ row.amountMinor < 0 ? "→" : "←" }} {{ row.transferWith }}</span>
                   <span v-else class="truncate">
-                    {{ find(row.categoryId)?.name ?? $t('uncategorized') }}
+                    {{ row.review?.splits.length ? $t('transactionSplitCount', { count: row.review.splits.length }) : find(row.categoryId)?.name ?? $t('uncategorized') }}
                     <UIcon v-if="row.categorySource === 'ai'" name="i-lucide-sparkles" class="size-3 align-[-1px]" :aria-label="$t('suggestedByAi')" />
                     · {{ row.accountName }}
                   </span>

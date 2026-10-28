@@ -25,10 +25,10 @@ const steps = computed(() => {
   const month = props.month
   const list = [
     { key: "income" as const, get label() { return translate('income') }, change: month.incomeMinor, items: inMonth.value.filter((payment) => payment.series.kind === "income") },
-    { key: "bills" as const, get label() { return translate('bills') }, change: -month.billsMinor, items: inMonth.value.filter((payment) => payment.series.kind === "bill") },
+    { key: "bills" as const, get label() { return translate('bills') }, change: -month.billsMinor, items: inMonth.value.filter((payment) => payment.series.kind === "bill" && payment.seriesId !== "plan:purchase") },
     { key: "variable" as const, label: current.value ? translate('usualSpendingRestOfMonth') : translate('usualSpending'), change: -month.variableOutMinor, items: [] },
     { key: "moved" as const, label: month.movedOutMinor >= 0 ? translate('movedOut') : translate('movedIn'), change: -month.movedOutMinor, items: [] },
-    { key: "oneOff" as const, get label() { return translate('oneOffWhatIf') }, change: -month.oneOffMinor, items: [] },
+    { key: "oneOff" as const, get label() { return translate('oneOffWhatIf') }, change: -month.oneOffMinor, items: inMonth.value.filter(payment => payment.seriesId === "plan:purchase") },
   ].filter((step) => step.change !== 0 || step.key === "income" || step.key === "bills")
   let running = month.startMinor
   return list.map((step) => {

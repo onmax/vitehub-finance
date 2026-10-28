@@ -22,7 +22,7 @@ const share = (value: number) => {
 </script>
 
 <template>
-  <SectionCard :title="formatMonth(month.month)" to="/transactions" :link-label="$t('transactions')">
+  <SectionCard :title="formatMonth(month.month)" :to="`/transactions?from=${month.month}-01&to=${today()}`" :link-label="$t('transactions')">
     <dl class="flex flex-col gap-5">
       <div v-for="row in rows" :key="row.label">
         <div class="flex items-baseline justify-between gap-3">
@@ -36,7 +36,7 @@ const share = (value: number) => {
         </div>
         <p class="mt-1.5 text-xs text-muted">
           <template v-if="delta(row.value, row.before) !== null">
-            <span class="money">{{ formatPercent(delta(row.value, row.before), { signed: true }) }}</span> {{ $t('vsLastMonth') }}<span class="money">{{ format(row.before, overview.currency, { compact: true }) }}</span>)
+            {{ $t('overviewSamePeriod', { percent: formatPercent(delta(row.value, row.before), { signed: true }), amount: format(row.before, overview.currency, { compact: true }) }) }}
           </template>
           <template v-else>{{ $t('nothingLastMonthToCompareWith') }}</template>
         </p>

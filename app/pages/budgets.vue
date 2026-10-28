@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Budget, BudgetsResponse } from "#shared/api"
+import type { Budget, BudgetSuggestion, BudgetsResponse } from "#shared/api"
 import { BudgetModal } from "#components"
 
 // Monthly limits per category: the household's and your own, how much of each is spent this month, and what was spent
@@ -19,11 +19,14 @@ const { data, status, error, refresh } = useScopedFetch<BudgetsResponse | null>(
   default: () => null,
 })
 const shared = useShared()
+const scope = useScope()
 const notify = useNotify()
 const confirm = useConfirm()
 const { find, categories } = useCategories()
 const overlay = useOverlay()
 const modal = overlay.create(BudgetModal, { destroyOnClose: true })
+const { format } = useMoney()
+const opening = ref(false)
 
 const currency = computed(() => data.value?.currency ?? "EUR")
 // Transfers of the month, so people can check what was left out of spending.
@@ -34,12 +37,19 @@ const transfersLink = computed(() => {
 const byName = (a: Budget, b: Budget) => (find(a.categoryId)?.name ?? "").localeCompare(find(b.categoryId)?.name ?? "")
 const household = computed(() => (data.value?.items ?? []).filter((item) => item.ownerId === null).sort(byName))
 const personal = computed(() => (data.value?.items ?? []).filter((item) => item.ownerId !== null).sort(byName))
+const suggestions = computed(() => {
+  const existing = new Set([...household.value, ...(data.value?.scheduled ?? []).filter((item) => item.ownerId === null)].map((item) => item.categoryId))
+  return (data.value?.suggestions?.household ?? []).filter((item) => !existing.has(item.categoryId)).sort((a, b) => b.amountMinor - a.amountMinor)
+})
 const totals = computed(() => {
   // Household and personal budgets can cover the same spending, so the totals count one kind: the household's when there are any.
   const items = household.value.length ? household.value : personal.value
-  const budgeted = items.reduce((sum, item) => sum + item.amountMinor, 0)
+  const budgeted = items.reduce((sum, item) => sum + (item.availableMinor ?? item.amountMinor), 0)
   const spent = items.reduce((sum, item) => sum + item.spentMinor, 0)
-  return { budgeted, spent, share: budgeted > 0 ? spent / budgeted : 0 }
+  const projected = items.reduce((sum, item) => sum + (item.projectedSpendMinor ?? 0), 0)
+  const expected = items.reduce((sum, item) => sum + (item.expectedSpendMinor ?? 0), 0)
+  const carried = items.reduce((sum, item) => sum + (item.carriedMinor ?? 0), 0)
+  return { budgeted, spent, projected, expected, carried, share: budgeted > 0 ? spent / budgeted : 0 }
 })
 const sections = computed(() =>
   [
@@ -48,9 +58,28 @@ const sections = computed(() =>
   ].filter((section) => section.items.length > 0),
 )
 
-async function open(budget?: Budget, personalDefault = false) {
-  const saved = await modal.open({ budget, currency: currency.value, personal: personalDefault }).result
-  if (saved) notify.success(budget ? translate('budgetSaved') : translate('budgetAdded'), find(saved.categoryId)?.name)
+async function open(budget?: Budget, personalDefault = false, suggestion?: BudgetSuggestion) {
+  if (opening.value) return
+  opening.value = true
+  try {
+    let editableBudget = budget
+    let availableSuggestions = data.value?.suggestions
+    if (budget && month.value < currentMonth()) {
+      const current = await $fetch<BudgetsResponse>("/api/budgets", { query: { month: currentMonth(), scope: scope.value } })
+      editableBudget = current.items.find((item) => item.id === budget.id)
+      availableSuggestions = current.suggestions
+      if (!editableBudget) return
+    }
+    const saved = await modal.open({ budget: editableBudget, currency: currency.value, personal: personalDefault, month: month.value, suggestions: availableSuggestions, suggestion }).result
+    if (saved) {
+      if (saved.effectiveMonth && saved.effectiveMonth > month.value) month.value = saved.effectiveMonth
+      notify.success(budget ? translate('budgetSaved') : translate('budgetAdded'), find(saved.categoryId)?.name)
+    }
+  } catch (cause) {
+    notify.error(cause, translate('budgetsDidnTLoad'))
+  } finally {
+    opening.value = false
+  }
 }
 
 async function remove(budget: Budget) {
@@ -123,7 +152,7 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
         <UEmpty
           variant="naked"
           icon="i-lucide-chart-pie"
-          :title="$t('noBudgetsYet')"
+          :title="data.scheduled?.length ? $t('budgetNoActive') : $t('noBudgetsYet')"
           :description="$t('setAMonthlyLimitForACategoryLikeGroceriesOr')"
           :actions="[{ label: $t('addABudget'), icon: 'i-lucide-plus', onClick: () => open() }]"
         />
@@ -160,6 +189,13 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
             :color="totals.share > 1 ? 'error' : totals.share >= 0.85 ? 'warning' : 'primary'"
             :aria-label="$t('ofAllBudgetsSpent', { value1: Math.round(totals.share * 100) })"
           />
+          <p v-if="totals.carried > 0" class="mt-2 text-sm text-muted">{{ $t('budgetTotalCarry', { amount: format(totals.carried, currency) }) }}</p>
+          <p v-if="month > currentMonth() && data.items.some((item) => item.carryEnabled)" class="mt-2 text-sm text-muted">{{ $t('budgetFutureCarryEstimate') }}</p>
+          <div v-if="isCurrent" class="mt-4 rounded-lg border border-default p-3 text-sm">
+            <p class="font-medium text-highlighted">{{ $t('budgetMonthPace') }}</p>
+            <p class="mt-1 text-muted">{{ $t('budgetPaceSummary', { expected: format(totals.expected, currency), projected: format(totals.projected, currency) }) }}</p>
+            <p class="mt-1 text-xs text-muted">{{ $t('budgetPaceExplanation') }}</p>
+          </div>
           <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-default pt-4 text-sm">
             <p class="text-muted"> {{ $t('outsideAnyBudget') }} <Money :minor="data.unbudgetedMinor" :currency="currency" class="font-medium text-highlighted" />
               <template v-if="data.movedMinor > 0">
@@ -187,7 +223,7 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
             class="divide-y divide-default transition-opacity duration-150"
             :class="status === 'pending' && 'opacity-60'"
           >
-            <BudgetRow v-for="budget in section.items" :key="budget.id" :budget="budget" :currency="currency" @edit="open(budget)" @remove="remove(budget)" />
+            <BudgetRow v-for="budget in section.items" :key="budget.id" :budget="budget" :currency="currency" :month="month" @edit="open(budget)" @remove="remove(budget)" />
           </ul>
         </section>
         <UButton
@@ -200,6 +236,16 @@ const monthQuery = computed(() => ({ from: `${month.value}-01`, to: addDays(`${a
           @click="open(undefined, true)"
         />
       </template>
+      <section v-if="data?.scheduled?.length && !error" aria-labelledby="budget-upcoming-title">
+        <h2 id="budget-upcoming-title" class="text-sm font-medium text-highlighted">{{ $t('budgetUpcoming') }}</h2>
+        <ul class="mt-3 divide-y divide-default border-t border-default">
+          <li v-for="item in data.scheduled" :key="item.id" class="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+            <ULink :to="{ path: '/budgets', query: { month: item.effectiveMonth } }" class="font-medium text-highlighted hover:underline">{{ find(item.categoryId)?.name ?? $t('deletedCategory') }}</ULink>
+            <p class="text-muted"><Money :minor="item.amountMinor" :currency="currency" /> · {{ $t('budgetStartsMonth', { month: formatMonth(item.effectiveMonth ?? currentMonth()) }) }}</p>
+          </li>
+        </ul>
+      </section>
+      <BudgetSuggestions v-if="data && !error" :items="suggestions" :currency="currency" @choose="open(undefined, false, $event)" />
       </div>
     </template>
   </UDashboardPanel>

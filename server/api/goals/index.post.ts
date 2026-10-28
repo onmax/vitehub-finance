@@ -7,7 +7,7 @@ import { Name, PositiveMinor, readInput } from "../../utils/input"
 
 const Body = v.object({ ...GoalFields, name: Name, targetMinor: PositiveMinor })
 
-/** Linked to an account (`accountId`, one the caller can see), progress follows its balance. */
+/** Account-backed progress uses an explicit allocation within the account’s unallocated cash. */
 export default defineHandler(async (event): Promise<Goal> => {
   const who = await requireMember(event)
   return createGoal(who, await readInput(event, Body))

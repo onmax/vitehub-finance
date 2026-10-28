@@ -7,6 +7,9 @@ const budget = (spentMinor: number, amountMinor = 40_000): Budget => ({ id: "b1"
 const day = (date: string, balanceMinor: number): ForecastDay => ({ date, balanceMinor, lowMinor: balanceMinor, highMinor: balanceMinor })
 
 describe("alerts", () => {
+  it("includes carried budget before declaring overspending", () => {
+    expect(budgetAlerts([{ ...budget(41_000), availableMinor: 50_000 }], settings, "EUR", "2026-10", "2026-10-27")).toEqual([])
+  })
   it("alerts a budget at its threshold, and again, more urgently, once it's over", () => {
     expect(budgetAlerts([budget(35_000)], settings, "EUR", "2026-10", "2026-10-27")).toEqual([])
     const near = budgetAlerts([budget(36_000)], settings, "EUR", "2026-10", "2026-10-27")

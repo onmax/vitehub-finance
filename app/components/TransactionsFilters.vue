@@ -2,7 +2,7 @@
 import type { AccountSummary } from "#shared/api"
 
 // The transactions filters: who and which direction (chips), words, account, category, and dates.
-type TransactionsView = "all" | "mine" | "in" | "out"
+type TransactionsView = "all" | "mine" | "in" | "out" | "needs-review" | "assigned-to-me"
 
 defineProps<{ accounts: AccountSummary[] }>()
 const view = defineModel<TransactionsView>("view", { required: true })
@@ -17,6 +17,8 @@ const { categories } = useCategories()
 const chips = computed(() =>
   [
     { value: "all" as const, get label() { return translate('all') } },
+    { value: "needs-review" as const, get label() { return translate('transactionNeedsReview') } },
+    ...(shared.value ? [{ value: "assigned-to-me" as const, get label() { return translate('transactionAssignedToMe') } }] : []),
     ...(shared.value ? [{ value: "mine" as const, get label() { return translate('mine') } }] : []),
     { value: "in" as const, get label() { return translate('moneyIn') } },
     { value: "out" as const, get label() { return translate('moneyOut') } },
@@ -44,14 +46,14 @@ function clear() {
 
 <template>
   <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
-    <div role="radiogroup" :aria-label="$t('show')" class="flex shrink-0 items-center gap-1">
+    <div role="radiogroup" :aria-label="$t('show')" class="flex max-w-full items-center gap-1 overflow-x-auto">
       <button
         v-for="chip in chips"
         :key="chip.value"
         type="button"
         role="radio"
         :aria-checked="view === chip.value"
-        class="h-10 cursor-pointer rounded-full sm:h-8 border px-3 text-sm font-medium transition-[color,background-color,border-color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+        class="h-10 shrink-0 cursor-pointer rounded-full sm:h-8 border px-3 text-sm font-medium transition-[color,background-color,border-color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
         :class="
           view === chip.value
             ? 'border-transparent bg-inverted text-inverted'

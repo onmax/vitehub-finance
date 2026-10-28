@@ -3,13 +3,13 @@ import { db } from "vite-hub/database/drizzle"
 import {
   account as authAccount,
   apikey,
-  balanceSnapshot,
   budget,
   category,
   connection,
+  financeSetup,
   financialAccount,
+  forecastPlan,
   goal,
-  holding,
   householdSettings,
   invitation,
   member,
@@ -23,10 +23,12 @@ import {
   session,
   syncRun,
   transaction,
+  transactionReview,
   twoFactor,
   user as users,
 } from "../databases/config"
 import { splitHouseholds } from "./erase-core"
+import { eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./finance-lifecycle"
 
 /**
  * Erasing people and their money: the demo's nightly reset (server/demo/seed.ts) and someone deleting their own account
@@ -54,15 +56,15 @@ async function eraseHouseholds(households: string[]) {
   const connectionIds = (await db.select({ id: connection.id }).from(connection).where(inArray(connection.householdId, households))).map(
     (row) => row.id,
   )
+  await eraseTransactionReviews(inArray(transaction.householdId, households))
+  await eraseAccounts(accountIds)
   await db.delete(transaction).where(inArray(transaction.householdId, households))
   await db.delete(recurring).where(inArray(recurring.householdId, households))
-  await inChunks(accountIds, async (ids) => {
-    await db.delete(holding).where(inArray(holding.accountId, ids))
-    await db.delete(balanceSnapshot).where(inArray(balanceSnapshot.accountId, ids))
-  })
   await db.delete(goal).where(inArray(goal.householdId, households))
-  await db.delete(budget).where(inArray(budget.householdId, households))
-  await db.delete(financialAccount).where(inArray(financialAccount.householdId, households))
+  const budgets = await db.select({ id: budget.id }).from(budget).where(inArray(budget.householdId, households))
+  await eraseBudgets(budgets.map(row => row.id))
+  await db.delete(forecastPlan).where(inArray(forecastPlan.householdId, households))
+  await db.delete(financeSetup).where(inArray(financeSetup.householdId, households))
   await inChunks(connectionIds, (ids) => db.delete(syncRun).where(inArray(syncRun.connectionId, ids)))
   await db.delete(connection).where(inArray(connection.householdId, households))
   await db.delete(rule).where(inArray(rule.householdId, households))
@@ -84,6 +86,10 @@ export async function erasePeople(userIds: string[], options: { keepLogin?: bool
   if (!userIds.length) return
   const { alone } = await householdsOf(userIds)
   await eraseHouseholds(alone)
+  await db.delete(forecastPlan).where(inArray(forecastPlan.ownerId, userIds))
+  await db.delete(financeSetup).where(inArray(financeSetup.userId, userIds))
+  await db.update(transactionReview).set({ reviewedBy: null, revision: crypto.randomUUID() }).where(inArray(transactionReview.reviewedBy, userIds))
+  await db.update(transactionReview).set({ assignedTo: null, revision: crypto.randomUUID() }).where(inArray(transactionReview.assignedTo, userIds))
   await db.delete(member).where(inArray(member.userId, userIds))
   await db.delete(apikey).where(inArray(apikey.referenceId, userIds))
   await db.delete(oauthAccessToken).where(inArray(oauthAccessToken.userId, userIds))

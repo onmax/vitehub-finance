@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `budget_household_category_idx` ON `budget` (`household_id`,`category_id`) WHERE "budget"."owner_id" is null;

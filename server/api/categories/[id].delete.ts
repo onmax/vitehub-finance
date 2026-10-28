@@ -5,6 +5,7 @@ import { db } from "vite-hub/database/drizzle"
 import { budget, category, recurring, rule, transaction } from "../../databases/config"
 import { requireMember } from "../../utils/identity"
 import { param } from "../../utils/input"
+import { eraseBudgets, remapReviewCategories } from "../../utils/finance-lifecycle"
 
 /** Its transactions become uncategorized (and open to rules again); its rules and budgets go with it. */
 export default defineHandler(async (event) => {
@@ -19,7 +20,9 @@ export default defineHandler(async (event) => {
   await db.update(transaction).set({ categoryId: null, categoryLocked: false }).where(eq(transaction.categoryId, id))
   await db.update(recurring).set({ categoryId: null }).where(eq(recurring.categoryId, id))
   await db.delete(rule).where(eq(rule.categoryId, id))
-  await db.delete(budget).where(eq(budget.categoryId, id))
+  const budgets = await db.select({ id: budget.id }).from(budget).where(eq(budget.categoryId, id))
+  await eraseBudgets(budgets.map(row => row.id))
+  await remapReviewCategories(who.householdId, new Map([[id, null]]))
   await db.delete(category).where(eq(category.id, id))
   return { ok: true }
 })

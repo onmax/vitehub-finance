@@ -29,8 +29,10 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5, with [Comark UI](https://com
   account never shows up for anyone else, in any list, total, chart, or MCP tool.
 - **Recurring payments** detected from transactions, with ways to save: price increases, subscriptions two members both
   pay for, large subscriptions.
-- **Forecast** of the next 3–12 months, and "can we afford it?".
-- **Budgets and goals**, shared or personal.
+- **Forecast** of the next 3–12 months with account-specific scenarios, dated planned events, reserve and goal protection, saved/shared plans, comparisons, and input provenance.
+- **Budgets and goals**, shared or personal: dated budget amounts, optional unused-budget rollover, historical suggestions, pacing, and explicitly allocated goal funding.
+- **Transaction review** with a queue, household assignments, bulk actions and Undo, category splits, and linked refunds.
+- **Setup checklist and monthly check-ins** that remain available after the first account is connected.
 - **MCP server** at `/mcp` (OAuth 2.1, or a `fin_` API key): four tools. `get_finances` reads the overview, accounts
   (with holdings and staking), spending, recurring payments, and the forecast; `search_transactions` finds and sums
   transactions; `update_transaction` sets categories and notes; `add_transactions` adds rows from any statement.

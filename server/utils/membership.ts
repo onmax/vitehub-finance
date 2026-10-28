@@ -1,5 +1,5 @@
 import { HTTPError } from "./http-error"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 
 import { db } from "vite-hub/database/drizzle"
 import {
@@ -16,6 +16,7 @@ import {
 } from "../databases/config"
 import { applyRulesTo } from "./categorize"
 import { createHousehold } from "./household"
+import { eraseBudgets, movePlanningData } from "./finance-lifecycle"
 
 const chunks = <T>(items: T[], size = 80) =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
@@ -57,8 +58,8 @@ export async function moveOut(householdId: string, userId: string) {
     // Household goals stay behind; their link to an account that left goes.
     await db
       .update(goal)
-      .set({ accountId: null })
-      .where(and(eq(goal.householdId, householdId), inArray(goal.accountId, ids)))
+      .set({ accountId: null, savedMinor: sql`case when ${goal.completedAt} is null then 0 else ${goal.savedMinor} end`, allocationReviewed: false })
+      .where(and(eq(goal.householdId, householdId), isNull(goal.ownerId), inArray(goal.accountId, ids)))
   }
   for (const [from, to] of mapping)
     for (const ids of chunks(accountIds, 60)) {
@@ -71,6 +72,7 @@ export async function moveOut(householdId: string, userId: string) {
         .set({ categoryId: to })
         .where(and(inArray(recurring.accountId, ids), eq(recurring.categoryId, from)))
     }
+  await movePlanningData(householdId, fresh, userId, accountIds, mapping)
   // They own every moved account, so the rules reach all of it.
   await applyRulesTo({ userId, householdId: fresh }, accountIds)
 
@@ -81,7 +83,7 @@ export async function moveOut(householdId: string, userId: string) {
   for (const row of budgets) {
     const to = mapping.get(row.categoryId)
     if (to) await db.update(budget).set({ householdId: fresh, categoryId: to }).where(eq(budget.id, row.id))
-    else await db.delete(budget).where(eq(budget.id, row.id))
+    else await eraseBudgets([row.id])
   }
   const moved = new Set(accountIds)
   const goals = await db
@@ -91,7 +93,7 @@ export async function moveOut(householdId: string, userId: string) {
   for (const row of goals)
     await db
       .update(goal)
-      .set({ householdId: fresh, accountId: row.accountId && moved.has(row.accountId) ? row.accountId : null })
+      .set(row.accountId && !moved.has(row.accountId) ? { householdId: fresh, accountId: null, savedMinor: sql`case when ${goal.completedAt} is null then 0 else ${goal.savedMinor} end`, allocationReviewed: false } : { householdId: fresh })
       .where(eq(goal.id, row.id))
 
   await db.delete(member).where(and(eq(member.organizationId, householdId), eq(member.userId, userId)))

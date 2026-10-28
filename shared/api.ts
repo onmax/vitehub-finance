@@ -1,6 +1,7 @@
 // The REST API's response shapes, shared by server/api and the app. Money is integer minor units plus a currency.
 // Lists the server builds for a `scope` (`me` | `household`) only ever contain accounts the caller may see.
 import type { Scope } from "./access"
+import type { TransactionReviewState } from "./review"
 
 export type { Scope }
 
@@ -199,6 +200,7 @@ export interface Category {
 }
 
 export interface Transaction {
+  review?: TransactionReviewState
   id: string
   accountId: string
   accountName: string
@@ -372,7 +374,7 @@ export interface ForecastPayment {
   amountMinor: number
 }
 
-/** The expected balance at the end of a day, and the range it likely lands in (8 times in 10). */
+/** The expected end-of-day balance and a range based on observed variation, not calibrated odds. */
 export interface ForecastDay {
   date: string
   balanceMinor: number
@@ -457,11 +459,27 @@ export interface Budget {
   ownerId: string | null
   amountMinor: number
   spentMinor: number
+  nextChangeMonth?: string | null
+  effectiveMonth?: string
+  carryEnabled?: boolean
+  carryStartMonth?: string | null
+  carriedMinor?: number
+  availableMinor?: number
+  expectedSpendMinor?: number | null
+  projectedSpendMinor?: number | null
+}
+
+export interface BudgetSuggestion {
+  categoryId: string
+  amountMinor: number
+  sampleMonths: string[]
 }
 
 export interface BudgetsResponse {
   currency: string
   month: string
+  suggestions?: { household: BudgetSuggestion[]; personal: BudgetSuggestion[] }
+  scheduled?: Budget[]
   items: Budget[]
   /** Spending this month in categories without a budget. */
   unbudgetedMinor: number
@@ -478,8 +496,12 @@ export interface Goal {
   savedMinor: number
   targetDate: string | null
   accountId: string | null
-  /** Saved so far: the linked account's balance, or `savedMinor`. */
+  /** Explicit allocation backed by current cash, or manually tracked savings. */
   progressMinor: number
+  shortfallMinor?: number
+  allocationNeedsReview?: boolean
+  fundingUnavailable?: boolean
+  completedAt?: string | null
   /** What to put aside per month to reach the target by its date; null without a date. */
   monthlyNeededMinor: number | null
 }

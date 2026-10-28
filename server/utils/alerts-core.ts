@@ -56,15 +56,16 @@ export function connectionAlerts(connections: ConnectionSummary[], today: string
 export function budgetAlerts(budgets: Budget[], settings: AlertSettings, currency: string, month: string, today: string): Draft[] {
   if (!settings.budget.enabled) return []
   return budgets.flatMap((budget): Draft[] => {
-    if (budget.amountMinor <= 0) return []
-    const over = budget.spentMinor > budget.amountMinor
-    if (!over && budget.spentMinor < (budget.amountMinor * settings.budget.percent) / 100) return []
+    const available = budget.availableMinor ?? budget.amountMinor
+    if (available <= 0) return []
+    const over = budget.spentMinor > available
+    if (!over && budget.spentMinor < (available * settings.budget.percent) / 100) return []
     return [{
       kind: "budget",
       budgetId: budget.id,
       categoryId: budget.categoryId,
       spentMinor: budget.spentMinor,
-      amountMinor: budget.amountMinor,
+      amountMinor: available,
       currency,
       month,
       key: `budget:${budget.id}:${month}:${over ? "over" : "near"}`,

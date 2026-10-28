@@ -59,7 +59,7 @@ export interface DemoGoal {
   targetMinor: number
   savedMinor: number
   targetDate: string | null
-  /** An account key: progress is its balance. */
+  /** The backing account key for this explicit saved allocation. */
   account?: string
   /** Set: a personal goal only its owner sees. */
   owner?: DemoPerson
@@ -438,9 +438,9 @@ export function demoScenario(today: string): DemoScenario {
     transactions: transactions.map(({ variable: _, ...row }) => row),
     budgets: DEMO_BUDGETS,
     goals: [
-      { name: "Viaje a Japón", icon: "i-lucide-plane", targetMinor: 600_000, savedMinor: 235_000, targetDate: japan },
-      { name: "Fondo de emergencia", icon: "i-lucide-umbrella", targetMinor: 1_500_000, savedMinor: 0, targetDate: null, account: "fund" },
-      { name: "Bici nueva", icon: "i-lucide-bike", targetMinor: 120_000, savedMinor: 78_000, targetDate: addMonths(today, 4), owner: "lucia" },
+      { name: "Viaje a Japón", icon: "i-lucide-plane", targetMinor: 600_000, savedMinor: 235_000, targetDate: japan, account: "fund" },
+      { name: "Fondo de emergencia", icon: "i-lucide-umbrella", targetMinor: 1_500_000, savedMinor: 900_000, targetDate: null, account: "fund" },
+      { name: "Bici nueva", icon: "i-lucide-bike", targetMinor: 120_000, savedMinor: 78_000, targetDate: addMonths(today, 4), owner: "lucia", account: "savings-lucia" },
     ],
     confirmed: ["out:préstamo hipotecario", "out:vodafone españa", "out:netflix", "out:spotify", "in:estudio norte diseño", "in:comunidad madrid"],
   }

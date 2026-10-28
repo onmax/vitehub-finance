@@ -6,7 +6,7 @@ import type { Transaction, TransactionPage } from "#shared/api"
 // excluded transactions too (they're left out otherwise, and out of every total either way). Pages load by cursor as
 // you scroll. Changing a category shows at once and offers to apply it to similar transactions.
 useHead({ get title() { return translate('transactions') } })
-type View = "all" | "mine" | "in" | "out"
+type View = "all" | "mine" | "in" | "out" | "needs-review" | "assigned-to-me"
 
 const route = useRoute()
 const router = useRouter()
@@ -28,7 +28,7 @@ function setQuery(patch: Record<string, string>) {
 }
 const param = (key: string) => computed({ get: () => read(key), set: (value: string) => setQuery({ [key]: value }) })
 const view = computed<View>({
-  get: () => (["mine", "in", "out"].includes(read("view")) ? (read("view") as View) : "all"),
+  get: () => (["mine", "in", "out", "needs-review", "assigned-to-me"].includes(read("view")) ? (read("view") as View) : "all"),
   set: (value) => setQuery({ view: value === "all" ? "" : value }),
 })
 const account = param("account")
@@ -53,6 +53,7 @@ const filters = computed(() => ({
   category: category.value,
   from: from.value,
   to: to.value,
+  review: view.value === "needs-review" || view.value === "assigned-to-me" ? view.value : undefined,
   direction: view.value === "in" || view.value === "out" ? view.value : undefined,
   // "Mine" narrows this table to your own accounts, whatever the page-wide scope says.
   scope: view.value === "mine" ? "me" : undefined,
@@ -102,6 +103,15 @@ async function loadMore() {
 const edits = ref(new Map<string, Transaction>())
 watch(page, () => (edits.value = new Map()))
 const rows = computed(() => [...(page.value?.items ?? []), ...more.value].map((row) => edits.value.get(row.id) ?? row))
+const checked = ref<string[]>([])
+const checkedRows = computed(() => rows.value.filter((row) => row.canEdit && checked.value.includes(row.id)))
+watch(filters, () => { checked.value = [] })
+const { data: me } = useMe()
+const queueRows = computed(() => rows.value.filter((row) => view.value === "needs-review" ? !row.review?.reviewedAt : view.value === "assigned-to-me" ? !row.review?.reviewedAt && row.review?.assignedTo === me.value?.user.id : true))
+function bulkSaved(items: Transaction[]) {
+  for (const row of items) edits.value.set(row.id, row)
+  void refresh()
+}
 
 const body = useTemplateRef<HTMLElement>("body")
 const scroller = computed(() => body.value?.closest<HTMLElement>("[data-slot='body']") ?? null)
@@ -146,13 +156,55 @@ async function applyToSimilar(row: Transaction, categoryId: string) {
 }
 
 const selectedId = ref<string | null>(null)
-const selected = computed(() => rows.value.find((row) => row.id === selectedId.value) ?? null)
+const linkedTransaction = shallowRef<Transaction | null>(null)
+const selected = computed(() => rows.value.find((row) => row.id === selectedId.value) ?? (linkedTransaction.value?.id === selectedId.value ? linkedTransaction.value : null))
 const detailsOpen = ref(false)
 function open(row: Transaction) {
   selectedId.value = row.id
   detailsOpen.value = true
+  setQuery({ transaction: row.id })
 }
-const onSaved = (saved: Transaction) => edits.value.set(saved.id, saved)
+function onSaved(saved: Transaction) {
+  edits.value.set(saved.id, saved)
+  if (linkedTransaction.value?.id === saved.id) linkedTransaction.value = saved
+  void refreshStems("setup")
+}
+const selectedIndex = computed(() => queueRows.value.findIndex((row) => row.id === selectedId.value))
+function navigate(direction: -1 | 1) {
+  const row = queueRows.value[selectedIndex.value + direction]
+  if (row) open(row)
+}
+async function reviewAndNext() {
+  const current = selected.value
+  if (!current?.canEdit) return
+  const next = queueRows.value[selectedIndex.value + 1] ?? queueRows.value[selectedIndex.value - 1]
+  try {
+    const saved = await $fetch<Transaction>(`/api/transactions/${current.id}`, { method: "PATCH", body: { reviewed: true } })
+    onSaved(saved)
+    if (next) open(next)
+    else detailsOpen.value = false
+  } catch (cause) {
+    notify.error(cause, translate('couldnTChangeThat'))
+  }
+}
+
+watch(() => route.query.transaction, async (value, _old, onCleanup) => {
+  if (typeof value !== "string" || !value) return
+  const controller = new AbortController()
+  onCleanup(() => controller.abort())
+  try {
+    const row = rows.value.find((item) => item.id === value) ?? await $fetch<Transaction>(`/api/transactions/${encodeURIComponent(value)}`, { signal: controller.signal })
+    if (controller.signal.aborted) return
+    linkedTransaction.value = row
+    selectedId.value = row.id
+    detailsOpen.value = true
+  } catch (cause) {
+    if (!controller.signal.aborted) notify.error(cause, translate('transactionUnavailable'))
+  }
+}, { immediate: true })
+watch(detailsOpen, (value) => {
+  if (!value && read("transaction")) setQuery({ transaction: "" })
+})
 
 const loading = computed(() => status.value === "pending" || status.value === "idle")
 const filtered = computed(() => Boolean(read("q") || account.value || category.value || from.value || to.value || view.value !== "all"))
@@ -210,6 +262,7 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
     </template>
 
     <template #body>
+      <TransactionsBulkActions :rows="checkedRows" @saved="bulkSaved" @clear="checked = []" @undone="refresh()" />
       <div ref="body" class="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
         <div v-if="error" class="p-4 sm:p-6">
           <PageError :error="error" :title="$t('transactionsDidnTLoad')" @retry="refresh()" />
@@ -236,7 +289,7 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
           class="py-16"
         />
         <template v-else>
-          <TransactionsTable :rows="rows" :loading="loading" :shared="shared" @open="open" @category="changeCategory" />
+          <TransactionsTable v-model:selected="checked" :rows="queueRows" :loading="loading" :shared="shared" @open="open" @category="changeCategory" />
           <div v-if="cursor || loadingMore || moreError" class="flex flex-col items-center gap-2 border-t border-default p-4">
             <p v-if="moreError" class="text-sm text-error" role="alert">{{ moreError }}</p>
             <UButton
@@ -251,7 +304,7 @@ const totals = computed(() => page.value?.totals ?? empty().totals)
         </template>
       </div>
 
-      <TransactionSlideover v-model:open="detailsOpen" :transaction="selected" @saved="onSaved" @category="changeCategory" />
+      <TransactionSlideover v-model:open="detailsOpen" :transaction="selected" :has-previous="selectedIndex > 0" :has-next="selectedIndex >= 0 && selectedIndex < queueRows.length - 1" @saved="onSaved" @category="changeCategory" @previous="navigate(-1)" @next="navigate(1)" @review-next="reviewAndNext" />
     </template>
   </UDashboardPanel>
 </template>

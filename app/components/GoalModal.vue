@@ -2,8 +2,8 @@
 import type { AccountSummary, Goal } from "#shared/api"
 import { fromMinor, parseAmount, toMinor } from "#shared/money"
 
-// Create or edit a goal. Progress comes from a linked account's balance, or from an amount you keep up to date.
-const props = defineProps<{ goal?: Goal; currency: string; accounts: AccountSummary[] }>()
+// Allocations reserve existing cash without moving money between bank accounts.
+const props = defineProps<{ goal?: Goal; currency: string; accounts: AccountSummary[]; goals?: Goal[] }>()
 const emit = defineEmits<{ close: [goal?: Goal] }>()
 const shared = useShared()
 const { locale } = useMoney()
@@ -23,8 +23,17 @@ const state = reactive({
 const pending = ref(false)
 const error = ref("")
 const accountItems = computed(() =>
-  props.accounts.filter((account) => !account.archived).map((account) => ({ value: account.id, label: account.name, icon: ACCOUNT_KINDS[account.kind].icon })),
+  props.accounts.filter((account) => !account.archived && account.canEdit && (state.personal ? account.visibility === "private" : account.visibility === "household")).map((account) => ({ value: account.id, label: account.name, icon: ACCOUNT_KINDS[account.kind].icon })),
 )
+const selectedAccount = computed(() => props.accounts.find(account => account.id === state.accountId))
+const available = computed(() => {
+  if (!selectedAccount.value) return 0
+  const allocated = (props.goals ?? []).filter(goal => goal.id !== props.goal?.id && goal.accountId === state.accountId && !goal.completedAt && !goal.allocationNeedsReview).reduce((sum, goal) => sum + goal.savedMinor, 0)
+  return Math.max(0, selectedAccount.value.balanceBaseMinor - allocated)
+})
+watch(() => state.personal, () => {
+  if (!accountItems.value.some(account => account.value === state.accountId)) state.accountId = undefined
+})
 const SOURCES = [
   { value: "account" as const, get label() { return translate('linkedAccount') } },
   { value: "manual" as const, get label() { return translate('byHand') } },
@@ -35,8 +44,8 @@ function validate(values: typeof state) {
   if (!values.name.trim()) errors.push({ name: "name", message: translate('giveTheGoalAName') })
   const target = parseAmount(values.target)
   if (target === null || target <= 0) errors.push({ name: "target", message: translate('enterATargetAboveZero') })
-  if (values.source === "account" && !values.accountId) errors.push({ name: "accountId", message: translate('pickTheAccountYouSaveIn') })
-  if (values.source === "manual" && values.saved.trim() && parseAmount(values.saved) === null)
+  if (!props.goal?.fundingUnavailable && values.source === "account" && !values.accountId) errors.push({ name: "accountId", message: translate('pickTheAccountYouSaveIn') })
+  if (values.saved.trim() && (parseAmount(values.saved) === null || (parseAmount(values.saved) ?? 0) < 0))
     errors.push({ name: "saved", message: translate('enterAnAmountLike1500') })
   if (values.targetDate && daysFromToday(values.targetDate) < 0 && values.targetDate !== props.goal?.targetDate)
     errors.push({ name: "targetDate", message: translate('pickADateFromTodayOn') })
@@ -52,14 +61,15 @@ async function submit() {
     targetMinor: toMinor(parseAmount(state.target) ?? 0, props.currency),
     targetDate: state.targetDate || null,
     accountId: state.source === "account" ? (state.accountId ?? null) : null,
-    savedMinor: state.source === "manual" ? toMinor(parseAmount(state.saved) ?? 0, props.currency) : undefined,
+    savedMinor: toMinor(parseAmount(state.saved) ?? 0, props.currency),
     personal: state.personal,
+    ...(props.goal?.fundingUnavailable ? { accountId: undefined, savedMinor: undefined, personal: undefined } : {}),
   }
   try {
     const saved = props.goal
       ? await $fetch<Goal>(`/api/goals/${props.goal.id}`, { method: "PATCH", body })
       : await $fetch<Goal>("/api/goals", { method: "POST", body })
-    await refreshStems("goals")
+    await refreshStems("goals", "forecast", "setup")
     emit("close", saved)
   } catch (cause) {
     error.value = errorText(cause, translate('couldnTSaveTheGoalTryAgain'))
@@ -99,18 +109,19 @@ async function submit() {
               <template #trailing><span class="text-xs text-muted">{{ currency }}</span></template>
             </UInput>
           </UFormField>
-          <UFormField :label="$t('by2')" name="targetDate" hint="Optional">
+          <UFormField :label="$t('by2')" name="targetDate" :hint="$t('optionalHint')">
             <DateInput v-model="state.targetDate" :min="today()" class="w-full" :ui="{ base: 'tabular-nums' }" />
           </UFormField>
         </div>
-        <UFormField :label="$t('trackProgress')" name="source">
+        <p v-if="goal?.fundingUnavailable" class="text-sm text-muted">{{ $t('goalFundingUnavailable') }}</p>
+        <UFormField v-if="!goal?.fundingUnavailable" :label="$t('trackProgress')" name="source">
           <SegmentedControl v-model="state.source" :options="SOURCES" :label="$t('trackProgress')" size="sm" />
         </UFormField>
         <UFormField
-          v-if="state.source === 'account'"
+          v-if="!goal?.fundingUnavailable && state.source === 'account'"
           :label="$t('account')"
           name="accountId"
-          :help="$t('theGoalSProgressIsThisAccountSBalance')"
+          :help="$t('goalAllocationAccountHelp')"
         >
           <USelectMenu
             v-model="state.accountId"
@@ -121,12 +132,15 @@ async function submit() {
             :search-input="{ placeholder: $t('searchAccounts') }"
           />
         </UFormField>
-        <UFormField v-else :label="$t('savedSoFar')" name="saved" :help="$t('updateItWheneverYouPutMoneyAside')">
+        <p v-if="state.source === 'account' && selectedAccount" class="text-sm text-muted">
+          {{ $t('goalAvailableToAllocate', { amount: plain(available), currency }) }}
+        </p>
+        <UFormField v-if="!goal?.fundingUnavailable" :label="state.source === 'account' ? $t('goalAllocatedAmount') : $t('savedSoFar')" name="saved" :help="state.source === 'account' ? $t('goalAllocationHelp') : $t('updateItWheneverYouPutMoneyAside')">
           <UInput v-model="state.saved" inputmode="decimal" placeholder="0" class="w-full" :ui="{ base: 'tabular-nums', trailing: 'pointer-events-none' }">
             <template #trailing><span class="text-xs text-muted">{{ currency }}</span></template>
           </UInput>
         </UFormField>
-        <UFormField v-if="shared" name="personal">
+        <UFormField v-if="shared || accounts.some(account => account.visibility === 'private')" name="personal">
           <USwitch
             v-model="state.personal"
             :label="$t('justForMe')"

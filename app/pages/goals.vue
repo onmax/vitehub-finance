@@ -20,7 +20,7 @@ const modal = overlay.create(GoalModal, { destroyOnClose: true })
 const accountOf = (id: string | null) => (id ? accounts.value.find((account) => account.id === id) : undefined)
 
 const totals = computed(() => {
-  const list = goals.value ?? []
+  const list = (goals.value ?? []).filter(goal => !goal.completedAt)
   return {
     saved: list.reduce((sum, goal) => sum + Math.min(goal.progressMinor, goal.targetMinor), 0),
     target: list.reduce((sum, goal) => sum + goal.targetMinor, 0),
@@ -29,8 +29,15 @@ const totals = computed(() => {
 })
 
 async function open(goal?: Goal) {
-  const saved = await modal.open({ goal, currency: currency.value, accounts: accounts.value }).result
+  const saved = await modal.open({ goal, currency: currency.value, accounts: accounts.value, goals: goals.value ?? [] }).result
   if (saved) notify.success(goal ? translate('goalSaved') : translate('goalCreated'), saved.name)
+}
+
+async function toggleCompleted(goal: Goal) {
+  try {
+    await $fetch(`/api/goals/${goal.id}`, { method: "PATCH", body: { completed: !goal.completedAt } })
+    await refreshStems("goals", "forecast", "setup")
+  } catch (cause) { notify.error(cause) }
 }
 
 async function remove(goal: Goal) {
@@ -108,6 +115,7 @@ async function remove(goal: Goal) {
             :currency="currency"
             @edit="open(goal)"
             @remove="remove(goal)"
+            @toggle-completed="toggleCompleted(goal)"
           />
         </div>
       </template>

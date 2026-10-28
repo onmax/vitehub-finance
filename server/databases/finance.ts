@@ -300,10 +300,13 @@ export const budget = sqliteTable(
     amountMinor: integer("amount_minor").notNull(),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("budget_scope_category_idx").on(table.householdId, table.ownerId, table.categoryId)],
+  (table) => [
+    uniqueIndex("budget_scope_category_idx").on(table.householdId, table.ownerId, table.categoryId),
+    uniqueIndex("budget_household_category_idx").on(table.householdId, table.categoryId).where(sql`${table.ownerId} is null`),
+  ],
 )
 
-/** Something to save for. Linked to an account, its progress is that balance; otherwise `savedMinor`. */
+/** Explicitly allocated savings. Linking an account identifies the cash backing the allocation. */
 export const goal = sqliteTable(
   "goal",
   {
@@ -314,6 +317,8 @@ export const goal = sqliteTable(
     icon: text("icon").notNull().default("i-lucide-target"),
     targetMinor: integer("target_minor").notNull(),
     savedMinor: integer("saved_minor").notNull().default(0),
+    allocationReviewed: integer("allocation_reviewed", { mode: "boolean" }).notNull().default(false),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
     targetDate: text("target_date"),
     accountId: text("account_id").references(() => financialAccount.id, { onDelete: "set null" }),
     createdAt: createdAt(),

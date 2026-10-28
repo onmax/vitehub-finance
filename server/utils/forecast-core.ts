@@ -5,7 +5,7 @@ import { dailyShare, lowestOf, riskDateOf, summarizeMonths } from "../../shared/
 import { addDays, daysBetween, monthEnd, monthOf, monthStart, shiftMonth } from "./dates"
 import { advance, occurrencesBetween } from "./recurring-core"
 
-/** The z-score of the 10th and 90th percentiles: the range holds the balance 8 times in 10. */
+/** The z-score of the 10th and 90th percentiles: a model range, without a calibrated probability guarantee. */
 const Z80 = 1.2816
 
 /** How far back the range looks for how much everyday spending moves from week to week. */
@@ -42,6 +42,7 @@ export interface CoreSeries {
 
 /** A visible, not excluded transaction on a projected account, household currency. */
 export interface CoreRow {
+  transactionId?: string
   accountId: string
   date: string
   amountMinor: number
@@ -186,7 +187,7 @@ function flexOf(row: CoreRow, inSeries: boolean) {
  * uncertainty of its average itself, which grows with the weeks ahead (so the range widens over time), plus how much
  * each recurring amount moves.
  */
-export function buildForecast(input: ForecastInput): Omit<Forecast, "currency"> {
+export function buildForecast(input: ForecastInput): Omit<Forecast, "currency"> & { accountDays: Record<string, Array<{ date: string; balanceMinor: number }>>; accountFlows: Record<string, { variable: number; moved: number }> } {
   const { today } = input
   const end = monthEnd(shiftMonth(monthOf(today), input.months - 1))
   const projected = new Set(input.accounts.map((account) => account.id))
@@ -194,7 +195,13 @@ export function buildForecast(input: ForecastInput): Omit<Forecast, "currency"> 
 
   // Each series' history, then what to expect from it.
   const history = new Map<string, Array<{ date: string; amountMinor: number }>>()
-  for (const row of input.rows) {
+  const regularRows = new Map<string, CoreRow>()
+  for (const [index, row] of input.rows.entries()) {
+    const id = row.transactionId ?? `row:${index}`
+    const previous = regularRows.get(id)
+    regularRows.set(id, previous ? { ...previous, amountMinor: previous.amountMinor + row.amountMinor } : row)
+  }
+  for (const row of regularRows.values()) {
     const series = row.key ? seriesKeys.get(`${row.accountId}|${row.key}`) : undefined
     if (series) history.set(series.id, [...(history.get(series.id) ?? []), { date: row.date, amountMinor: row.amountMinor }])
   }
@@ -308,6 +315,8 @@ export function buildForecast(input: ForecastInput): Omit<Forecast, "currency"> 
     series,
     payments: plainPayments,
     accounts,
+    accountDays: Object.fromEntries(accountDays),
+    accountFlows: Object.fromEntries(rates),
     lowest: lowestOf(days),
     riskDate: riskDateOf(days),
     variableMonthlyMinor,

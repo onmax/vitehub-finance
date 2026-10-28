@@ -20,6 +20,7 @@ import {
   session,
   syncRun,
   transaction,
+  transactionReview,
   user as users,
 } from "../databases/config"
 import type auth from "../auth"
@@ -28,7 +29,7 @@ import { backfillSnapshots, recordSnapshot } from "../utils/snapshots"
 import { detectTransfers } from "../utils/transfers"
 import { erasePeople } from "../utils/erase"
 import { DEMO_DOMAIN } from "../../shared/demo"
-import { todayIso } from "../utils/dates"
+import { addDays, todayIso } from "../utils/dates"
 import { seedingEmails } from "./mode"
 import { DEMO_HOUSEHOLD, DEMO_PEOPLE, demoScenario, type DemoPerson } from "./scenario"
 
@@ -64,8 +65,8 @@ export function seedDemo(today = todayIso()) {
 /** Seeds when the demo isn't there yet (a fresh database, or last night's reset failed). */
 export async function ensureDemo() {
   if (running) return running
-  const [, seeded] = await kv.get<{ date: string }>(SEEDED)
-  if (seeded) {
+  const [, seeded] = await kv.get<{ date: string; version?: number }>(SEEDED)
+  if (seeded?.version === 2) {
     const [lucia] = await db.select({ id: users.id }).from(users).where(eq(users.email, DEMO_PEOPLE.lucia.email)).limit(1)
     if (lucia) return
   }
@@ -212,6 +213,9 @@ async function build(today: string) {
   // Up to 16 values a row once defaults are counted: six rows a statement.
   await inChunks(rows, 6, (chunk) => db.insert(transaction).values(chunk))
 
+  const reviewed = rows.filter(row => row.date < addDays(today, -7)).map(row => ({ transactionId: row.id, reviewedAt: new Date(`${row.date}T12:00:00Z`), reviewedBy: scenario.accounts.find(account => accountIds.get(account.key) === row.accountId)?.owner === "pablo" ? owners.pablo : owners.lucia, revision: id() }))
+  await inChunks(reviewed, 12, chunk => db.insert(transactionReview).values(chunk))
+
   const snapshots = scenario.snapshots.map((entry) => ({ accountId: accountIds.get(entry.account)!, date: entry.date, balanceMinor: entry.balanceMinor }))
   await inChunks(snapshots, 30, (chunk) => db.insert(balanceSnapshot).values(chunk).onConflictDoNothing())
 
@@ -228,6 +232,7 @@ async function build(today: string) {
         icon: entry.icon,
         targetMinor: entry.targetMinor,
         savedMinor: entry.savedMinor,
+        allocationReviewed: true,
         targetDate: entry.targetDate ?? undefined,
         accountId: entry.account ? accountIds.get(entry.account) : undefined,
       })),
@@ -255,6 +260,6 @@ async function build(today: string) {
       .set({ status: "dismissed" })
       .where(and(eq(recurring.householdId, householdId), eq(recurring.categoryId, transfers)))
 
-  await kv.set(SEEDED, { date: today, at: Date.now() })
+  await kv.set(SEEDED, { date: today, at: Date.now(), version: 2 })
   console.info(`[finance] Demo household seeded for ${today}: ${rows.length} transactions.`)
 }

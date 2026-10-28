@@ -1,14 +1,18 @@
-import { and, eq, gte, inArray, min } from "drizzle-orm"
+import { and, eq, inArray, min } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
-import type { Forecast } from "#shared/api"
-import { category, financialAccount, transaction } from "../databases/config"
+import type { PlanningForecast } from "#shared/planning"
+import { category, connection, financialAccount, transaction } from "../databases/config"
 import { visibleTransactions, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts } from "./accounts"
 import { addDays, todayIso } from "./dates"
-import { buildForecast, combineHistory, type CoreAccount } from "./forecast-core"
+import { buildForecast, combineHistory, averagingPeriod, type CoreAccount } from "./forecast-core"
 import type { Member } from "./identity"
 import { seriesKey, WINDOW_DAYS } from "./recurring-core"
 import { listRecurringRows } from "./recurring"
+import { flowRows } from "./transactions"
+import { listGoals } from "./goals"
+import { listBudgets } from "./budgets"
+import { ratesWithTime } from "./fx"
 
 /** The accounts money is spent from: what the forecast starts with and projects. */
 const LIQUID_KINDS = ["checking", "savings", "cash", "credit"] as const
@@ -24,7 +28,7 @@ const liquid = and(
  * with a likely range around it (server/utils/forecast-core.ts). Everything reads through `visibleAccounts` and
  * `visibleTransactions`: another member's private accounts and hidden transactions never shape it.
  */
-export async function forecast(who: Member, scope: Scope, months: number): Promise<Forecast> {
+export async function forecast(who: Member, scope: Scope, months: number): Promise<PlanningForecast> {
   const { currency, convert } = await baseCurrency(who)
   const today = todayIso()
   const rows = await selectAccounts(who, scope, liquid)
@@ -60,22 +64,7 @@ export async function forecast(who: Member, scope: Scope, months: number): Promi
       status: row.status as "detected" | "confirmed",
     }))
 
-  const transactions = accountIds.size
-    ? await db
-        .select({
-          accountId: transaction.accountId,
-          date: transaction.date,
-          amountMinor: transaction.amountMinor,
-          currency: transaction.currency,
-          description: transaction.description,
-          counterparty: transaction.counterparty,
-          kind: category.kind,
-        })
-        .from(transaction)
-        .innerJoin(financialAccount, eq(financialAccount.id, transaction.accountId))
-        .leftJoin(category, eq(category.id, transaction.categoryId))
-        .where(and(visibleTransactions(who, scope), liquid, eq(transaction.excluded, false), gte(transaction.date, addDays(today, -WINDOW_DAYS))))
-    : []
+  const transactions = accountIds.size ? await flowRows(who, { scope, from: addDays(today, -WINDOW_DAYS), to: today, accounts: liquid, includeTransfers: true }) : []
   const [oldest] = await db
     .select({ date: min(transaction.date) })
     .from(transaction)
@@ -95,19 +84,46 @@ export async function forecast(who: Member, scope: Scope, months: number): Promi
     })),
   )
 
+  const [goals, budgets, fx, connections] = await Promise.all([
+    listGoals(who), listBudgets(who, scope), ratesWithTime(currency),
+    db.select({ id: connection.id, lastSyncedAt: connection.lastSyncedAt }).from(connection).where(eq(connection.householdId, who.householdId)),
+  ])
+  const syncTimes = new Map(connections.map(item => [item.id, item.lastSyncedAt]))
+  // A personal and household budget for the same category overlap. Use the larger allocation.
+  const categoryBudgets = new Map<string, number>()
+  for (const item of budgets.items) categoryBudgets.set(item.categoryId, Math.max(categoryBudgets.get(item.categoryId) ?? 0, item.amountMinor))
+  const perMonth = { weekly: 52 / 12, monthly: 1, quarterly: 1 / 3, yearly: 1 / 12 }
+  const recurringBudgeted = series.filter(item => item.kind === 'bill' && item.categoryId && categoryBudgets.has(item.categoryId)).reduce((sum, item) => sum + Math.abs(item.amountMinor) * perMonth[item.cadence], 0)
+  const budgetTotal = [...categoryBudgets.values()].reduce((sum, amount) => sum + amount, 0)
+  const period = averagingPeriod(today, oldest?.date ?? null)
+  const recurringKeys = new Set(series.map(item => `${item.accountId}|${item.key}`))
+  const unbudgetedMinor = transactions.filter(row => row.date >= period.from && row.date <= period.to && row.categoryKind !== 'transfer' && (!row.categoryId || !categoryBudgets.has(row.categoryId)) && !recurringKeys.has(`${row.accountId}|${seriesKey(row)}`)).reduce((sum, row) => sum + (row.amountMinor < 0 || row.categoryKind === 'expense' ? -convert(row.amountMinor, row.currency) : 0), 0) / period.months
   return {
     currency,
+    planning: {
+      accounts: rows.map(({ account }) => ({
+        id: account.id, name: account.name, currency: account.currency,
+        balanceUpdatedAt: account.balanceUpdatedAt?.toISOString() ?? null,
+        syncAt: account.connectionId ? syncTimes.get(account.connectionId)?.toISOString() ?? null : null,
+        fx: account.currency === currency ? 'same' : !fx.rates[account.currency] ? 'missing' : Date.now() - fx.at > 24 * 60 * 60 * 1000 ? 'stale' : 'current',
+      })),
+      fxAt: fx.at ? new Date(fx.at).toISOString() : null,
+      reconstructedHistory: true,
+      protectedGoals: goals.flatMap(goal => !goal.completedAt && !goal.fundingUnavailable && !goal.allocationNeedsReview && goal.accountId && accountIds.has(goal.accountId) ? [{ id: goal.id, name: goal.name, accountId: goal.accountId, allocatedMinor: goal.progressMinor, monthlyNeededMinor: goal.monthlyNeededMinor ?? 0 }] : []),
+      budgetMonthlyMinor: budgets.items.length ? Math.max(0, Math.round(budgetTotal - recurringBudgeted + unbudgetedMinor)) : null,
+    },
     ...buildForecast({
       today,
       months,
       accounts,
       series,
       rows: transactions.map((row) => ({
+        transactionId: row.transactionId,
         accountId: row.accountId,
         date: row.date,
         amountMinor: convert(row.amountMinor, row.currency),
-        transfer: row.kind === "transfer",
-        refund: row.amountMinor > 0 && row.kind === "expense",
+        transfer: row.categoryKind === "transfer",
+        refund: row.amountMinor > 0 && row.categoryKind === "expense",
         key: row.date <= today ? seriesKey(row) : null,
       })),
       since: oldest?.date ?? null,

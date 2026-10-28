@@ -11,7 +11,8 @@ const shared = useShared()
   <SectionCard :title="$t('recentTransactions')" to="/transactions">
     <p v-if="overview.recent.length === 0" class="py-6 text-center text-sm text-muted">{{ $t('noTransactionsYet') }}</p>
     <ul v-else class="flex flex-col divide-y divide-default">
-      <li v-for="item in overview.recent" :key="item.id" class="flex min-h-12 items-center gap-3 py-2">
+      <li v-for="item in overview.recent" :key="item.id" >
+        <NuxtLink :to="{ path: '/transactions', query: { transaction: item.id } }" class="-mx-2 flex min-h-12 items-center gap-3 rounded-md px-2 py-2 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary">
         <Monogram :name="item.counterparty || item.description" />
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-1.5 text-sm text-highlighted">
@@ -34,6 +35,7 @@ const shared = useShared()
         </span>
         <OwnerAvatar v-if="shared" :name="item.ownerName" :user-id="item.ownerId" size="2xs" class="hidden sm:inline-flex" />
         <Money :minor="item.amountMinor" :currency="item.currency" tone="in" original="below" class="text-sm text-highlighted" />
+        </NuxtLink>
       </li>
     </ul>
   </SectionCard>

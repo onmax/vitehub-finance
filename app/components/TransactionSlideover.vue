@@ -4,9 +4,9 @@ import type { Transaction } from "#shared/api"
 // One transaction's details: category, a note (saved as you pause typing or leave the field), whether it counts in
 // totals, whether the rest of the household sees it (the account's owner decides), and where it came from. View-only
 // accounts show the same, without the controls.
-const props = defineProps<{ transaction: Transaction | null }>()
+const props = defineProps<{ transaction: Transaction | null; hasPrevious?: boolean; hasNext?: boolean }>()
 const open = defineModel<boolean>("open", { default: false })
-const emit = defineEmits<{ saved: [transaction: Transaction]; category: [transaction: Transaction, categoryId: string | null] }>()
+const emit = defineEmits<{ saved: [transaction: Transaction]; category: [transaction: Transaction, categoryId: string | null]; previous: []; next: []; reviewNext: [] }>()
 
 const notify = useNotify()
 const { find } = useCategories()
@@ -26,6 +26,14 @@ watch(
   },
   { immediate: true },
 )
+
+async function navigate(direction: "previous" | "next" | "reviewNext") {
+  await saveNote()
+  if (noteError.value) return
+  if (direction === "previous") emit("previous")
+  else if (direction === "next") emit("next")
+  else emit("reviewNext")
+}
 
 async function patch(body: Record<string, unknown>) {
   const saved = await $fetch<Transaction>(`/api/transactions/${props.transaction!.id}`, { method: "PATCH", body })
@@ -52,7 +60,7 @@ async function setExcluded(value: boolean) {
   excluding.value = true
   try {
     await patch({ excluded: value })
-    await refreshStems("overview", "budgets", "recurring", "forecast")
+    await refreshStems("overview", "budgets", "recurring", "forecast", "setup")
   } catch (error) {
     notify.error(error, translate('couldnTChangeThat'))
   } finally {
@@ -65,7 +73,7 @@ async function setHidden(value: boolean) {
   hiding.value = true
   try {
     await patch({ hidden: value })
-    await refreshStems("overview", "budgets", "recurring", "forecast")
+    await refreshStems("overview", "budgets", "recurring", "forecast", "setup")
   } catch (error) {
     notify.error(error, translate('couldnTChangeThat'))
   } finally {
@@ -76,12 +84,20 @@ async function setHidden(value: boolean) {
 const title = computed(() => props.transaction?.counterparty || props.transaction?.description || translate('transaction'))
 const category = computed(() => find(props.transaction?.categoryId))
 // AI's pick for an uncategorized row it wasn't sure about: offered here, one click to use it, never in the lists.
-const guess = computed(() => (props.transaction && !props.transaction.categoryId ? find(props.transaction.aiGuessId) : undefined))
+const guess = computed(() => (props.transaction && !props.transaction.categoryId && !props.transaction.review?.splits.length ? find(props.transaction.aiGuessId) : undefined))
 </script>
 
 <template>
   <USlideover v-model:open="open" :title="title" :description="transaction ? formatDate(transaction.date) : undefined" :ui="{ body: 'flex flex-col gap-6' }">
     <template v-if="transaction" #body>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex gap-1">
+          <UButton color="neutral" variant="outline" icon="i-lucide-chevron-left" :aria-label="$t('transactionPrevious')" :disabled="!hasPrevious" @click="navigate('previous')" />
+          <UButton color="neutral" variant="outline" icon="i-lucide-chevron-right" :aria-label="$t('transactionNext')" :disabled="!hasNext" @click="navigate('next')" />
+        </div>
+        <DemoLock v-if="transaction.canEdit && !transaction.review?.reviewedAt" v-slot="{ locked }"><UButton icon="i-lucide-check" :label="$t('transactionReviewNext')" :disabled="locked" @click="navigate('reviewNext')" /></DemoLock>
+      </div>
+      <TransactionReviewControls :transaction="transaction" @saved="(saved) => emit('saved', saved)" />
       <div class="flex items-center gap-3">
         <Monogram :name="title" />
         <Money :minor="transaction.amountMinor" :currency="transaction.currency" tone="in" original="below" align="start" class="text-2xl font-semibold tracking-[-0.02em] text-highlighted" :class="transaction.excluded && 'line-through'" />
@@ -96,13 +112,13 @@ const guess = computed(() => (props.transaction && !props.transaction.categoryId
 
       <UFormField :label="$t('category')">
         <CategorySelect
-          v-if="transaction.canEdit"
+          v-if="transaction.canEdit && !transaction.review?.splits.length"
           :model-value="transaction.categoryId"
           class="w-full"
           @update:model-value="(value) => emit('category', transaction!, value ?? null)"
         />
         <p v-else class="flex items-center gap-2 text-sm">
-          <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ category?.name ?? $t('uncategorized') }}
+          <CategoryIcon :icon="category?.icon" :color="category?.color" size="sm" />{{ transaction.review?.splits.length ? $t('transactionSplitCount', { count: transaction.review.splits.length }) : category?.name ?? $t('uncategorized') }}
         </p>
         <div v-if="guess && transaction.canEdit" class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted">
           <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" aria-hidden="true" />
@@ -113,6 +129,9 @@ const guess = computed(() => (props.transaction && !props.transaction.categoryId
           <UIcon name="i-lucide-sparkles" class="size-3.5 shrink-0" /> {{ $t('suggestedByAiFromTheDescription', { value1: transaction.canEdit ? $t('pickAnotherIfWrong') : "" }) }}
         </p>
       </UFormField>
+
+      <TransactionReviewSplits :transaction="transaction" @saved="(saved) => emit('saved', saved)" />
+      <TransactionReviewRefunds :transaction="transaction" @saved="(saved) => emit('saved', saved)" />
 
       <UFormField :label="$t('note')" :error="noteError || undefined" :hint="savingNote === 'saving' ? $t('saving') : savingNote === 'saved' ? $t('saved2') : undefined">
         <UTextarea

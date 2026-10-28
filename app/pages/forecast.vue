@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Forecast } from "#shared/api"
-import { applyScenario, dailyShare, isBaseline, NO_SCENARIO, type ForecastScenario } from "#shared/forecast"
+import type { PlanningForecast } from "#shared/planning"
+import { applyScenario, dailyShare, isBaseline } from "#shared/forecast"
 
 // Where the money is heading: the balance day by day from the actual one, with a likely range, the lowest point, the
 // payments coming in and going out, what-ifs that rerun it in the browser, month by month, and account by account.
@@ -20,7 +21,7 @@ const months = computed<number>({
   set: (value) => void router.replace({ query: { ...route.query, months: value === 6 ? undefined : String(value) } }),
 })
 
-const { data: forecast, status, error, refresh } = useScopedFetch<Forecast | null>("/api/forecast", {
+const { data: forecast, status, error, refresh } = useScopedFetch<PlanningForecast | null>("/api/forecast", {
   key: "forecast",
   query: () => ({ months: months.value }),
   default: () => null,
@@ -38,25 +39,40 @@ const empty = computed(
     forecast.value.dataDays === 0,
 )
 
-const scenario = ref<ForecastScenario>({ ...NO_SCENARIO })
+const { scenario, plans, active, owned, busy, failure, select, save, remove } = useForecastPlans()
+const compareId = shallowRef('')
+const comparison = computed(() => {
+  const plan = plans.value.find(plan => plan.id === compareId.value)
+  if (!forecast.value || !plan) return null
+  const projection = applyScenario(forecast.value, plan.scenario)
+  return { endMinor: projection.days.at(-1)?.balanceMinor ?? 0, lowestMinor: projection.lowest.balanceMinor, days: projection.days, name: plan.name }
+})
+const { data: me } = useMe()
+watch([forecast, me], ([value]) => {
+  if (value?.accounts.length && !scenario.value.accountId) scenario.value = { ...scenario.value, accountId: (value.accounts.find(account => account.kind !== 'credit') ?? value.accounts[0])!.id }
+}, { immediate: true })
 const whatIf = computed(() => !isBaseline(scenario.value))
-const view = computed(() => (forecast.value ? applyScenario(forecast.value, scenario.value) : null))
+const view = computed(() => {
+  if (!forecast.value) return null
+  const result = applyScenario(forecast.value, scenario.value)
+  return { ...result, series: result.series.map(entry => entry.id === 'plan:purchase' ? { ...entry, name: translate('oneOffWhatIf') } : entry) }
+})
 
-const series = computed(() => new Map((forecast.value?.series ?? []).map((entry) => [entry.id, entry])))
+const series = computed(() => new Map((view.value?.series ?? []).map((entry) => [entry.id, entry])))
 const chartPayments = computed(() =>
   (view.value?.payments ?? []).map((payment) => {
     const entry = series.value.get(payment.seriesId)
     return { date: payment.date, amountMinor: payment.amountMinor, name: entry?.name ?? "", kind: entry?.kind ?? ("bill" as const) }
   }),
 )
-const usualOn = (date: string) => (forecast.value ? dailyShare(forecast.value.variableMonthlyMinor + forecast.value.movedMonthlyMinor, date) : 0)
+const usualOn = (date: string) => (forecast.value ? dailyShare((view.value?.variableMonthlyMinor ?? forecast.value.variableMonthlyMinor) + forecast.value.movedMonthlyMinor, date) : 0)
 
 /** In and out over the 30 days after today: payments plus the usual spending and moves. */
-function next30(days: Forecast["days"], payments: Forecast["payments"], oneOff = 0) {
+function next30(days: Forecast["days"], payments: Forecast["payments"], variableMonthlyMinor?: number) {
   const value = forecast.value!
   const end = days[Math.min(30, days.length - 1)]?.date ?? value.today
   let inMinor = 0
-  let outMinor = oneOff
+  let outMinor = 0
   for (const payment of payments) {
     if (payment.date > end || series.value.get(payment.seriesId)?.kind === "transfer") continue
     if (payment.amountMinor > 0) inMinor += payment.amountMinor
@@ -64,19 +80,17 @@ function next30(days: Forecast["days"], payments: Forecast["payments"], oneOff =
   }
   // Moves between accounts the forecast counts cancel out; the rest is money leaving like spending does.
   const transfers = payments.filter((payment) => payment.date <= end && series.value.get(payment.seriesId)?.kind === "transfer").reduce((sum, payment) => sum - payment.amountMinor, 0)
-  for (const day of days) if (day.date > value.today && day.date <= end) outMinor += usualOn(day.date)
+  for (const day of days) if (day.date > value.today && day.date <= end) outMinor += variableMonthlyMinor === undefined ? usualOn(day.date) : dailyShare(variableMonthlyMinor + value.movedMonthlyMinor, day.date)
   return { inMinor, outMinor: Math.round(outMinor + transfers) }
 }
 const window30 = computed(() => {
   if (!view.value || !forecast.value) return { inMinor: 0, outMinor: 0 }
-  const end = view.value.days[Math.min(30, view.value.days.length - 1)]?.date ?? ""
-  const oneOff = scenario.value.oneOff && scenario.value.oneOff.date <= end ? scenario.value.oneOff.amountMinor : 0
-  return next30(view.value.days, view.value.payments, oneOff)
+  return next30(view.value.days, view.value.payments)
 })
 const baselineNumbers = computed(() => {
   const value = forecast.value
   if (!value || !whatIf.value) return null
-  const plain = next30(value.days, value.payments)
+  const plain = next30(value.days, value.payments, value.variableMonthlyMinor)
   return { end: value.days.at(-1)!.balanceMinor, lowest: value.lowest.balanceMinor, next30: plain.inMinor - plain.outMinor }
 })
 
@@ -103,7 +117,7 @@ const rangeNote = computed(() => {
   if (!value) return ""
   return value.dataDays < 21
     ? translate('theRangeIsAGuessUntilThereAreThreeWeeks')
-    : translate('theShadedRangeIsWhereTheBalanceLands8Times', { value1: Math.min(26, Math.floor(value.dataDays / 7)) })
+    : translate('planningRangeHelp')
 })
 </script>
 
@@ -168,6 +182,11 @@ const rangeNote = computed(() => {
         </div>
 
         <template v-else-if="view">
+          <ForecastPlans :plans="plans" :active="active" :owned="owned" :busy="busy" :failure="failure" :comparison="comparison" :currency="forecast.currency" @select="select" @save="save" @remove="remove" @compare="compareId = $event" />
+          <div v-if="view.safety" class="sticky top-0 z-20 -my-6 flex items-center justify-between gap-3 border-y border-default bg-default px-1 py-3 text-sm xl:hidden" aria-live="polite">
+            <span class="text-muted">{{ $t('planningAvailableAfterReserve') }}</span>
+            <Money :minor="view.safety.availableMinor" :currency="forecast.currency" :class="view.safety.availableMinor < 0 ? 'text-error' : 'text-highlighted'" />
+          </div>
           <ForecastSummary
             :forecast="forecast"
             :days="view.days"
@@ -211,7 +230,7 @@ const rangeNote = computed(() => {
                   :today="forecast.today"
                   :history="forecast.history"
                   :days="view.days"
-                  :baseline="whatIf ? forecast.days : null"
+                  :baseline="comparison?.days ?? (whatIf ? forecast.days : null)"
                   :payments="chartPayments"
                   :lowest="view.lowest"
                   :usual-on="usualOn"
@@ -225,8 +244,8 @@ const rangeNote = computed(() => {
                     <span class="h-0.5 w-4 border-t-2 border-dashed border-primary" aria-hidden="true" />{{ whatIf ? $t('withTheWhatIf') : $t('expected2') }}
                   </li>
                   <li class="flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-xs bg-primary/15" aria-hidden="true" />{{ $t('likelyRange') }}</li>
-                  <li v-if="whatIf" class="flex items-center gap-1.5">
-                    <span class="h-0.5 w-4 border-t border-dashed border-(--ui-text-muted)" aria-hidden="true" />{{ $t('withoutIt') }} </li>
+                  <li v-if="whatIf || comparison" class="flex items-center gap-1.5">
+                    <span class="h-0.5 w-4 border-t border-dashed border-(--ui-text-muted)" aria-hidden="true" />{{ comparison?.name ?? $t('withoutIt') }} </li>
                   <li class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-warning" aria-hidden="true" />{{ $t('lowestPoint') }}</li>
                   <li class="flex items-center gap-1.5">
                     <span class="size-2 rounded-full" :class="FLOW.income.bg" aria-hidden="true" /><span class="size-2 rounded-full" :class="FLOW.bills.bg" aria-hidden="true" />{{ $t('paymentsInAndOut') }} </li>
@@ -259,16 +278,19 @@ const rangeNote = computed(() => {
             <ForecastWhatIf
               v-model="scenario"
               :forecast="forecast"
-              :result="{ lowest: view.lowest, riskDate: view.riskDate }"
+              :result="{ lowest: view.lowest, riskDate: view.riskDate, cashRiskDate: view.cashRiskDate, safety: view.safety, accountSafety: view.accountSafety, unavailableAccounts: view.unavailableAccounts }"
               class="self-start"
             />
           </div>
 
-          <ForecastUpcoming :today="forecast.today" :currency="forecast.currency" :series="forecast.series" :payments="view.payments" />
+          <ForecastPlanEvents v-model="scenario" :forecast="forecast" />
 
-          <ForecastMonths :months="view.months" :today="forecast.today" :currency="forecast.currency" :payments="view.payments" :series="forecast.series" />
+          <ForecastUpcoming :today="forecast.today" :currency="forecast.currency" :series="view.series" :payments="view.payments" />
 
-          <ForecastAccounts v-if="forecast.accounts.length > 1" :accounts="forecast.accounts" :today="forecast.today" :currency="forecast.currency" />
+          <ForecastMonths :months="view.months" :today="forecast.today" :currency="forecast.currency" :payments="view.payments" :series="view.series" />
+
+          <ForecastAccounts :accounts="view.accounts" :today="forecast.today" :currency="forecast.currency" />
+          <ForecastProvenance :forecast="forecast" />
         </template>
       </div>
     </template>

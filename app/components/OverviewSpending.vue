@@ -7,8 +7,7 @@ const { format } = useMoney()
 const shown = computed(() => props.overview.spending.slice(0, 7))
 const max = computed(() => Math.max(1, ...shown.value.map((item) => item.amountMinor)))
 const total = computed(() => props.overview.spending.reduce((sum, item) => sum + item.amountMinor, 0))
-const monthStart = `${currentMonth()}-01`
-const link = (id: string | null) => ({ path: "/transactions", query: { category: id ?? "none", from: monthStart, view: "out" } })
+const link = (id: string | null) => ({ path: "/transactions", query: { category: id ?? "none", from: `${props.overview.month.month}-01`, to: today(), view: "out" } })
 </script>
 
 <template>

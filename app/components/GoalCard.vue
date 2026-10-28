@@ -4,7 +4,7 @@ import type { AccountSummary, Goal } from "#shared/api"
 // A savings goal: its icon and name, a progress ring, saved of target, the date, what to put aside each month, and
 // where the progress comes from (a linked account's balance, or an amount kept by hand).
 const props = defineProps<{ goal: Goal; account?: AccountSummary; currency: string }>()
-const emit = defineEmits<{ edit: []; remove: [] }>()
+const emit = defineEmits<{ edit: []; remove: []; toggleCompleted: [] }>()
 const shared = useShared()
 const { format } = useMoney()
 const share = computed(() => (props.goal.targetMinor > 0 ? props.goal.progressMinor / props.goal.targetMinor : 0))
@@ -12,6 +12,7 @@ const reached = computed(() => props.goal.progressMinor >= props.goal.targetMino
 const late = computed(() => !reached.value && props.goal.targetDate !== null && daysFromToday(props.goal.targetDate) < 0)
 const items = [
   [
+    { get label() { return translate(props.goal.completedAt ? 'goalReactivate' : 'goalComplete') }, icon: "i-lucide-check", onSelect: () => emit("toggleCompleted") },
     { get label() { return translate('editGoal') }, icon: "i-lucide-pencil", onSelect: () => emit("edit") },
     { get label() { return translate('deleteGoal') }, icon: "i-lucide-trash-2", color: "error" as const, onSelect: () => emit("remove") },
   ],
@@ -55,6 +56,10 @@ const items = [
       </UDropdownMenu>
     </header>
 
+    <p v-if="goal.allocationNeedsReview" class="mt-3 text-sm text-warning">{{ $t('goalReviewAllocation') }}</p>
+    <p v-if="goal.fundingUnavailable" class="mt-3 text-sm text-muted">{{ $t('goalFundingUnavailable') }}</p>
+    <p v-if="goal.completedAt" class="mt-3 text-sm text-success">{{ $t('goalCompleted') }}</p>
+    <p v-if="goal.shortfallMinor" class="mt-3 text-sm text-warning">{{ $t('goalFundingShortfall', { amount: format(goal.shortfallMinor, currency) }) }}</p>
     <div class="flex items-center gap-4 py-5">
       <GoalRing :value="share" :label="$t('saved', { value1: formatPercent(share) })" />
       <div class="min-w-0">
@@ -82,7 +87,7 @@ const items = [
         </dd>
       </div>
       <div class="flex items-center justify-between gap-3">
-        <dt class="text-muted">{{ $t('progressFrom') }}</dt>
+        <dt class="text-muted">{{ $t(goal.accountId ? 'goalAllocationFrom' : 'progressFrom') }}</dt>
         <dd class="min-w-0 truncate text-right text-default" :title="account?.name">
           {{ goal.accountId ? (account?.name ?? $t('aLinkedAccount')) : $t('updatedByHand') }}
         </dd>

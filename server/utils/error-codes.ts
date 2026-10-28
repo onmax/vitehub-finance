@@ -1,5 +1,15 @@
 // Stable codes preserve English diagnostics for agents while the app translates the code.
 const CODES: Record<string, string> = {
+  "Budget changes must start this month or later.": "errorBudgetChangesMustStartThisMonthOrLater",
+  "Create a new budget to change its category or sharing.": "errorCreateANewBudgetToChangeItsCategoryOrSharing",
+  "Budgets need an expense category.": "errorBudgetsNeedAnExpenseCategory",
+  "A monthly budget must be above zero.": "errorAMonthlyBudgetMustBeAboveZero",
+  "Use a private account for a personal goal and a shared account for a shared goal.": "errorGoalAllocationAudience",
+  "The allocation exceeds the account's unallocated balance.": "errorGoalAllocationExceeded",
+  "A goal target must be above zero.": "errorGoalPositiveTarget",
+  "Shared plans require shared accounts.": "errorSharedPlanAccounts",
+  "No such forecast plan.": "errorForecastPlanMissing",
+  "End date must follow start date.": "errorPlanEndDate",
   "month must be YYYY-MM.": "errorMonthMustBeYyyyMm",
   "Cross-origin reports aren't accepted.": "errorCrossOriginReportsArenTAccepted",
   "Report too large.": "errorReportTooLarge",
