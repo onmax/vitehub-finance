@@ -13,6 +13,7 @@ patchedDependencies:
   nitro@3.0.260610-beta: fddc7e6ce6f06fb79e5c7c138ba6fcdbf19eace4b74d602783fe37cfc8ac02d2
   nuxt-nightly@5.0.0-29766097.1e475df9: bcd24143fcf00377e7d327374a487779a871a24c60d4823333a143c2ada1517a
   okmcp@0.2.1-main.2239349: aa0db872543a5d06762e3971f10369717c68c6aa147e299a8c7c15ab831f4aa1
+  pkce-challenge@5.0.1: 10a80fae3f18cbc5ab3849ddf3265fd0669afe8f2e5f2d3f1d55dcd6a4e9bbf5
 
 importers:
 
@@ -9428,7 +9429,7 @@ snapshots:
       '@ai-sdk/provider': 4.0.24
       '@ai-sdk/provider-utils': 5.0.56(zod@4.6.7)
       cross-spawn: 7.0.6
-      pkce-challenge: 5.0.1
+      pkce-challenge: 5.0.1(patch_hash=10a80fae3f18cbc5ab3849ddf3265fd0669afe8f2e5f2d3f1d55dcd6a4e9bbf5)
       zod: 4.6.7
     optional: true
 
@@ -10676,7 +10677,7 @@ snapshots:
       eventsource: 3.0.7
       eventsource-parser: 3.1.1
       jose: 6.2.13
-      pkce-challenge: 5.0.1
+      pkce-challenge: 5.0.1(patch_hash=10a80fae3f18cbc5ab3849ddf3265fd0669afe8f2e5f2d3f1d55dcd6a4e9bbf5)
       zod: 4.6.7
 
   '@modelcontextprotocol/core@2.4.0':
@@ -10698,7 +10699,7 @@ snapshots:
       hono: 4.13.14
       jose: 6.2.13
       json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
+      pkce-challenge: 5.0.1(patch_hash=10a80fae3f18cbc5ab3849ddf3265fd0669afe8f2e5f2d3f1d55dcd6a4e9bbf5)
       raw-body: 3.0.2
       zod: 4.6.7
       zod-to-json-schema: 3.25.2(zod@4.6.7)
@@ -17450,7 +17451,7 @@ snapshots:
     optionalDependencies:
       '@napi-rs/nice': 1.1.1
 
-  pkce-challenge@5.0.1: {}
+  pkce-challenge@5.0.1(patch_hash=10a80fae3f18cbc5ab3849ddf3265fd0669afe8f2e5f2d3f1d55dcd6a4e9bbf5): {}
 
   pkg-types@1.3.1:
     dependencies:

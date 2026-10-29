@@ -18,6 +18,9 @@ patchedDependencies:
   nitro@3.0.260610-beta: patches/nitro@3.0.260610-beta.patch
   # Keeps Nuxt's dev-only module URL out of the Workers bundle.
   nuxt-nightly@5.0.0-29766097.1e475df9: patches/nuxt-nightly@5.0.0-29766097.1e475df9.patch
+  # Lets Workers builds resolve pkce-challenge (workerd and default targets), which the MCP SDK in vite-hub imports.
+  # Upstream: https://github.com/crouchcd/pkce-challenge/pull/50, merged, unreleased. Drop it when a release has it.
+  pkce-challenge@5.0.1: patches/pkce-challenge@5.0.1.patch
 
 # Only workerd (local Workers runtime) and the SQLite driver need their install scripts.
 allowBuilds:
