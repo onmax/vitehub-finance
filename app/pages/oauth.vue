@@ -58,12 +58,13 @@ async function answer(accept: boolean) {
   }
 }
 
-const can = [
+// Computed, so the list follows the language once its catalog loads, as the rest of the page does.
+const can = computed(() => [
   translate('readTheAccountsBalancesAndTransactionsYouCanSee'),
   translate('readRecurringPaymentsBudgetsGoalsAndTheForecast'),
   translate('categorizeTransactionsAndAddNotesWhereYouMayEdit'),
   translate('addTransactionsAndManualAccountsYouGiveIt'),
-]
+])
 </script>
 
 <template>
