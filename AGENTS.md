@@ -187,8 +187,8 @@ runs only with a key (the household's or the server's), never in the demo, and n
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
 `keySource`), counts, tokens, and cost.
 
-Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudflare()` from `vite-hub/gateways`,
-pnpm-patched until upstream ships `@vite-hub/gateways`) and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
+Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudflare()` from `vite-hub/gateways`)
+and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
 picks the household's own route (`householdSettings.aiGateway`, its key and Cloudflare fields sealed in `aiCredentials`
 with crypto.ts) when its owner set one in Settings › Categories, else the server's own route from nuxt.config.ts
 `vite.env.server` (`cloudflare` when the TypeSafe key, account, and gateway are set, else `typesafe`, else `vercel`), else none. It passes every credential to the preset explicitly, so a
@@ -283,6 +283,12 @@ Run heavy commands through `heavy` (shared machine): `heavy pnpm typecheck`, `HE
 Tests that need SQL (test/privacy) run server code against an in-memory SQLite with every migration (test/database.ts),
 mocking `vite-hub/database/drizzle` and the other ViteHub modules they reach; only synthetic data goes in them.
 `FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
+
+`nuxt dev` serves the ViteHub Console at `/_vitehub` (no sign-in, this machine only). Its MCP client section
+(`/_vitehub/mcp-client`) finds `/mcp` through `/.well-known/oauth-protected-resource` and signs in with the app's own
+OAuth, as whoever is signed in to the app in that browser. To hold two household members at once, connect, sign in to
+the app as the other person, then use "Add an account". A `fin_` API key works too, as a bearer token. Deployed builds
+have no Console.
 
 ## API
 

@@ -11,12 +11,6 @@ overrides:
   devalue: ^5.9.4
 
 patchedDependencies:
-  # AI gateways (upstream: https://github.com/vite-hub/vitehub/pull/2985, the @vite-hub/gateways package). Until a
-  # release has it, the presets and ask() are patched into @vite-hub/agent, vite-hub/gateways re-exports them, and
-  # typesafeEnv() only declares the variables of typesafe(). Drop the three patches when the vite-hub pin includes it.
-  '@vite-hub/agent@0.0.4': patches/@vite-hub__agent@0.0.4.patch
-  '@vite-hub/env@0.0.4': patches/@vite-hub__env@0.0.4.patch
-  vite-hub@0.0.4: patches/vite-hub@0.0.4.patch
   # Logs the error behind a JSON-RPC "Internal error" (upstream returns it without a trace), and puts the description,
   # icons, and website in modern serverInfo as legacy initialize does. Rebase or drop it when the okmcp pin moves.
   okmcp@0.2.1-main.2239349: patches/okmcp@0.2.1-main.2239349.patch

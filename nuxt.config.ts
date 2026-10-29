@@ -95,6 +95,9 @@ export default defineNuxtConfig({
   vitehub: {
     ...VITEHUB[host],
     auth: true,
+    // The ViteHub Console in `nuxt dev` only, with its MCP client: it connects to this app's /mcp through the app's own
+    // OAuth, as several household members at once. A deployed build has no Console until someone decides who may open it.
+    ...(dev ? { console: { auth: false as const, mcpClient: true } } : {}),
     ...(email ? { email: EMAIL[email] } : {}),
   },
 

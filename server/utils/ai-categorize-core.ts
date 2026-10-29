@@ -4,8 +4,8 @@
 // from vite-hub/gateways), which reach TypeSafe directly or through Vercel or Cloudflare AI Gateway
 // (server/utils/ai-gateway.ts picks the route).
 // server/utils/ai-categorize.ts picks the rows and writes the results.
-import type { AgentUsageRecord, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/agent"
-import type { AiGateway } from "vite-hub/gateways"
+import type { AgentUsageRecord } from "vite-hub/agent"
+import type { AiGateway, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/gateways"
 import { currencyDigits } from "../../shared/money"
 
 /** Dollars per million input tokens (jev-1.14). Output tokens are free. Only used to estimate cost in the logs. */
