@@ -9,7 +9,7 @@ const steps = computed(() => {
   const state = data.value
   return [
     { key: "account", label: translate("setupAccount"), to: "/connect/banks", done: state.accountCount > 0 },
-    { key: "review", label: translate("setupReview"), to: "/transactions?view=needs-review", done: state.transactionCount > 0 && state.needsReview === 0 },
+    { key: "transactions", label: translate("setupTransactions"), to: "/transactions", done: state.transactionCount > 0 },
     { key: "sharingReviewed", label: translate("setupSharing"), to: "/accounts", done: state.sharingReviewed },
     { key: "recurringReviewed", label: translate("setupRecurring"), to: "/recurring", done: state.recurringReviewed },
     { key: "plan", label: translate("setupPlan"), to: "/budgets", done: state.planCount > 0 },

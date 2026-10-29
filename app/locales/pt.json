@@ -1662,7 +1662,7 @@
   "setupReopen": "Mostrar lista",
   "setupProgress": "{completed} de {total} passos concluídos",
   "setupAccount": "Adicionar ou ligar uma conta",
-  "setupReview": "Importar e rever as tuas transações",
+  "setupTransactions": "Adicionar as tuas transações",
   "setupSharing": "Escolher as contas a partilhar",
   "setupRecurring": "Confirmar rendimentos e pagamentos recorrentes",
   "setupPlan": "Criar o primeiro orçamento ou objetivo",

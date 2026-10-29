@@ -1662,7 +1662,7 @@
   "setupReopen": "Afficher la liste",
   "setupProgress": "{completed} étapes sur {total} terminées",
   "setupAccount": "Ajouter ou connecter un compte",
-  "setupReview": "Importer et vérifier vos opérations",
+  "setupTransactions": "Ajouter vos opérations",
   "setupSharing": "Choisir les comptes à partager",
   "setupRecurring": "Confirmer les revenus et factures récurrents",
   "setupPlan": "Créer votre premier budget ou objectif",

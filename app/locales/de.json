@@ -1662,7 +1662,7 @@
   "setupReopen": "Checkliste anzeigen",
   "setupProgress": "{completed} von {total} Schritten erledigt",
   "setupAccount": "Konto hinzufügen oder verbinden",
-  "setupReview": "Umsätze importieren und prüfen",
+  "setupTransactions": "Deine Umsätze hinzufügen",
   "setupSharing": "Freigabe deiner Konten prüfen",
   "setupRecurring": "Regelmäßige Einnahmen und Rechnungen bestätigen",
   "setupPlan": "Erstes Budget oder Ziel erstellen",

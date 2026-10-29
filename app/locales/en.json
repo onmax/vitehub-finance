@@ -1662,7 +1662,7 @@
   "setupReopen": "Show checklist",
   "setupProgress": "{completed} of {total} steps complete",
   "setupAccount": "Add or connect an account",
-  "setupReview": "Import and review your transactions",
+  "setupTransactions": "Bring in your transactions",
   "setupSharing": "Choose which accounts to share",
   "setupRecurring": "Confirm recurring income and bills",
   "setupPlan": "Create your first budget or goal",
