@@ -859,6 +859,7 @@
   "startTheConnectionAgainFromYourAgentItOpensA": "Relancez la connexion depuis votre agent. Un nouveau lien s’ouvrira.",
   "connectAnAgentToVitehubFinance": "Connecter un agent à ViteHub Finance",
   "signInToChooseWhetherItCanReadYourHousehold": "Connectez-vous pour choisir s’il peut consulter les finances de votre foyer.",
+  "theAgentAskedForANewSignInYouAreSignedInAs": "L’agent demande une nouvelle connexion. Vous êtes connecté en tant que {value1}. Reconnectez-vous ou connectez-vous avec un autre compte.",
   "allowToReadYourHouseholdSFinances": "Autoriser {value1} à consulter les finances de votre foyer ?",
   "itActsAsAndCan": "Il agit en tant que {value1} et peut :",
   "allowReturnsTo": "Autoriser vous ramène à {value1}.",

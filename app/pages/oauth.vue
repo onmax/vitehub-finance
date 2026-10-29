@@ -2,7 +2,8 @@
 /**
  * Where an MCP client's sign-in lands: Better Auth's OAuth provider sends both its login and consent steps here, with a
  * signed `oauth_query`. Signed out: sign in with a password or passkey (and the two-factor code, inline), and the
- * provider resumes the authorization by itself. Signed in: allow or deny the agent, then go back to it.
+ * provider resumes the authorization by itself. Signed in: allow or deny the agent, then go back to it. An agent that
+ * asks for a new sign-in (`prompt=login`, such as "sign in as someone else") gets the sign-in form even then.
  */
 definePageMeta({ layout: "auth" })
 useSeoMeta({ title: () => translate('connectAnAgent') })
@@ -17,6 +18,8 @@ const ready = computed(() => mounted.value && sessionKnown.value)
 const text = (value: unknown) => (typeof value === "string" ? value : Array.isArray(value) && typeof value[0] === "string" ? value[0] : undefined)
 const clientId = computed(() => text(route.query.client_id) ?? "")
 const valid = computed(() => Boolean(clientId.value && route.query.sig))
+// Better Auth accepts consent for `prompt=login` only from a session that started after this link.
+const signInAgain = computed(() => (text(route.query.prompt) ?? "").split(" ").includes("login"))
 
 // The agent's name as it registered itself ("Claude Code", "Codex"…). Readable once signed in.
 const { data: client } = useAsyncData(
@@ -80,9 +83,9 @@ const can = computed(() => [
       <USkeleton class="mt-6 h-10 w-full" />
     </template>
 
-    <template v-else-if="!loggedIn">
+    <template v-else-if="!loggedIn || signInAgain">
       <h1 class="text-lg font-semibold text-highlighted">{{ $t('connectAnAgentToVitehubFinance') }}</h1>
-      <p class="mt-2 mb-5 text-sm text-muted">{{ $t('signInToChooseWhetherItCanReadYourHousehold') }}</p>
+      <p class="mt-2 mb-5 text-sm text-muted">{{ loggedIn ? $t('theAgentAskedForANewSignInYouAreSignedInAs', { value1: user?.email ?? "" }) : $t('signInToChooseWhetherItCanReadYourHousehold') }}</p>
       <InviteAuthForm :allow-sign-up="false" />
     </template>
 
