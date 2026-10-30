@@ -79,7 +79,7 @@ export interface DemoScenario {
   confirmed: string[]
 }
 
-export const DEMO_BUDGETS = [
+const DEMO_BUDGETS = [
   { category: "Groceries", amountMinor: 60_000 },
   { category: "Eating out", amountMinor: 25_000 },
   { category: "Transport", amountMinor: 12_000 },
@@ -88,7 +88,7 @@ export const DEMO_BUDGETS = [
 ]
 
 /** FNV-1a, then mulberry32: the same date always gives the same household. */
-export function seededRandom(seed: string) {
+function seededRandom(seed: string) {
   let hash = 2166136261
   for (const char of seed) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
   let state = hash >>> 0

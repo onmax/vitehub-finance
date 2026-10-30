@@ -9,8 +9,8 @@ import { eraseAccounts } from "../../utils/finance-lifecycle"
 
 /** The owner deletes an account with its history. Dependent rows go explicitly: SQLite may run without foreign keys. */
 export default defineHandler(async (event) => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
+  refuseDemoPerson(who)
   const account = await requireAccount(who, param(event))
   if (!canManage(account, who.userId)) throw new HTTPError({ status: 403, statusText: "Only the account's owner can delete it." })
   await eraseAccounts([account.id])

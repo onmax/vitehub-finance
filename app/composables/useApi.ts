@@ -1,5 +1,3 @@
-import type { MaybeRefOrGetter } from "vue"
-
 type Query = Record<string, string | number | boolean | null | undefined>
 
 export interface ScopedFetchOptions<T> {
@@ -58,10 +56,10 @@ export function refreshStems(...stems: string[]) {
   return refreshNuxtData(keys)
 }
 
-/** Toasts an action's failure, worded by the server when it can, and reports it to the server's logs. */
 /** How long a toast stays: long enough to read it (about 15 characters a second on top of 4 s), 6 to 15 s. */
 const readingTime = (...texts: Array<string | undefined>) => Math.min(15_000, Math.max(6_000, 4_000 + texts.join(" ").length * 65))
 
+/** Toasts an action's failure, worded by the server when it can, and reports it to the server's logs. */
 export function useNotify() {
   const toast = useToast()
   return {

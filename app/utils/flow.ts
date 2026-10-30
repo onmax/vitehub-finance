@@ -1,5 +1,4 @@
 import type { FlowNode } from "#shared/api"
-import { translate } from "./translate"
 
 const FLOW_LABELS: Record<string, string> = {
   "uncategorized-in": "otherMoneyIn", uncategorized: "uncategorized", "other-in": "otherSources",

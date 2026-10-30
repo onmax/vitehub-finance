@@ -13,20 +13,14 @@ const { data: status, refresh } = useFetch<SyncStatus | null>("/api/sync/status"
 const syncing = computed(() => status.value?.syncing ?? [])
 const attention = computed(() => status.value?.attention ?? [])
 
-let timer: ReturnType<typeof setTimeout> | undefined
-function plan() {
-  clearTimeout(timer)
-  timer = setTimeout(
-    async () => {
-      if (document.visibilityState === "visible") await refresh().catch(() => {})
-      plan()
-    },
-    syncing.value.length ? 3000 : 60_000,
-  )
-}
-onMounted(plan)
-onBeforeUnmount(() => clearTimeout(timer))
-watch(() => syncing.value.length, plan)
+const { start } = useTimeoutFn(
+  async () => {
+    if (document.visibilityState === "visible") await refresh().catch(() => {})
+    start()
+  },
+  () => (syncing.value.length ? 3000 : 60_000),
+)
+watch(() => syncing.value.length, () => start())
 useEventListener(document, "visibilitychange", () => document.visibilityState === "visible" && refresh())
 watch(
   () => syncing.value.length,

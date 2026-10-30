@@ -25,7 +25,7 @@ export async function createHousehold(person: { id: string; name: string }) {
   return householdId
 }
 
-export async function seedCategories(householdId: string, language: Locale = "en") {
+async function seedCategories(householdId: string, language: Locale = "en") {
   const t = await translator(language)
   const rows = DEFAULT_CATEGORIES.map((entry) => ({ ...entry, name: t(`category${entry.name.replace(/[^a-zA-Z]/g, "")}`), id: id(), householdId }))
   // D1 caps bound parameters per statement, so insert in small batches.

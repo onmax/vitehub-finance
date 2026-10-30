@@ -28,7 +28,7 @@ import {
   user as users,
 } from "../databases/config"
 import { splitHouseholds } from "./erase-core"
-import { eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./finance-lifecycle"
+import { chunks, eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./finance-lifecycle"
 
 /**
  * Erasing people and their money: the demo's nightly reset (server/demo/seed.ts) and someone deleting their own account
@@ -40,11 +40,6 @@ import { eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./finance-
 export async function householdsOf(userIds: string[]) {
   const memberships = await db.select({ organizationId: member.organizationId, userId: member.userId }).from(member)
   return splitHouseholds(memberships, new Set(userIds))
-}
-
-/** Runs `remove` over `ids` in chunks that stay under D1's 100 bound parameters a statement. */
-async function inChunks(ids: string[], remove: (chunk: string[]) => Promise<unknown>) {
-  for (let index = 0; index < ids.length; index += 80) await remove(ids.slice(index, index + 80))
 }
 
 /** Every row a household owns, then the household. SQLite may run without foreign keys, so children go first. */
@@ -65,7 +60,7 @@ async function eraseHouseholds(households: string[]) {
   await eraseBudgets(budgets.map(row => row.id))
   await db.delete(forecastPlan).where(inArray(forecastPlan.householdId, households))
   await db.delete(financeSetup).where(inArray(financeSetup.householdId, households))
-  await inChunks(connectionIds, (ids) => db.delete(syncRun).where(inArray(syncRun.connectionId, ids)))
+  for (const ids of chunks(connectionIds)) await db.delete(syncRun).where(inArray(syncRun.connectionId, ids))
   await db.delete(connection).where(inArray(connection.householdId, households))
   await db.delete(rule).where(inArray(rule.householdId, households))
   await db.delete(category).where(inArray(category.householdId, households))

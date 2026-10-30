@@ -3,10 +3,10 @@ import type { Locale } from "./locale"
 import { nextStep, setupSteps, type SetupStep, type SetupStepId } from "./setup-steps"
 
 /** The guide in the repository, for an agent that can't reach the app's own copy. */
-export const SETUP_GUIDE_SOURCE = "https://raw.githubusercontent.com/onmax/vitehub-finance/main/docs/1.guides/0.setup.md"
+const SETUP_GUIDE_SOURCE = "https://raw.githubusercontent.com/onmax/vitehub-finance/main/docs/1.guides/0.setup.md"
 
 /** Each step's heading in the guide, word for word, so the agent finds it. */
-export const SETUP_STEP_TITLES: Record<SetupStepId, string> = {
+const SETUP_STEP_TITLES: Record<SetupStepId, string> = {
   account: "Create an Enable Banking account",
   app: "Register an app",
   credentials: "Add the credentials to ViteHub Finance",

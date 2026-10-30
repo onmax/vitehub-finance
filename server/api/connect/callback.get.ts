@@ -22,7 +22,7 @@ import { matchReconnectedAccounts } from "../../utils/sync"
 const NO_ACCOUNTS =
   "The bank shared no accounts. Select at least one at the bank. If you did, link it in the Enable Banking control panel first."
 
-const toConnect = (query: Record<string, string>) => redirect(`/connect/banks?${new URLSearchParams(query)}`, 302)
+const toConnect = (query: Record<string, string>) => redirect(`/connect/banks?${new URLSearchParams(query)}`)
 
 /**
  * Where the bank sends people back after the consent. Trades the code for a session, stores it sealed, runs the first

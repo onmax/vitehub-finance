@@ -1,7 +1,7 @@
-// Keyset cursors for lists ordered by date desc, id desc: base64url of `date|id`. Pure: tests import it.
+// Keyset cursors for lists ordered by date desc, id desc: base64url of `date|id`.
 import { isIsoDate } from "./dates"
 
-export interface Cursor {
+interface Cursor {
   date: string
   id: string
 }

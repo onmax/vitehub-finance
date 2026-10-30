@@ -1,9 +1,9 @@
 // A holdings account's past: what it held at the close of each day, walked back from today's holdings through its coin
-// movements, and what that was worth at each day's price. Pure: tests import it without ViteHub.
+// movements, and what that was worth at each day's price.
 import { addDays } from "./dates"
 
 /** One change to a holding's quantity: whole coins, signed, fees included. */
-export interface CoinChange {
+interface CoinChange {
   date: string
   symbol: string
   quantity: number

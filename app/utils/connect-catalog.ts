@@ -2,7 +2,6 @@
 // in, and the steps its connect dialog walks through. Banks keep their own picker (ConnectBankPicker); exchanges, wallets,
 // and investment platforms are tiles on /connect/crypto and /connect/investments. The server says which ones it can
 // connect (`GET /api/connect/providers`); `soon` ones can't be connected anywhere yet.
-import type { Component } from "vue"
 import StripeKey from "~/components/connect/StripeKey.vue"
 import ExchangeKey from "~/components/connect/ExchangeKey.vue"
 import IbkrConnect from "~/components/connect/IbkrConnect.vue"

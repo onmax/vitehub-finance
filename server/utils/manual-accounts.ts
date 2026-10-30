@@ -6,7 +6,7 @@ import { setManualHoldings } from "./holdings"
 import type { Member } from "./identity"
 import { recordSnapshot } from "./snapshots"
 
-export interface ManualAccountInput {
+interface ManualAccountInput {
   name: string
   kind: AccountKind
   currency: string

@@ -10,7 +10,7 @@ export function useSetupCheck() {
   const { ready, loggedIn } = useAuthSession()
   const available = computed(() => ready.value && loggedIn.value && !useDemoBuild())
   const fetched = useScopedFetch<SetupCheck | null>("/api/setup/check", { key: "setup-check", unscoped: true, default: () => null, immediate: false })
-  watch(available, (value) => value && fetched.refresh(), { immediate: true })
+  whenever(available, () => fetched.refresh(), { immediate: true })
   const steps = computed(() => (fetched.data.value ? setupSteps(fetched.data.value) : []))
   return { ...fetched, available, steps }
 }

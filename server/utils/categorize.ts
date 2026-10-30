@@ -5,7 +5,7 @@ import type { Member } from "./identity"
 import { ruleActions, sqliteLowerForms } from "../providers/dedupe"
 
 /** The accounts someone may categorize: shared/access.ts `canEdit`, as SQL. */
-export function editableAccounts(who: Pick<Member, "userId" | "householdId">): SQL {
+function editableAccounts(who: Pick<Member, "userId" | "householdId">): SQL {
   return and(
     eq(financialAccount.householdId, who.householdId),
     or(
@@ -49,7 +49,7 @@ export function textMatches(text: string): SQL {
  * How a rule matches, as SQL: `match` starts a word in the description or counterparty, ignoring case
  * (server/providers/dedupe.ts `startsWord` in JS). "fee" matches "Bank fee" but not "Coffee".
  */
-export function ruleMatches(text: string): SQL {
+function ruleMatches(text: string): SQL {
   const patterns = sqliteLowerForms(text).flatMap((form) => {
     const needle = escapeLike(form)
     return [`${needle}%`, ...[" ", "*", ".", "/", "-", ",", "(", ":"].map((before) => `%${escapeLike(before)}${needle}%`)]
@@ -58,7 +58,7 @@ export function ruleMatches(text: string): SQL {
   return or(column(sql`lower(${transaction.description})`), column(sql`lower(coalesce(${transaction.counterparty}, ''))`))!
 }
 
-export interface RuleAction {
+interface RuleAction {
   /** The category to file matches under; null leaves categories alone. */
   categoryId: string | null
   exclude: boolean

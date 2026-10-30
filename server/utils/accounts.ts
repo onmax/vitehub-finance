@@ -52,10 +52,10 @@ export function selectAccounts(who: Pick<Member, "userId" | "householdId">, scop
 type Joined = Awaited<ReturnType<typeof selectAccounts>>[number]
 
 /** The bank logo lookup `toSummary` takes, for the accounts in `rows`. */
-export const accountLogos = (rows: Joined[]) =>
+const accountLogos = (rows: Joined[]) =>
   bankLogos(rows.filter((row) => row.provider === "enable_banking").map((row) => ({ institution: row.connectionInstitution, country: row.country })))
 
-export function toSummary(
+function toSummary(
   row: Joined,
   who: Pick<Member, "userId">,
   convert: Converter,
@@ -90,7 +90,7 @@ export function toSummary(
 
 const kindOrder = (kind: string) => ACCOUNT_KINDS.indexOf(kind as (typeof ACCOUNT_KINDS)[number])
 
-export const sortAccounts = (a: AccountSummary, b: AccountSummary) =>
+const sortAccounts = (a: AccountSummary, b: AccountSummary) =>
   kindOrder(a.kind) - kindOrder(b.kind) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
 
 export async function listAccounts(

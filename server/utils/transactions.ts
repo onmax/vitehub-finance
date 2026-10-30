@@ -1,5 +1,5 @@
 import { HTTPError } from "./http-error"
-import { and, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql, type SQL } from "drizzle-orm"
+import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql, type SQL } from "drizzle-orm"
 
 import { db } from "vite-hub/database/drizzle"
 import { kv } from "vite-hub/kv"
@@ -18,9 +18,10 @@ import { decodeCursor, encodeCursor } from "./cursor"
 import { eachDay, isIsoDate } from "./dates"
 import type { Member } from "./identity"
 import { detectRecurring } from "./recurring"
+import { requireCategory } from "./rule-input"
 import { unpairTransfer } from "./transfers"
 
-export interface TransactionFilters {
+interface TransactionFilters {
   scope?: Scope
   q?: string
   account?: string
@@ -36,8 +37,8 @@ export interface TransactionFilters {
   limit?: number
 }
 
-export const DEFAULT_LIMIT = 50
-export const MAX_LIMIT = 200
+const DEFAULT_LIMIT = 50
+const MAX_LIMIT = 200
 
 const columns = {
   row: transaction,
@@ -134,8 +135,9 @@ async function filterConditions(who: Member, filters: TransactionFilters) {
     const categoryId = filters.category === "none" ? null : filters.category
     conditions.push(sql`exists (select 1 from json_each(coalesce((select splits from transaction_review where transaction_id = ${transaction.id}), '[null]')) split where (case when split.value is null then ${transaction.categoryId} else json_extract(split.value, '$.categoryId') end) is ${categoryId})`)
   }
-  if (filters.review === "needs-review") conditions.push(sql`not exists (select 1 from transaction_review where transaction_id = ${transaction.id} and reviewed_at is not null)`)
-  if (filters.review === "assigned-to-me") conditions.push(sql`exists (select 1 from transaction_review where transaction_id = ${transaction.id} and assigned_to = ${who.userId} and reviewed_at is null)`)
+  const reviews = (where: SQL) => db.select({ id: transactionReview.transactionId }).from(transactionReview).where(and(eq(transactionReview.transactionId, transaction.id), where))
+  if (filters.review === "needs-review") conditions.push(notExists(reviews(isNotNull(transactionReview.reviewedAt))))
+  if (filters.review === "assigned-to-me") conditions.push(exists(reviews(and(eq(transactionReview.assignedTo, who.userId), isNull(transactionReview.reviewedAt))!)))
   if (filters.from) {
     if (!isIsoDate(filters.from)) throw new HTTPError({ status: 400, statusText: "from must be YYYY-MM-DD." })
     conditions.push(gte(transaction.date, filters.from))
@@ -144,8 +146,8 @@ async function filterConditions(who: Member, filters: TransactionFilters) {
     if (!isIsoDate(filters.to)) throw new HTTPError({ status: 400, statusText: "to must be YYYY-MM-DD." })
     conditions.push(lte(transaction.date, filters.to))
   }
-  if (filters.direction === "in") conditions.push(sql`${transaction.amountMinor} > 0`)
-  if (filters.direction === "out") conditions.push(sql`${transaction.amountMinor} < 0`)
+  if (filters.direction === "in") conditions.push(gt(transaction.amountMinor, 0))
+  if (filters.direction === "out") conditions.push(lt(transaction.amountMinor, 0))
   return conditions
 }
 
@@ -251,14 +253,7 @@ export async function updateTransaction(who: Member, id: string, change: Transac
   if (!canEdit(account, who.userId)) throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
   if (change.hidden !== undefined && (!canHide(account, who.userId) || who.via !== "browser"))
     throw new HTTPError({ status: 403, statusText: "Only the account's owner can hide its transactions, from the browser." })
-  if (change.categoryId) {
-    const [found] = await db
-      .select({ id: category.id })
-      .from(category)
-      .where(and(eq(category.id, change.categoryId), eq(category.householdId, who.householdId)))
-      .limit(1)
-    if (!found) throw new HTTPError({ status: 400, statusText: "No such category." })
-  }
+  await requireCategory(who.householdId, change.categoryId ?? null)
   const [review] = await db.select().from(transactionReview).where(eq(transactionReview.transactionId, id)).limit(1)
   await validateReviewChange(who, row, account, review, change)
   if (change.reimbursementOf) {
@@ -335,7 +330,7 @@ const flowSums = {
   outMinor: sql<number>`coalesce(sum(case when ${allocationAmount} < 0 or ${isRefund} then -${allocationAmount} else 0 end), 0)`,
 }
 
-export interface FlowOptions {
+interface FlowOptions {
   scope: Scope
   from: string
   to: string
@@ -637,10 +632,10 @@ export async function refundCandidates(who: Member, id: string) {
   if (refund.row.amountMinor === 0 || !canEdit(refund, who.userId)) return []
   const rows = await selectVisible(who, "household", and(
     eq(transaction.currency, refund.row.currency),
-    sql`${transaction.amountMinor} < 0`,
+    lt(transaction.amountMinor, 0),
     lte(transaction.date, refund.row.date),
     eq(transaction.excluded, false),
-    sql`${transaction.categoryId} in (select id from category where kind = 'expense')`,
+    inArray(transaction.categoryId, db.select({ id: category.id }).from(category).where(eq(category.kind, "expense"))),
     isNull(transactionReview.splits),
   )).orderBy(desc(transaction.date)).limit(100)
   return rows.filter((row) => sameAudience(audienceOf(row), audienceOf(refund))).map((row) => toTransaction(row, who))
@@ -680,8 +675,7 @@ export async function bulkUpdateTransactions(who: Member, input: v.InferOutput<t
     const [entry] = await selectVisible(who, "household", eq(transaction.id, id)).limit(1)
     if (!entry) throw new HTTPError({ status: 404, statusText: "No such transaction." })
     if (!canEdit(entry, who.userId)) throw new HTTPError({ status: 403, statusText: "You can view this account but not edit it." })
-    if (input.change.categoryId && !(await db.select({ id: category.id }).from(category).where(and(eq(category.id, input.change.categoryId), eq(category.householdId, who.householdId))).limit(1)).length)
-      throw new HTTPError({ status: 400, statusText: "No such category." })
+    await requireCategory(who.householdId, input.change.categoryId ?? null)
     await validateReviewChange(who, entry.row, await requireAccount(who, entry.row.accountId), entry.review ?? undefined, input.change)
     if (input.change.categoryId !== undefined && entry.row.transferId)
       throw new HTTPError({ status: 400, statusText: "Change detected transfers individually.", data: { code: "transactionBulkTransfer" } })

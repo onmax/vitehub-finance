@@ -20,7 +20,7 @@ function loosePath(pathname: string) {
   return path.toLowerCase().replace(/[\\/]+/g, "/").replace(/(.)\/$/, "$1")
 }
 
-export const BROWSER_ONLY = "Do this in the browser. Agents and API keys can't."
+const BROWSER_ONLY = "Do this in the browser. Agents and API keys can't."
 
 /**
  * Agents (OAuth access tokens) and API keys act as their person for what the consent screen (app/pages/oauth.vue)
@@ -48,8 +48,8 @@ export function isBrowserOnlyRoute(method: string, pathname: string) {
 /** PATCH /api/accounts/:id fields only the browser sends: who sees the account, what they may do, and archiving. */
 export const BROWSER_ONLY_ACCOUNT_FIELDS = ["visibility", "householdPermission", "archived"] as const
 
-export const CROSS_SITE = "This request didn't come from ViteHub Finance. Reload the page and try again."
-export const NOT_JSON = "Send JSON."
+const CROSS_SITE = "This request didn't come from ViteHub Finance. Reload the page and try again."
+const NOT_JSON = "Send JSON."
 
 const JSON_TYPE = /^application\/([\w.-]+\+)?json\s*(;|$)/i
 

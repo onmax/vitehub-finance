@@ -1,4 +1,3 @@
-import { translate } from "./translate"
 import { activeLocale, i18n } from "../lib/i18n"
 
 /**

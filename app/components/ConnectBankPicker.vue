@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { currentFormatLocale } from "~/lib/i18n"
-import { useLocalStorage } from "@vueuse/core"
 import type { Bank, ProviderInfo } from "#shared/api"
 import { bankMark } from "#shared/banks"
 

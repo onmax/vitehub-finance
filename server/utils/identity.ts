@@ -141,6 +141,6 @@ export async function householdMembers(householdId: string) {
     .select({ userId: member.userId, role: member.role, name: users.name, email: users.email, image: users.image })
     .from(member)
     .innerJoin(users, eq(users.id, member.userId))
-    .where(and(eq(member.organizationId, householdId)))
+    .where(eq(member.organizationId, householdId))
     .orderBy(asc(member.createdAt))
 }

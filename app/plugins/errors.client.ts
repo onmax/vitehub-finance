@@ -17,8 +17,8 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook("vue:error", (error, _instance, info) => reportClientError("vue", error, { info }))
   // What breaks the whole page (error.vue), such as a plugin or a chunk that failed to load.
   nuxtApp.hook("app:error", (error) => reportClientError("unhandled", error))
-  window.addEventListener("unhandledrejection", (event) => reportClientError("unhandled", event.reason))
-  window.addEventListener("error", (event) => {
+  useEventListener(window, "unhandledrejection", (event) => reportClientError("unhandled", event.reason))
+  useEventListener(window, "error", (event) => {
     // A failed <img> or <script> load has no error object and nothing to report.
     if (event.error) reportClientError("unhandled", event.error)
   })

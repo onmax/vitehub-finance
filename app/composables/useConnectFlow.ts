@@ -1,4 +1,3 @@
-import type { InjectionKey, Ref } from "vue"
 import type { ConnectionSummary } from "#shared/api"
 import type { CatalogProvider } from "~/utils/connect-catalog"
 

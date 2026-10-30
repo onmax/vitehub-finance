@@ -53,10 +53,9 @@ const options = computed(() => [
       <h2 class="border-b border-default pb-2 text-sm font-medium text-highlighted">{{ $t('orStartAnotherWay') }}</h2>
       <ul class="mt-2 grid gap-x-4 sm:grid-cols-3">
         <li v-for="option in options" :key="option.label">
-          <component
-            :is="option.to ? resolveComponent('NuxtLink') : 'button'"
+          <ULink
             :to="option.to"
-            type="button"
+            raw
             class="-mx-2 flex h-full w-[calc(100%+1rem)] cursor-pointer items-start gap-3 rounded-lg p-2 py-3 text-left transition-colors duration-150 hover:bg-elevated/60 focus-visible:outline-2 focus-visible:outline-primary"
             @click="option.action?.()"
           >
@@ -67,7 +66,7 @@ const options = computed(() => [
               <span class="block text-sm font-medium text-highlighted">{{ option.label }}</span>
               <span class="block text-sm text-muted">{{ option.description }}</span>
             </span>
-          </component>
+          </ULink>
         </li>
       </ul>
     </div>

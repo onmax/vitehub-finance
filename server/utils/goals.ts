@@ -11,7 +11,7 @@ import type { Member } from "./identity"
 import { Icon, IsoDate, Name, PositiveMinor } from "./input"
 
 type GoalRow = typeof goal.$inferSelect
-export interface GoalInput {
+interface GoalInput {
   name?: string
   icon?: string
   targetMinor?: number
@@ -27,7 +27,7 @@ export const GoalFields = {
 }
 const mine = (who: Member) => and(eq(goal.householdId, who.householdId), or(isNull(goal.ownerId), eq(goal.ownerId, who.userId)))
 
-export function monthsUntil(today: string, targetDate: string) {
+function monthsUntil(today: string, targetDate: string) {
   const [y1, m1, d1] = today.split("-").map(Number) as [number, number, number]
   const [y2, m2, d2] = targetDate.split("-").map(Number) as [number, number, number]
   return Math.max(1, (y2 - y1) * 12 + (m2 - m1) + (d2 >= d1 ? 0 : -1))

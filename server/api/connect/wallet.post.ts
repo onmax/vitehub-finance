@@ -20,8 +20,8 @@ const Body = v.object({
 
 /** Watches a public wallet address: its native coin balance, priced like any holding. */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
+  refuseDemoPerson(who)
   const body = await readValid(event, Body)
   const address = parseAddress(body.chain, body.address)
   if (!address) throw fail(400, `That isn't a valid ${CHAINS[body.chain].name} address.`, "invalidWallet", { chain: CHAINS[body.chain].name })

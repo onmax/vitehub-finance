@@ -1,9 +1,9 @@
 import { HTTPError } from "./http-error"
-import { and, eq, inArray, or, type SQL } from "drizzle-orm"
+import { and, eq, or, type SQL } from "drizzle-orm"
 import { type H3Event } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { financialAccount, transaction } from "../databases/config"
-import { canEdit, canView, type AccountAccess, type Scope } from "#shared/access"
+import { canEdit, canView, type Scope } from "#shared/access"
 import type { Member } from "./identity"
 
 export type { Scope }
@@ -51,18 +51,7 @@ export async function requireAccount(who: Member, accountId: string, need: "view
     .from(financialAccount)
     .where(and(eq(financialAccount.id, accountId), eq(financialAccount.householdId, who.householdId)))
     .limit(1)
-  const access = row as AccountAccess | undefined
-  if (!row || !access || !canView(access, who.userId) || (need === "edit" && !canEdit(access, who.userId)))
+  if (!row || !canView(row, who.userId) || (need === "edit" && !canEdit(row, who.userId)))
     throw new HTTPError({ status: 404, statusText: "No such account." })
   return row
-}
-
-/** Restricts a list of account ids to the visible ones (for filters that arrive from the client). */
-export async function onlyVisible(who: Member, ids: string[], scope: Scope = "household") {
-  if (!ids.length) return []
-  const rows = await db
-    .select({ id: financialAccount.id })
-    .from(financialAccount)
-    .where(and(visibleAccounts(who, scope), inArray(financialAccount.id, ids)))
-  return rows.map((row) => row.id)
 }

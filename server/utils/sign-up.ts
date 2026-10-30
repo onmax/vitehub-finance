@@ -3,9 +3,9 @@ import { db } from "vite-hub/database/drizzle"
 import { invitation, user as users } from "../databases/config"
 import { isAllowedEmail } from "./allowed"
 
-export const SIGN_UP_NEEDS_INVITATION =
+const SIGN_UP_NEEDS_INVITATION =
   "This server can't send email to confirm your address, so a new account needs an invitation. Ask your household's owner for an invite link and create your account from it."
-export const SIGN_UP_WRONG_INVITATION =
+const SIGN_UP_WRONG_INVITATION =
   "This invitation is for another email, or it expired. Sign up with the email it went to, or ask for a new invitation."
 
 /** A pending, unexpired invitation for this email: `id` names one, or any will do. */

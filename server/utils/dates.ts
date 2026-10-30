@@ -1,11 +1,10 @@
 // Calendar math on `YYYY-MM-DD` strings, in UTC so a date never shifts with the host's timezone.
-// Pure: tests import it without ViteHub.
 
 const DAY = 86_400_000
 const pad = (value: number) => String(value).padStart(2, "0")
 const parse = (date: string) => new Date(`${date}T00:00:00Z`)
 
-export const isoDate = (date: Date) => date.toISOString().slice(0, 10)
+const isoDate = (date: Date) => date.toISOString().slice(0, 10)
 export const todayIso = () => isoDate(new Date())
 
 export const addDays = (date: string, days: number) => isoDate(new Date(parse(date).getTime() + days * DAY))

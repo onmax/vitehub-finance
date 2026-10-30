@@ -5,7 +5,7 @@
  * server adds Enable Banking's logo for any other bank from its cached bank lists (server/utils/bank-logos.ts).
  * Every `icon` here is listed in nuxt.config's client icon bundle.
  */
-export interface BankMark {
+interface BankMark {
   /** A glyph (`i-simple-icons-*`, `i-finance-*`), drawn in `fg` (or its own colors) on a `bg` tile. */
   icon?: string
   bg?: string

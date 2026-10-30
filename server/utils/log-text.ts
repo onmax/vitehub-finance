@@ -1,5 +1,5 @@
 // Free text that reaches the logs from outside (browser error reports): no queries, no personal numbers, bounded.
-// Pure, so nuxt.config.ts (evlog's redaction) and tests import it too.
+// Pure, so nuxt.config.ts (evlog's redaction) imports it too.
 
 /**
  * A URL's query and fragment: `?` or `#` and what follows, after a path (anything with a `/` before it, so "Why?"

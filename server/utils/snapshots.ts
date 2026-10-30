@@ -2,15 +2,13 @@ import { and, desc, eq, gte, sql } from "drizzle-orm"
 import { db } from "vite-hub/database/drizzle"
 import { balanceSnapshot, financialAccount, transaction } from "../databases/config"
 import { currencyDigits } from "#shared/money"
-import { addDays } from "./dates"
+import { addDays, todayIso } from "./dates"
 import { quantityTimeline, valueTimeline, type CoinHistory } from "./holdings-history"
 import { rates } from "./fx"
 import { closingPrices } from "./prices"
 
-export const today = () => new Date().toISOString().slice(0, 10)
-
 /** Today's balance for an account; a later write the same day replaces it. Feeds the net worth chart. */
-export async function recordSnapshot(accountId: string, balanceMinor: number, date = today()) {
+export async function recordSnapshot(accountId: string, balanceMinor: number, date = todayIso()) {
   await db
     .insert(balanceSnapshot)
     .values({ accountId, date, balanceMinor })
@@ -33,7 +31,7 @@ export async function backfillSnapshots(accountId: string, days = 400) {
     .where(eq(financialAccount.id, accountId))
     .limit(1)
   if (!account) return
-  const end = today()
+  const end = todayIso()
   const since = addDays(end, -days)
   const moves = await db
     .select({ date: transaction.date, total: sql<number>`sum(${transaction.amountMinor})` })
@@ -67,7 +65,7 @@ export async function backfillSnapshots(accountId: string, days = 400) {
  * today's ECB rate, for the days before today without a snapshot. Today's is the live value the sync just wrote.
  */
 export async function backfillDailyValues(accountId: string, currency: string, values: Array<{ date: string; value: number; currency: string }>) {
-  const past = values.filter((day) => day.date < today())
+  const past = values.filter((day) => day.date < todayIso())
   if (!past.length) return 0
   // `rates` gives units of each currency per unit of `currency`; an unknown one counts 1:1, as in valueHoldings.
   const table = past.some((day) => day.currency !== currency) ? await rates(currency) : {}
@@ -98,7 +96,7 @@ export async function backfillHoldingSnapshots(
   holdings: Array<{ symbol: string; quantity: number }>,
   history: CoinHistory,
 ) {
-  const end = today()
+  const end = todayIso()
   const timeline = quantityTimeline(holdings, history, end, addDays(end, -365))
   if (!timeline.length) return 0
   const known = new Set(

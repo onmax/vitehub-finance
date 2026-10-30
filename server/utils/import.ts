@@ -13,14 +13,14 @@ import { householdRules, insertTransactions } from "./sync"
 import { detectTransfers } from "./transfers"
 import type { AccountRow } from "./accounts"
 
-export const ImportRow = v.object({
+const ImportRow = v.object({
   date: v.pipe(v.string(), v.trim(), v.check(isDate, "Dates must be YYYY-MM-DD.")),
   amount: v.pipe(v.number(), v.finite()),
   description: v.pipe(v.string(), v.trim(), v.minLength(1, "Every row needs a description."), v.maxLength(500)),
   counterparty: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.maxLength(200)))),
 })
 
-export const IMPORT_LIMIT = 5000
+const IMPORT_LIMIT = 5000
 
 export const ImportRows = v.pipe(v.array(ImportRow), v.minLength(1, "No rows to import."), v.maxLength(IMPORT_LIMIT, "Import at most 5000 rows at once."))
 

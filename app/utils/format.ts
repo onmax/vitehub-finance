@@ -1,4 +1,3 @@
-import { translate } from "./translate"
 // Dates and times for people: "Today", "Yesterday", "12 Oct", "3 min ago". Transactions, snapshots, and recurring rows
 // carry `YYYY-MM-DD` strings; timestamps (last sync, sessions) are ISO strings. Everything formats with the
 // active language through Intl.

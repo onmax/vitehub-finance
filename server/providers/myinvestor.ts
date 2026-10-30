@@ -6,7 +6,7 @@ import { mapped, ProviderError, USER_AGENT, type ProviderResult } from "./types"
 
 export type { MyInvestorCredentials }
 
-export const NO_FUND_PRICE = "Morningstar has no recent price for one of your MyInvestor funds. Remove it and connect MyInvestor again."
+const NO_FUND_PRICE = "Morningstar has no recent price for one of your MyInvestor funds. Remove it and connect MyInvestor again."
 
 /** Funds by ISIN or name, for the connect dialog. */
 export const searchFunds = (term: string) => mapped(() => morningstar({ userAgent: USER_AGENT }).search(term))

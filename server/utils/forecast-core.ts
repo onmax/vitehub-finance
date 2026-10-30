@@ -3,7 +3,7 @@
 import type { Cadence, Forecast, ForecastAccount, ForecastConfidence, ForecastDay, ForecastKind, ForecastPayment, ForecastSeries } from "#shared/api"
 import { dailyShare, lowestOf, riskDateOf, summarizeMonths } from "../../shared/forecast"
 import { addDays, daysBetween, monthEnd, monthOf, monthStart, shiftMonth } from "./dates"
-import { advance, occurrencesBetween } from "./recurring-core"
+import { advance, median, occurrencesBetween } from "./recurring-core"
 
 /** The z-score of the 10th and 90th percentiles: a model range, without a calibrated probability guarantee. */
 const Z80 = 1.2816
@@ -23,7 +23,7 @@ export interface CoreAccount {
   balanceMinor: number
 }
 
-export interface CoreSeries {
+interface CoreSeries {
   id: string
   accountId: string
   accountName: string
@@ -41,7 +41,7 @@ export interface CoreSeries {
 }
 
 /** A visible, not excluded transaction on a projected account, household currency. */
-export interface CoreRow {
+interface CoreRow {
   transactionId?: string
   accountId: string
   date: string
@@ -54,7 +54,7 @@ export interface CoreRow {
   key: string | null
 }
 
-export interface ForecastInput {
+interface ForecastInput {
   today: string
   months: number
   accounts: CoreAccount[]
@@ -67,12 +67,6 @@ export interface ForecastInput {
   history: Array<{ date: string; balanceMinor: number }>
 }
 
-const median = (values: number[]) => {
-  const sorted = [...values].sort((a, b) => a - b)
-  const middle = Math.floor(sorted.length / 2)
-  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2
-}
-
 const deviation = (values: number[]) => {
   if (values.length < 2) return 0
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length
@@ -80,7 +74,7 @@ const deviation = (values: number[]) => {
 }
 
 /** How regular a series has been: its last payments (one per day), oldest first. */
-export function regularity(
+function regularity(
   series: Pick<CoreSeries, "amountMinor" | "cadence" | "status">,
   payments: Array<{ date: string; amountMinor: number }>,
 ): Pick<ForecastSeries, "confidence" | "occurrences" | "dayRange" | "amountRange" | "amountMinor"> & { amountSd: number } {
@@ -122,7 +116,7 @@ export function regularity(
 }
 
 /** A series' payments in `[today, end]`, from its next date. A payment up to a week late still comes, today. */
-export function upcomingDates(nextDate: string, cadence: Cadence, today: string, end: string) {
+function upcomingDates(nextDate: string, cadence: Cadence, today: string, end: string) {
   const dates: string[] = []
   occurrencesBetween(nextDate, cadence, nextDate, end).forEach((date, index) => {
     if (date >= today) dates.push(date)
@@ -132,7 +126,7 @@ export function upcomingDates(nextDate: string, cadence: Cadence, today: string,
 }
 
 /** The last `count` full months before `today`'s month, oldest first. */
-export const fullMonthsBefore = (today: string, count: number) =>
+const fullMonthsBefore = (today: string, count: number) =>
   Array.from({ length: count }, (_, index) => shiftMonth(monthOf(today), index - count))
 
 /**

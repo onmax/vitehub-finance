@@ -80,7 +80,7 @@ async function detectAccount(householdId: string, account: { id: string; currenc
     }
 }
 
-export interface ListedRecurring extends RecurringItem {
+interface ListedRecurring extends RecurringItem {
   item: Recurring
   accountId: string
   accountArchived: boolean

@@ -32,8 +32,8 @@ const Body = v.object({
  * with the exchange's own reason; then it's sealed and synced.
  */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
+  refuseDemoPerson(who)
   const body = await readValid(event, Body)
   // The exchange only: the key and secret never reach a log.
   const log = useLogger(event)

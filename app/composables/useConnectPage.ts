@@ -15,7 +15,7 @@ export function useConnectPage(page: ConnectPage) {
     default: () => [],
   })
   const connections = computed(() => all.value.filter((connection) => connectPageOf(connection.provider) === page))
-  const highlight = ref<string | null>(null)
+  const highlight = refAutoReset<string | null>(null, 4000)
 
   const motion = usePreferredReducedMotion()
   function scrollTo(id: string) {
@@ -23,7 +23,6 @@ export function useConnectPage(page: ConnectPage) {
   }
   function flash(id: string) {
     highlight.value = id
-    setTimeout(() => (highlight.value = null), 4000)
   }
 
   // Section anchors only: `#ibkr/connect` and other catalog routes open a dialog instead (useConnectRoutes).

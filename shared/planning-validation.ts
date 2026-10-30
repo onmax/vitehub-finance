@@ -1,9 +1,8 @@
 import * as v from 'valibot'
-const IdDate = v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/), v.check(value => {
+const IsoDate = v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/), v.check(value => {
   const date = new Date(`${value}T00:00:00Z`)
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
 }, 'Use YYYY-MM-DD.'))
-const IsoDate = IdDate
 const Name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120))
 const PositiveMinor = v.pipe(v.number(), v.safeInteger(), v.minValue(0))
 const Share = v.pipe(v.number(), v.finite(), v.minValue(-0.9), v.maxValue(3))

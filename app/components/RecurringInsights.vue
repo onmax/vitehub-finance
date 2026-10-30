@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useStorage } from "@vueuse/core"
 import type { Insight } from "#shared/api"
 
 // Ways to save, found in the recurring payments: what to look at, and what it's worth a year. "Show" points at the
@@ -8,7 +7,7 @@ const props = defineProps<{ insights: Insight[] }>()
 const emit = defineEmits<{ show: [ids: string[]] }>()
 const { format } = useMoney()
 
-const dismissed = useStorage<string[]>("finance:dismissed-insights", [])
+const dismissed = useLocalStorage<string[]>("finance:dismissed-insights", [])
 const idOf = (insight: Insight) => `${insight.kind}:${insight.recurringIds.join(",")}:${insight.savingsMinor}`
 const visible = computed(() => props.insights.filter((insight) => !dismissed.value.includes(idOf(insight))))
 const total = computed(() => visible.value.reduce((sum, insight) => sum + insight.savingsMinor, 0))

@@ -5,7 +5,7 @@ import { currencyDigits } from "../../shared/money"
 const toHex = (bytes: Uint8Array) => Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
 const sha256 = async (text: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))
 
-export const normalizeText = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim()
+const normalizeText = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim()
 
 /**
  * One dedupe key per row, in order. A provider id wins (`id:<id>`); without one, a hash of date|amount|description|n,

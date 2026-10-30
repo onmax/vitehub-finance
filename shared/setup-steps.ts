@@ -4,7 +4,7 @@ import type { SetupCheck } from "./api"
  * The setup guide's steps (docs/1.guides/0.setup.md), in its order. The page shows each one's status under its heading
  * and the prompt hands the same list to an agent, so both talk about the same step by the same number.
  */
-export const SETUP_STEPS = ["account", "app", "credentials", "link", "connect"] as const
+const SETUP_STEPS = ["account", "app", "credentials", "link", "connect"] as const
 export type SetupStepId = (typeof SETUP_STEPS)[number]
 
 /**

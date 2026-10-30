@@ -1,4 +1,3 @@
-import { translate } from "./translate"
 /** "Chrome on macOS" from a user agent string; good enough to tell sessions and passkeys apart. */
 export function describeAgent(userAgent: string | null | undefined) {
   if (!userAgent) return translate('unknownDevice')

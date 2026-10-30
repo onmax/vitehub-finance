@@ -1,10 +1,9 @@
-import type { InsightTranslation } from "../../shared/api"
 // Finds repeating payments in one account's transactions. Pure (no database);
 // server/utils/recurring.ts loads the rows and stores what this returns.
-import type { Cadence } from "#shared/api"
+import type { Cadence, InsightTranslation } from "#shared/api"
 import { addDays, addMonths, daysBetween } from "./dates"
 
-export interface RecurringInput {
+interface RecurringInput {
   id: string
   date: string
   amountMinor: number
@@ -13,7 +12,7 @@ export interface RecurringInput {
   categoryId: string | null
 }
 
-export interface DetectedSeries {
+interface DetectedSeries {
   key: string
   name: string
   amountMinor: number
@@ -128,7 +127,7 @@ export function normalizedWords(text: string) {
 }
 
 /** The merchant part of a transaction: its counterparty when the bank names one, else the description's first words. */
-export function merchantKey(row: Pick<RecurringInput, "description" | "counterparty">) {
+function merchantKey(row: Pick<RecurringInput, "description" | "counterparty">) {
   const words = normalizedWords(row.counterparty?.trim() || row.description)
   return words.slice(0, 3).join(" ")
 }
@@ -139,7 +138,7 @@ export function seriesKey(row: Pick<RecurringInput, "description" | "counterpart
   return merchant ? `${row.amountMinor < 0 ? "out" : "in"}:${merchant}` : null
 }
 
-const median = (values: number[]) => {
+export const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b)
   const middle = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2
@@ -206,7 +205,7 @@ function seriesOf(key: string, rows: RecurringInput[], today: string): DetectedS
  * then every charge since at the new one. Variable bills (groceries, fuel) never qualify, so they never read as a
  * "price went up" insight, and the change stays visible after the second charge at the new price.
  */
-export function priceChange(series: Array<Pick<RecurringInput, "amountMinor" | "date">>, today: string) {
+function priceChange(series: Array<Pick<RecurringInput, "amountMinor" | "date">>, today: string) {
   const last = series.at(-1)
   if (!last) return null
   let change = series.length - 1
@@ -255,7 +254,7 @@ export interface RecurringItem {
   monthlyMinor: number
 }
 
-export interface InsightOptions {
+interface InsightOptions {
   /** Household currency, for the text. */
   currency: string
   convert: (minor: number, from: string) => number

@@ -38,7 +38,7 @@ const priceText = (price: number, currency: string) => `${price.toLocaleString("
  * deposit or withdrawal moves the household's own money, so both are transfers: neither is spending nor income.
  * Dividends, their tax, interest, and fees are.
  */
-export function brokerTransactions(account: BrokerAccount): ProviderTransaction[] {
+function brokerTransactions(account: BrokerAccount): ProviderTransaction[] {
   const trades = account.trades.map((trade) => ({
     externalId: trade.id ? `trade:${trade.id}` : null,
     date: trade.date,

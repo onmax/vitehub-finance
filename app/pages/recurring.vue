@@ -49,16 +49,16 @@ async function confirmAll() {
 }
 
 // "Show" on an insight: briefly marks its payments and scrolls to the first.
-const highlighted = ref<string[]>([])
+const highlighted = refAutoReset<string[]>([], 2400)
+const motion = usePreferredReducedMotion()
 async function show(ids: string[]) {
   kind.value = "out"
   highlighted.value = ids
   await nextTick()
   document.getElementById(`recurring-${ids[0]}`)?.scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    behavior: motion.value === "reduce" ? "auto" : "smooth",
     block: "center",
   })
-  useTimeoutFn(() => (highlighted.value = []), 2400)
 }
 </script>
 

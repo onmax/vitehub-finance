@@ -15,7 +15,7 @@ import type { Member } from "./identity"
 import { parseOrigin } from "./origin"
 
 /** Asks Enable Banking about the app the configured key signs for. A key it can't use at all is `rejected` too. */
-export async function bankCheck(config: EnableBankingConfig | null, callbackUrl: string): Promise<BankCheck> {
+async function bankCheck(config: EnableBankingConfig | null, callbackUrl: string): Promise<BankCheck> {
   if (!config) return { state: "missing" }
   try {
     const app = await bankApplication(config)

@@ -15,8 +15,8 @@ const Body = v.object({
 
 /** Starts linking a bank: a `pending` connection owned by the caller, and the bank's consent page to open. */
 export default defineHandler(async (event) => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
+  refuseDemoPerson(who)
   const config = requireBankConfig()
   const body = await readValid(event, Body)
   const log = useLogger(event)

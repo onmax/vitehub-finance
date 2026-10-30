@@ -2,7 +2,7 @@
 // `match` seeds rules: a description containing any of these words gets the category on sync.
 export type CategoryKind = "expense" | "income" | "transfer"
 
-export interface DefaultCategory {
+interface DefaultCategory {
   name: string
   kind: CategoryKind
   icon: string

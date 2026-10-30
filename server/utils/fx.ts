@@ -44,12 +44,6 @@ export async function rates(base: string): Promise<Record<string, number>> {
 /** Without a rate for `from`, the amount counts as is: a total with one odd currency beats no total. */
 const convertWith = (table: Record<string, number>, minor: number, from: string, to: string) => convertWithRates(table, minor, from, to) ?? minor
 
-/** Converts minor units between currencies. Same currency returns the amount untouched. */
-export async function convertMinor(minor: number, from: string, to: string) {
-  if (from === to) return minor
-  return convertWith(await rates(to), minor, from, to)
-}
-
 /** A converter bound to one target currency, for summing many amounts with one rate lookup. */
 export async function converterTo(to: string) {
   const table = await rates(to)

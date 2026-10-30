@@ -5,7 +5,7 @@ import { category, connection, financialAccount, stakingPosition, user as users 
 import { visibleAccounts, type Scope } from "./access"
 import { balanceHistory, baseCurrency, selectAccounts, type Converter } from "./accounts"
 import { bankLogos } from "./bank-logos"
-import { lastErrorFor } from "./connections"
+import { toConnectionSummary } from "./connections"
 import { addDays, eachDay, monthEnd, monthLabel, monthOf, monthStart, shiftMonth, todayIso } from "./dates"
 import type { Member } from "./identity"
 import { listRecurringRows } from "./recurring"
@@ -163,22 +163,5 @@ export async function needsAttention(who: Member, scope: Scope): Promise<Connect
       row.status === "error" ||
       (row.status === "active" && row.consentExpiresAt !== null && row.consentExpiresAt.getTime() <= limit),
   )
-  return Promise.all(
-    failing.map(async ({ connection: row, ownerName }) => ({
-      id: row.id,
-      provider: row.provider,
-      name: row.name,
-      institution: row.institution,
-      logo: row.provider === "enable_banking" ? logoOf(row) : null,
-      status: row.status,
-      ownerId: row.ownerId,
-      ownerName,
-      consentExpiresAt: row.consentExpiresAt?.toISOString() ?? null,
-      lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
-      lastError: await lastErrorFor(who, row),
-      lastErrorCode: row.lastErrorCode,
-      accounts: counts.get(row.id) ?? [],
-      canManage: row.ownerId === who.userId,
-    })),
-  )
+  return Promise.all(failing.map(({ connection: row, ownerName }) => toConnectionSummary(who, row, ownerName, counts.get(row.id) ?? [], logoOf)))
 }

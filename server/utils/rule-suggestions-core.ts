@@ -29,7 +29,7 @@ export function similarMatch(row: { description: string; counterparty: string | 
  * Moves banks make on their own, which clutter the list without being spending: round-ups into savings, Revolut's
  * spare change and currency exchanges. Specific phrases only, since an excluding rule hides what it matches.
  */
-export const AUTOMATIC_MOVES = [
+const AUTOMATIC_MOVES = [
   "spare change",
   "round up",
   "round-up",
@@ -40,7 +40,7 @@ export const AUTOMATIC_MOVES = [
   "exchanged to",
 ]
 
-export interface SuggestionRow {
+interface SuggestionRow {
   description: string
   counterparty: string | null
   categoryId: string | null
@@ -53,9 +53,9 @@ export interface SuggestionRow {
 }
 
 /** Rows a suggestion needs before it's worth a rule. */
-export const MIN_ROWS = 3
+const MIN_ROWS = 3
 /** At most this many suggestions at once, the ones that would match the most first. */
-export const MAX_SUGGESTIONS = 8
+const MAX_SUGGESTIONS = 8
 
 const plain = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase()
 
@@ -64,7 +64,7 @@ const plain = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toL
  * the first name alone, for a one-word name). Money between members isn't a payee to file; a relative who shares their
  * surnames is.
  */
-export function namesSomeone(match: string, people: string[]) {
+function namesSomeone(match: string, people: string[]) {
   const words = new Set(plain(match).split(/[^\p{L}\p{N}]+/u))
   return people.some((person) => {
     const parts = plain(person).split(/\s+/).filter((part) => part.length >= 3)

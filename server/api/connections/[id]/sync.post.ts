@@ -1,5 +1,5 @@
 import { and, desc, eq, gte } from "drizzle-orm"
-import { defineHandler } from "h3"
+import { defineHandler, getRouterParam } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { checkRateLimit } from "vite-hub/rate-limit"
 import { dispatchSync } from "#dispatch"
@@ -18,9 +18,9 @@ const BANK_INTERVAL = 6 * 60 * 60 * 1000
  * by hand at most three times a minute and once at a time: the reservation holds it until that sync ends.
  */
 export default defineHandler(async (event) => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
-  const row = await requireOwnConnection(who, event.context.params?.id)
+  refuseDemoPerson(who)
+  const row = await requireOwnConnection(who, getRouterParam(event, "id"))
   if (row.status === "pending") throw fail(409, "Finish connecting this bank first.")
   if (row.status === "revoked") throw fail(409, "This connection was removed.")
   if (row.provider === "enable_banking" && row.lastSyncedAt && Date.now() - row.lastSyncedAt.getTime() < BANK_INTERVAL) {

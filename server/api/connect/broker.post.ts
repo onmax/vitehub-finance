@@ -61,8 +61,8 @@ function plan(body: v.InferOutput<typeof Body>) {
  * token expires) or MyInvestor again gives that connection the new credentials, keeping its accounts and history.
  */
 export default defineHandler(async (event): Promise<ConnectionSummary> => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
+  refuseDemoPerson(who)
   const body = await readValid(event, Body)
   const { credentials, externalId, name, institution, read } = plan(body)
   const [existing] = await db

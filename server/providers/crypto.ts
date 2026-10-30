@@ -17,7 +17,7 @@ export function shortAddress(address: string) {
 }
 
 /** What a wallet transaction changed its holding by: the coins that moved, less the fee. Staking keeps them in the holding. */
-export const holdingChange = (transaction: CryptoTransaction) => (transaction.kind === "stake" ? 0 : transaction.quantity) - transaction.fee
+const holdingChange = (transaction: CryptoTransaction) => (transaction.kind === "stake" ? 0 : transaction.quantity) - transaction.fee
 
 /**
  * A wallet transaction as a row people understand. Its amount is what the holding changed by, fee included. Staking
@@ -26,7 +26,7 @@ export const holdingChange = (transaction: CryptoTransaction) => (transaction.ki
  * transfer: coins moving between your wallet and an exchange, into an escrow, or swapped for another asset are neither
  * spending nor income.
  */
-export function coinTransaction(transaction: CryptoTransaction): ProviderCoinTransaction | null {
+function coinTransaction(transaction: CryptoTransaction): ProviderCoinTransaction | null {
   const { kind, quantity, symbol, counterparty } = transaction
   if (kind === "stake" || kind === "fee") return null
   const other = counterparty ? shortAddress(counterparty) : null

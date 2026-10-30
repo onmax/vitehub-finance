@@ -2,14 +2,15 @@
 // database and the forecast around it, and stores settings and dismissals.
 import type { Alert, AlertSettings, AlertSeverity, Budget, ConnectionSummary, ForecastDay, Insight } from "#shared/api"
 import { toMinor } from "../../shared/money"
+import { addDays } from "./dates"
 
 /** How far ahead a low balance alerts, and how far back a large payment does. */
-export const LOW_BALANCE_DAYS = 30
+const LOW_BALANCE_DAYS = 30
 export const LARGE_PAYMENT_DAYS = 14
 
 const RANK: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 }
 
-export function defaultAlertSettings(currency: string): AlertSettings {
+function defaultAlertSettings(currency: string): AlertSettings {
   return {
     currency,
     budget: { enabled: true, percent: 90 },
@@ -93,7 +94,7 @@ export function lowBalanceAlert(days: ForecastDay[], settings: AlertSettings, cu
   }]
 }
 
-export interface Payment {
+interface Payment {
   id: string
   date: string
   description: string
@@ -147,5 +148,3 @@ export function priceIncreaseAlerts(insights: Insight[], settings: AlertSettings
 export function sortAlerts<T extends Pick<Alert, "severity" | "date">>(alerts: T[]) {
   return [...alerts].sort((a, b) => RANK[a.severity] - RANK[b.severity] || b.date.localeCompare(a.date))
 }
-
-const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)

@@ -6,30 +6,29 @@
 // server/utils/ai-categorize.ts picks the rows and writes the results.
 import type { AgentUsageRecord } from "vite-hub/agent"
 import type { AiGateway, AskChanceQuestion, AskChoiceQuestion } from "vite-hub/gateways"
+import type { CategoryKind } from "../../shared/categories"
 import { currencyDigits } from "../../shared/money"
 
 /** Dollars per million input tokens (jev-1.14). Output tokens are free. Only used to estimate cost in the logs. */
-export const JEV_PRICE_PER_MTOK = 0.042
+const JEV_PRICE_PER_MTOK = 0.042
 
 /**
  * Transactions per request: one Choice and one Noul each, about 7k tokens, well under Jev's 64k per request and 32k
  * per question. Smaller batches also keep the state short: unrelated rows in it cost accuracy.
  */
-export const BATCH_SIZE = 20
+const BATCH_SIZE = 20
 /** Requests in flight at once, under TypeSafe's per-organization requests-per-second limit. */
-export const CONCURRENCY = 3
+const CONCURRENCY = 3
 /**
  * The category is used only when the Choice's confidence (0 for an even split, 1 for all probability on one option)
  * reaches this. TypeSafe suggests a 0.5–0.6 floor for low-stakes actions; a category feeds budgets without anyone
  * looking, so it's stricter. People can still change it, and the UI marks it as suggested.
  */
-export const MIN_CONFIDENCE = 0.7
+const MIN_CONFIDENCE = 0.7
 /** And only when the companion Noul says the row fits one of the categories at all: TypeSafe's suggested "yes". */
-export const MIN_FITS = 0.7
+const MIN_FITS = 0.7
 /** Rule keywords per option description: enough to show what a category means, few enough to stay cheap. */
 const KEYWORDS_PER_OPTION = 8
-
-export type CategoryKind = "expense" | "income" | "transfer"
 
 export interface AiCategory {
   id: string
@@ -39,7 +38,7 @@ export interface AiCategory {
   keywords: string[]
 }
 
-export interface AiRow {
+interface AiRow {
   id: string
   amountMinor: number
   currency: string
@@ -48,14 +47,14 @@ export interface AiRow {
   accountKind: string
 }
 
-export interface JevState {
+interface JevState {
   spending_categories: string[]
   income_categories: string[]
   transactions: Array<{ direction: "money out" | "money in"; amount: string; description: string; counterparty?: string; account: string }>
 }
 
 /** One batch, ready to ask: the state, the questions, and per row which questions ask about it and what each option means. */
-export interface Batch {
+interface Batch {
   state: JevState
   questions: Record<string, AskChoiceQuestion | AskChanceQuestion>
   rows: Array<{ id: string; choice: string; fits: string; options: Map<string, string> }>
@@ -65,7 +64,7 @@ export interface Batch {
  * What a request may say about a transaction: its text with people's names, IBANs, and long numbers (cards, accounts,
  * references) masked. `names` are the household members' names; any word of three letters or more from one goes.
  */
-export function scrub(text: string, names: string[]) {
+function scrub(text: string, names: string[]) {
   let result = text
     .replace(/\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,3})?\b/g, "[account]")
     .replace(/[*xX]*\d[\d *-]{4,}\d/g, "[number]")
@@ -77,7 +76,7 @@ export function scrub(text: string, names: string[]) {
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 /** "about 12 EUR", "about 1,200 EUR": two significant digits, the size without the exact amount. */
-export function roughAmount(amountMinor: number, currency: string) {
+function roughAmount(amountMinor: number, currency: string) {
   const major = Math.abs(amountMinor) / 10 ** currencyDigits(currency)
   if (major < 1) return `under 1 ${currency}`
   const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(major)) - 1)
@@ -108,7 +107,7 @@ function optionsFor(categories: AiCategory[]) {
  * alternative to a "none of the above" option. Options start at a different place for each row, since Jev leans
  * toward the first option.
  */
-export function buildBatches(rows: AiRow[], categories: AiCategory[], options: { names?: string[]; batchSize?: number } = {}): Batch[] {
+function buildBatches(rows: AiRow[], categories: AiCategory[], options: { names?: string[]; batchSize?: number } = {}): Batch[] {
   const names = options.names ?? []
   // Rule keywords are household text too ("apply to similar" saves a payee): a keyword naming a member is left out.
   const described = categories.map((category) => ({
@@ -161,7 +160,7 @@ export function buildBatches(rows: AiRow[], categories: AiCategory[], options: {
   return batches
 }
 
-export interface Decision {
+interface Decision {
   id: string
   /** The category to give it, or null when Jev wasn't sure enough. */
   categoryId: string | null
@@ -173,7 +172,7 @@ export interface Decision {
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 
 /** The answers of one batch as decisions, one per row. A missing or malformed answer is "not sure". */
-export function readAnswers(batch: Batch, answers: Record<string, unknown>): Decision[] {
+function readAnswers(batch: Batch, answers: Record<string, unknown>): Decision[] {
   return batch.rows.map((row) => {
     const choice = answers[row.choice]
     const fits = answers[row.fits]
@@ -237,7 +236,7 @@ function count(usage: Usage, record: AgentUsageRecord) {
 }
 
 /** The provider's HTTP status behind a ViteHub Jev error (`providerStatus`), or 0 when the request never got one. */
-export function providerStatus(error: unknown) {
+function providerStatus(error: unknown) {
   const status = isRecord(error) ? (error.providerStatus ?? error.status) : undefined
   return typeof status === "number" ? status : 0
 }

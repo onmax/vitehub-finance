@@ -12,7 +12,7 @@ export interface PlannedEvent {
   endDate: string | null
 }
 
-export type DailyAccountForecast = Pick<ForecastDay, 'date' | 'balanceMinor'>
+type DailyAccountForecast = Pick<ForecastDay, 'date' | 'balanceMinor'>
 export type PlanningForecast = Forecast & {
   accountDays: Record<string, DailyAccountForecast[]>
   accountFlows: Record<string, { variable: number; moved: number }>

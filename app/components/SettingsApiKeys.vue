@@ -107,7 +107,7 @@ const expiry = (key: ApiKey) => {
         </span>
         <div class="min-w-0 flex-1">
           <p class="flex items-center gap-2 text-sm font-medium text-highlighted">
-            <span class="truncate">{{ key.name || translate('apiKey') }}</span>
+            <span class="truncate">{{ key.name || $t('apiKey') }}</span>
             <code class="shrink-0 rounded-sm bg-elevated px-1 font-mono text-xs font-normal text-muted">{{ key.start ?? key.prefix }}…</code>
           </p>
           <p class="truncate text-xs text-muted tabular-nums">

@@ -1,7 +1,7 @@
 import type { RateLimitDecision } from "vite-hub/rate-limit"
 import { HTTPError } from "./http-error"
 
-export const TOO_MANY_TRIES = "Too many tries. Wait a minute and try again."
+const TOO_MANY_TRIES = "Too many tries. Wait a minute and try again."
 
 /**
  * Turns a `checkRateLimit` verdict into the app's answer: nothing when allowed, a 429 the browser translates (with

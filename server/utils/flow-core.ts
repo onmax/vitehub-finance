@@ -1,8 +1,8 @@
-// A month's money flow: what came in by source and where it went by category, so a sankey can draw it. Pure, so the
-// rules are tested on their own; server/utils/flow.ts reads the totals.
+// A month's money flow: what came in by source and where it went by category, so a sankey can draw it. Pure;
+// server/utils/flow.ts reads the totals.
 import type { FlowNode } from "#shared/api"
 
-export interface CategoryTotals {
+interface CategoryTotals {
   categoryId: string | null
   /** Money in and out of this category this month, both positive, in the household's currency. */
   inMinor: number
@@ -17,8 +17,8 @@ export interface CategoryInfo {
 }
 
 /** Past this many, the smallest uses fold into one "Everything else" node, so labels stay readable. */
-export const MAX_USES = 8
-export const MAX_SOURCES = 5
+const MAX_USES = 8
+const MAX_SOURCES = 5
 
 function fold(nodes: FlowNode[], max: number, other: Omit<FlowNode, "amountMinor">) {
   const sorted = nodes.sort((a, b) => b.amountMinor - a.amountMinor)

@@ -22,7 +22,6 @@ export type ConnectionRow = typeof connection.$inferSelect
 
 /** A failure message people can read: an HTTP error's text, a provider's explanation, or the error's own message. */
 export function errorMessage(error: unknown) {
-  if (error instanceof HTTPError) return error.message
   if (error instanceof Error) return error.message
   return String(error)
 }
@@ -55,7 +54,7 @@ export function bankConfig(): EnableBankingConfig | null {
  * The demo (`FINANCE_DEMO=1`) links no banks for anyone: Enable Banking's restricted apps only reach the accounts
  * their owner linked in its control panel, so a stranger's bank would fail at the consent screen.
  */
-export const PUBLIC_NO_BANKS = "Bank connections aren't available on this public server. Import a CSV, or connect a wallet, an exchange, or Interactive Brokers."
+const PUBLIC_NO_BANKS = "Bank connections aren't available on this public server. Import a CSV, or connect a wallet, an exchange, or Interactive Brokers."
 
 /** Why this ViteHub Finance can't link banks, or null when it can. */
 export function banksUnavailable(): "public" | "setup" | null {
@@ -178,7 +177,7 @@ export async function englishError(code: string | null | undefined) {
  * every account it feeds, reads what was stored: the sync stores only that copy too (sync.ts), but older rows and the
  * bank callback may say more. Per-account details live in the sync runs, which only the owner reads (`recentRuns`).
  */
-export async function lastErrorFor(who: Pick<Member, "userId">, row: Pick<ConnectionRow, "ownerId" | "lastError" | "lastErrorCode">) {
+async function lastErrorFor(who: Pick<Member, "userId">, row: Pick<ConnectionRow, "ownerId" | "lastError" | "lastErrorCode">) {
   if (!row.lastError || row.ownerId === who.userId) return row.lastError
   return englishError(row.lastErrorCode)
 }
@@ -210,24 +209,33 @@ export async function listConnections(who: Member, options: { scope?: Scope; onl
   }
   const logoOf = await bankLogos(rows.map(({ connection: row }) => row))
   const listed = rows.filter(({ connection: row }) => row.ownerId === who.userId || (scope === "household" && shared.has(row.id)))
-  return Promise.all(
-    listed.map(async ({ connection: row, ownerName }) => ({
-      id: row.id,
-      provider: row.provider,
-      name: row.name,
-      institution: row.institution,
-      logo: row.provider === "enable_banking" ? logoOf(row) : null,
-      status: row.status,
-      ownerId: row.ownerId,
-      ownerName,
-      consentExpiresAt: iso(row.consentExpiresAt),
-      lastSyncedAt: iso(row.lastSyncedAt),
-      lastError: await lastErrorFor(who, row),
-      lastErrorCode: row.lastErrorCode,
-      accounts: visible.get(row.id) ?? [],
-      canManage: row.ownerId === who.userId,
-    })),
-  )
+  return Promise.all(listed.map(({ connection: row, ownerName }) => toConnectionSummary(who, row, ownerName, visible.get(row.id) ?? [], logoOf)))
+}
+
+/** A connection as `who` reads it: only the accounts given, its last failure as `lastErrorFor` says, never credentials. */
+export async function toConnectionSummary(
+  who: Pick<Member, "userId">,
+  row: ConnectionRow,
+  ownerName: string,
+  accounts: Array<{ id: string; name: string }>,
+  logoOf: (bank: { institution: string | null; country: string | null }) => string | null,
+): Promise<ConnectionSummary> {
+  return {
+    id: row.id,
+    provider: row.provider,
+    name: row.name,
+    institution: row.institution,
+    logo: row.provider === "enable_banking" ? logoOf(row) : null,
+    status: row.status,
+    ownerId: row.ownerId,
+    ownerName,
+    consentExpiresAt: iso(row.consentExpiresAt),
+    lastSyncedAt: iso(row.lastSyncedAt),
+    lastError: await lastErrorFor(who, row),
+    lastErrorCode: row.lastErrorCode,
+    accounts,
+    canManage: row.ownerId === who.userId,
+  }
 }
 
 export async function connectionSummary(who: Member, id: string) {

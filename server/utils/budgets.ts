@@ -15,7 +15,7 @@ import { movedOut, spendingByMonthCategory } from "./transactions"
 type BudgetRow = typeof budget.$inferSelect
 type MonthSpending = Awaited<ReturnType<typeof spendingByMonthCategory>>
 
-export interface BudgetInput {
+interface BudgetInput {
   categoryId?: string
   amountMinor?: number
   personal?: boolean

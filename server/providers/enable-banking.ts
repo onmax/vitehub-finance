@@ -26,7 +26,7 @@ export async function sessionDigest(sessionId: string) {
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`
 }
 
-export const bankClient = (config: EnableBankingConfig) =>
+const bankClient = (config: EnableBankingConfig) =>
   enableBankingClient({
     ...config,
     userAgent: USER_AGENT,

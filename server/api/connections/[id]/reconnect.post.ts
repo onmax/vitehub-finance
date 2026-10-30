@@ -1,13 +1,13 @@
-import { defineHandler } from "h3"
+import { defineHandler, getRouterParam } from "h3"
 import { fail, findBank, providerHttpError, requireBankConfig, requireOwnConnection, startBankLink } from "../../../utils/connections"
 import { requireMember } from "../../../utils/identity"
 import { refuseDemoPerson } from "../../../demo/mode"
 
 /** A new consent for an existing bank connection. Accounts match by id, then IBAN, so their history stays. */
 export default defineHandler(async (event) => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
-  const row = await requireOwnConnection(who, event.context.params?.id)
+  refuseDemoPerson(who)
+  const row = await requireOwnConnection(who, getRouterParam(event, "id"))
   if (row.provider !== "enable_banking") throw fail(400, "Only bank connections can be reconnected. Remove this connection and connect it again.")
   const config = requireBankConfig()
   try {

@@ -21,7 +21,7 @@ const FIAT = new Set(
   ),
 )
 
-export const isFiat = (symbol: string) => FIAT.has(symbol.toUpperCase())
+const isFiat = (symbol: string) => FIAT.has(symbol.toUpperCase())
 
 /** Precious metals by their ISO 4217 code, priced per troy ounce. CoinGecko's symbol lookup would answer some token. */
 export const METALS: Record<string, string> = { XAU: "Gold", XAG: "Silver", XPT: "Platinum", XPD: "Palladium" }
@@ -150,13 +150,6 @@ export async function quotes(symbols: string[], currency: string): Promise<Recor
     }
   }
   return out
-}
-
-/** Per-unit prices in minor units of `currency`, null when unknown. */
-export async function priceMinor(symbols: string[], currency: string): Promise<Record<string, number | null>> {
-  const prices = await quotes(symbols, currency)
-  const scale = 10 ** currencyDigits(currency)
-  return Object.fromEntries(Object.entries(prices).map(([symbol, price]) => [symbol, price === null ? null : Math.round(price * scale)]))
 }
 
 /**

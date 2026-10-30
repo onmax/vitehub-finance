@@ -1,7 +1,8 @@
 // Money moved between a household's own accounts is neither spending nor income. Pure logic: which rows are such moves,
 // and which outflow pairs with which inflow. server/utils/transfers.ts reads and writes the database around it.
+import { daysBetween } from "./dates"
 
-export interface TransferCandidate {
+interface TransferCandidate {
   id: string
   accountId: string
   ownerId: string
@@ -19,9 +20,9 @@ export interface TransferCandidate {
 }
 
 /** The same move booked on two accounts can land a few days apart (weekends, card settlement). */
-export const PAIR_DAYS = 4
+const PAIR_DAYS = 4
 /** Across currencies the bank's rate differs from today's ECB rate: 5% covers card spreads and months of drift. */
-export const FX_TOLERANCE = 0.05
+const FX_TOLERANCE = 0.05
 
 /**
  * Rows that say they are a move between your own money, whatever the other side: currency exchanges inside one bank,
@@ -47,7 +48,7 @@ const words = (text: string) =>
     .filter(Boolean)
 
 /** Every word of the owner's name appears in the text: "Payment from Alex Javier Moreno Ruiz" for Álex Moreno Ruíz. */
-export function namesOwner(text: string, ownerName: string | null | undefined) {
+function namesOwner(text: string, ownerName: string | null | undefined) {
   const name = words(ownerName ?? "")
   if (name.length < 2) return false
   const present = new Set(words(text))
@@ -63,8 +64,6 @@ export function looksLikeTransfer(row: Pick<TransferCandidate, "description" | "
   if (REFUND.test(row.description.trim())) return false
   return PATTERNS.some((pattern) => pattern.test(text)) || namesOwner(text, row.ownerName)
 }
-
-const dayNumber = (date: string) => Date.parse(`${date}T00:00:00Z`) / 86_400_000
 
 /**
  * Pairs each outflow with at most one inflow on another account: same amount in the same currency, or within
@@ -85,7 +84,7 @@ export function pairTransfers(rows: TransferCandidate[], toBase: (minor: number,
       if (used.has(candidate.id) || candidate.accountId === out.accountId) continue
       if (!hinted.has(out.id) && !hinted.has(candidate.id)) continue
       if ((out.private || candidate.private) && out.ownerId !== candidate.ownerId) continue
-      const days = Math.abs(dayNumber(candidate.date) - dayNumber(out.date))
+      const days = Math.abs(daysBetween(out.date, candidate.date))
       if (days > PAIR_DAYS) continue
       let gap: number
       if (candidate.currency === out.currency) {

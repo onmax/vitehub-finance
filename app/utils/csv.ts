@@ -1,4 +1,3 @@
-import { translate } from "./translate"
 // Bank exports as CSV, parsed in the browser: quoted fields (with "" escapes and line breaks inside), `;`, `,`, or
 // tab delimiters, a byte-order mark, and a header row or none. Then dates and amounts in the formats banks use.
 import { parseAmount } from "#shared/money"

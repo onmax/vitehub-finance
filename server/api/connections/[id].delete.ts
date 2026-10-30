@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm"
-import { defineHandler } from "h3"
+import { defineHandler, getRouterParam } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { connection, financialAccount } from "../../databases/config"
 import { deleteSession, type EnableBankingCredentials } from "../../providers/enable-banking"
@@ -14,9 +14,9 @@ import { eraseAccounts } from "../../utils/finance-lifecycle"
  * session is revoked at Enable Banking when possible.
  */
 export default defineHandler(async (event) => {
-  refuseDemoPerson(await requireMember(event))
   const who = await requireMember(event)
-  const row = await requireOwnConnection(who, event.context.params?.id)
+  refuseDemoPerson(who)
+  const row = await requireOwnConnection(who, getRouterParam(event, "id"))
   if (row.provider === "enable_banking") {
     const config = bankConfig()
     const credentials = await unseal<EnableBankingCredentials>(row.credentials).catch(() => null)

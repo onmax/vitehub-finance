@@ -7,8 +7,7 @@ import type { PlannedEvent, PlanningForecast } from "./planning"
 const DAY = 86_400_000
 const parse = (date: string) => Date.parse(`${date}T00:00:00Z`)
 export const addDay = (date: string, days: number) => new Date(parse(date) + days * DAY).toISOString().slice(0, 10)
-export const daysApart = (from: string, to: string) => Math.round((parse(to) - parse(from)) / DAY)
-export const monthDays = (month: string) => {
+const monthDays = (month: string) => {
   const [year, number] = month.split("-").map(Number) as [number, number]
   return new Date(Date.UTC(year, number, 0)).getUTCDate()
 }
@@ -31,7 +30,7 @@ export function lowestOf(days: ForecastDay[]) {
 /** The first day the low end of the range goes below zero, or null. */
 export const riskDateOf = (days: ForecastDay[]) => days.find((day) => day.lowMinor < 0)?.date ?? null
 
-export interface MonthInput {
+interface MonthInput {
   today: string
   startMinor: number
   days: ForecastDay[]
@@ -130,7 +129,7 @@ export const isBaseline = (scenario: ForecastScenario) =>
   !scenario.spendingChange && !scenario.incomeDelayDays && scenario.spendingMode !== 'budget' && !scenario.events?.length
 
 /** Repeats anchored to the original day, so 31 January becomes 28 February then 31 March. */
-export function plannedDates(event: PlannedEvent, today: string, end: string): string[] {
+function plannedDates(event: PlannedEvent, today: string, end: string): string[] {
   const dates: string[] = []
   const stop = event.endDate && event.endDate < end ? event.endDate : end
   if (event.cadence === 'once') return event.date >= today && event.date <= stop ? [event.date] : []

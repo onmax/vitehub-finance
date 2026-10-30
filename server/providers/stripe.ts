@@ -6,7 +6,7 @@ export interface StripeCredentials {
   accountId: string
 }
 
-export function stripeTransaction(row: PaymentMovement): ProviderTransaction {
+function stripeTransaction(row: PaymentMovement): ProviderTransaction {
   return {
     externalId: row.id,
     dedupeKey: `stripe:${row.id}`,

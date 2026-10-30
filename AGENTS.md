@@ -25,7 +25,7 @@ forkable, deployable to Cloudflare or any Node host.
 ## Rules that keep data private
 
 - Every read of accounts or transactions goes through `server/utils/access.ts`: `visibleAccounts(who, scope)` (SQL
-  condition), `visibleAccountIds`, `requireAccount(who, id, "view" | "edit")`, `onlyVisible`. A private account is
+  condition), `visibleAccountIds`, `requireAccount(who, id, "view" | "edit")`. A private account is
   visible to its owner only, in every list, total, chart, MCP tool, and API response. `shared/access.ts` holds the same
   rules for the UI (`canView`, `canEdit`, `canManage`).
 - Transactions, their sums, and anything derived from them (recurring series, transfer labels, the forecast) read

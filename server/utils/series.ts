@@ -1,4 +1,4 @@
-// Daily balance series from sparse snapshots. Pure: tests import it without ViteHub.
+// Daily balance series from sparse snapshots.
 import { eachDay } from "./dates"
 
 /**

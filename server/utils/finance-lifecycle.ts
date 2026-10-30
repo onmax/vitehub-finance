@@ -3,7 +3,7 @@ import { db } from "vite-hub/database/drizzle"
 import type { ForecastScenario } from "#shared/forecast"
 import { balanceSnapshot, budget, budgetVersion, financeSetup, financialAccount, forecastPlan, goal, holding, recurring, transaction, transactionReview } from "../databases/config"
 
-const chunks = <T>(items: T[], size = 80) => Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
+export const chunks = <T>(items: T[], size = 80) => Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
 const planAccounts = (scenario: ForecastScenario) => [scenario.accountId, scenario.oneOff?.accountId, ...(scenario.events ?? []).map(event => event.accountId)].filter((id): id is string => Boolean(id))
 
 export async function eraseTransactionReviews(where: SQL) {

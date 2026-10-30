@@ -1,6 +1,6 @@
 import { HTTPError } from "../../utils/http-error"
 import { and, eq, gt } from "drizzle-orm"
-import { defineHandler } from "h3"
+import { defineHandler, getRouterParam } from "h3"
 import { db } from "vite-hub/database/drizzle"
 import { invitation, organization, user as users } from "../../databases/config"
 
@@ -10,7 +10,7 @@ import { invitation, organization, user as users } from "../../databases/config"
  * invitations answer. Nothing about the household's money is here.
  */
 export default defineHandler(async (event) => {
-  const id = event.context.params?.id
+  const id = getRouterParam(event, "id")
   const [row] = id
     ? await db
         .select({ email: invitation.email, householdName: organization.name, inviterName: users.name })

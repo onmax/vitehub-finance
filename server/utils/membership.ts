@@ -1,6 +1,5 @@
 import { HTTPError } from "./http-error"
 import { and, eq, inArray, isNull, sql } from "drizzle-orm"
-
 import { db } from "vite-hub/database/drizzle"
 import {
   budget,
@@ -16,10 +15,7 @@ import {
 } from "../databases/config"
 import { applyRulesTo } from "./categorize"
 import { createHousehold } from "./household"
-import { eraseBudgets, movePlanningData } from "./finance-lifecycle"
-
-const chunks = <T>(items: T[], size = 80) =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, index) => items.slice(index * size, (index + 1) * size))
+import { chunks, eraseBudgets, movePlanningData } from "./finance-lifecycle"
 
 /**
  * Takes someone out of a household with their money: a fresh household of their own gets their connections and

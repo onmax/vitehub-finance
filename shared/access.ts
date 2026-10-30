@@ -2,7 +2,7 @@
 
 export type Scope = "me" | "household"
 
-export interface AccountAccess {
+interface AccountAccess {
   ownerId: string
   visibility: "private" | "household"
   householdPermission: "view" | "edit"

@@ -16,7 +16,6 @@ const flow = computed(() => rawFlow.value ? {
   uses: rawFlow.value.uses.map(localizeFlowNode),
 } : null)
 const { format } = useMoney()
-const router = useRouter()
 const { categories } = useCategories()
 
 const savings = computed(() => flow.value?.sources.find((node) => node.kind === "savings") ?? null)
@@ -31,7 +30,7 @@ function open(node: FlowNode) {
   const range = { from: flow.value.from, to: flow.value.to }
   const direction = flow.value.sources.includes(node) ? "in" : "out"
   const category = node.id === "uncategorized" || node.id === "uncategorized-in" ? "none" : node.categoryId ?? undefined
-  void router.push({ path: "/transactions", query: { ...range, view: direction, ...(category ? { category } : {}) } })
+  void navigateTo({ path: "/transactions", query: { ...range, view: direction, ...(category ? { category } : {}) } })
 }
 
 const transfersLink = computed(() => {

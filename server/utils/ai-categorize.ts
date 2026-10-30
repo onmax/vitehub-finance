@@ -30,7 +30,7 @@ async function demoHousehold(householdId: string) {
   return people.some((person) => isDemoPerson(person.email))
 }
 
-export interface AiOutcome {
+interface AiOutcome {
   /** Rows Jev was asked about. */
   asked: number
   /** Rows that got a category. */
@@ -52,7 +52,7 @@ type Log = Pick<RequestLogger, "set" | "warn">
  *   server's own route (ai-gateway.ts) is the operator's, who holds the database anyway. A private account's owner
  *   still gets its rows categorized by pressing the button.
  */
-export type AiRows = { caller: Pick<Member, "userId" | "householdId"> } | { accounts: SQL }
+type AiRows = { caller: Pick<Member, "userId" | "householdId"> } | { accounts: SQL }
 
 function allowedRows(rows: AiRows, route: Route): SQL {
   if ("caller" in rows) return writableTransactions(rows.caller)
@@ -164,10 +164,10 @@ async function householdCategories(householdId: string): Promise<AiCategory[]> {
   }))
 }
 
-/** Counts, tokens, and cost on the wide event, shaped like evlog's AI SDK fields (`ai.*`). */
 /** Which route answered, for the logs: `provider` (typesafe, vercel, cloudflare) and whose key (`keySource`). */
 const where = (route: Route) => ({ provider: route.route, keySource: route.source })
 
+/** Counts, tokens, and cost on the wide event, shaped like evlog's AI SDK fields (`ai.*`). */
 function log(target: Log | undefined, route: Route, usage: Usage, counts: { asked: number; categorized: number; durationMs: number }) {
   target?.set({
     ai: {

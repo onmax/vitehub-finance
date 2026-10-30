@@ -1,8 +1,6 @@
 // Labels and colors the forecast's charts and lists share. Dates are the server's `YYYY-MM-DD` days, read in UTC so a
 // day never shifts with the browser's timezone.
 import type { ForecastConfidence, ForecastKind } from "#shared/api"
-
-import { translate } from "./translate"
 import { currentFormatLocale as locale } from "../lib/i18n"
 
 /** A `YYYY-MM-DD` day as a UTC date, for scales and Intl. */
