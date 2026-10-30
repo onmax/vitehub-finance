@@ -118,7 +118,7 @@ const guess = computed(() => (props.transaction && !props.transaction.categoryId
 
       <p v-if="transaction.transferWith" class="flex gap-2 rounded-lg bg-elevated p-3 text-sm text-pretty text-muted">
         <UIcon name="i-lucide-arrow-left-right" class="mt-0.5 size-4 shrink-0" />
-        <span> {{ $t('moved', { value1: transaction.amountMinor < 0 ? "to" : "from" }) }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>{{ $t('soItIsnTSpendingOrIncomePickAnotherCategory') }} </span>
+        <span> {{ $t(transaction.amountMinor < 0 ? 'transferMovedTo' : 'transferMovedFrom') }} <span class="font-medium text-highlighted">{{ transaction.transferWith }}</span>{{ $t('soItIsnTSpendingOrIncomePickAnotherCategory') }} </span>
       </p>
 
       <UFormField :label="$t('category')">

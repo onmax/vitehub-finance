@@ -10,8 +10,8 @@ export const demoLocked = () => translate("notAvailableInTheDemo")
 export const useDemoBuild = () => Boolean(useRuntimeConfig().public.demo)
 
 /**
- * Whether the signed-in person is one of the demo's, Lucía or Pablo. They're locked out of account, bank, and household
- * management (`<DemoLock>`, and the server's `refuseDemoPerson`); data edits stay open.
+ * Whether the signed-in person is one of the demo's, Lucía or Pablo. Every visitor shares them, so they can't change
+ * anything (`<DemoLock>`, and the server's `refuseDemoPerson`).
  */
 export function useDemoPerson() {
   const { user } = useAuthSession()

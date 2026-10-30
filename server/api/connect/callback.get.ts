@@ -67,7 +67,7 @@ export default defineHandler(async (event) => {
     }
 
     const bankError = params.get("error")
-    if (bankError) return failed(params.get("error_description") || `The bank didn't give access. Try again and approve it at your bank. Details: ${bankError}`)
+    if (bankError) return failed("The bank didn't give access. Try again and approve it at your bank.")
     const code = params.get("code")
     if (!code) return failed("The bank didn't confirm access. Connect the bank again.")
     const config = bankConfig()

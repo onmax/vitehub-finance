@@ -1889,5 +1889,8 @@
   "setupStatusConnectTodo": "Ainda não ligaste nenhum banco.",
   "setupRedirectLabel": "URL de redirecionamento",
   "setupControlPanel": "Abrir o painel de controlo",
-  "setupConnect": "Ligar um banco"
+  "setupConnect": "Ligar um banco",
+  "nameYou": "{name} (você)",
+  "transferMovedTo": "Transferido para",
+  "transferMovedFrom": "Transferido de"
 }

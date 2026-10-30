@@ -55,7 +55,7 @@ function remove(id: string) { scenario.value = { ...scenario.value, events: scen
           <p class="money text-sm">{{ format(event.kind === 'income' ? event.amountMinor : -event.amountMinor, forecast.currency, { signed: true }) }}</p>
         </div>
         <UButton :label="$t('edit')" variant="ghost" color="neutral" size="sm" @click="edit(event)" />
-        <UButton :aria-label="`${$t('delete2')} ${event.name}`" icon="i-lucide-trash-2" variant="ghost" color="error" size="sm" @click="remove(event.id)" />
+        <UButton :aria-label="$t('delete4', { value1: event.name })" icon="i-lucide-trash-2" variant="ghost" color="error" size="sm" @click="remove(event.id)" />
       </li>
     </ul>
     <form v-if="opened" class="grid grid-cols-2 gap-3 rounded-lg border border-default p-4" @submit.prevent="save">

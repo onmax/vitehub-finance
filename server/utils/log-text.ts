@@ -8,6 +8,12 @@
  */
 export const URL_QUERY = /[?#](?<=\/[^\s"'`<>()?#]*[?#])[^\s"'`<>()]+/g
 
+/**
+ * The values of a failed Drizzle query (`Failed query: …\nparams: …`): a description, a counterparty, a person's name.
+ * Up to the stack's first frame or the end, since a value may span lines.
+ */
+export const DRIZZLE_PARAMS = /(?<=\nparams: )[\s\S]*?(?=\n\s+at |$)/g
+
 // No `/` or `:` in either part, so stack frames (`fn@https://…`, `node_modules/@vue/…`) stay readable.
 const EMAIL = /[^\s@"'`<>()[\]{}:;,/]+@[^\s@"'`<>()[\]{}:;,/]+\.[a-z]{2,}/gi
 // Two letters, two check digits, then 11 to 30 letters or digits, maybe grouped by spaces: ES91 2100 0418 4502 0005 1332.

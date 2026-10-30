@@ -7,3 +7,6 @@ node_modules
 .env*
 !.env.example
 *.log
+*.pem
+*.key
+.git

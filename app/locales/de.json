@@ -1889,5 +1889,8 @@
   "setupStatusConnectTodo": "Noch keine Bank verbunden.",
   "setupRedirectLabel": "Weiterleitungs-URL",
   "setupControlPanel": "Control Panel öffnen",
-  "setupConnect": "Bank verbinden"
+  "setupConnect": "Bank verbinden",
+  "nameYou": "{name} (du)",
+  "transferMovedTo": "Umgebucht auf",
+  "transferMovedFrom": "Umgebucht von"
 }

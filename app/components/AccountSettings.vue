@@ -208,7 +208,7 @@ const permissionOptions = [
             <UInput
               v-model="balance"
               inputmode="decimal"
-              :placeholder="String(fromMinor(account.balanceMinor, account.currency)).replace('.', ',')"
+              :placeholder="fromMinor(account.balanceMinor, account.currency).toLocaleString(currentFormatLocale(), { useGrouping: false, maximumFractionDigits: 20 })"
               class="min-w-0 flex-1"
               :ui="{ base: 'tabular-nums' }"
               @keydown.enter="saveBalance"

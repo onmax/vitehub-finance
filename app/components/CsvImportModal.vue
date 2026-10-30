@@ -293,7 +293,7 @@ function back() {
           <UFormField :label="$t('description')" name="description" required>
             <USelect v-model="descriptionColumn" :items="columnItems" :placeholder="$t('chooseAColumn')" class="w-full" />
           </UFormField>
-          <UFormField :label="$t('counterparty')" name="counterparty" hint="Optional">
+          <UFormField :label="$t('counterparty')" name="counterparty" :hint="$t('optionalHint')">
             <USelect v-model="counterpartyColumn" :items="optionalItems" class="w-full" />
           </UFormField>
         </div>
@@ -327,7 +327,7 @@ function back() {
           />
         </div>
         <p v-if="missing.length" class="flex items-center gap-1.5 text-sm text-muted">
-          <UIcon name="i-lucide-info" class="size-4 shrink-0" /> {{ $t('chooseTheColumnWith', { value1: missing.join(" and ") }) }} </p>
+          <UIcon name="i-lucide-info" class="size-4 shrink-0" /> {{ $t('chooseTheColumnWith', { value1: formatList(missing) }) }} </p>
       </div>
 
       <!-- 3. The preview -->

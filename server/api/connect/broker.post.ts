@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm"
 import { defineHandler } from "h3"
+import { useLogger } from "evlog/nitro/v3"
 import * as v from "valibot"
 import { db } from "vite-hub/database/drizzle"
 import { dispatchSync } from "#dispatch"
@@ -8,7 +9,7 @@ import { connection } from "../../databases/config"
 import { ISIN } from "@vitehub-finance/brokers"
 import { ibkrProvider } from "../../providers/ibkr"
 import { myinvestorProvider } from "../../providers/myinvestor"
-import { connectionSummary, fail, providerHttpError, readValid, rememberOrigin } from "../../utils/connections"
+import { connectionSummary, errorMessage, fail, providerHttpError, readValid, rememberOrigin } from "../../utils/connections"
 import { seal } from "../../utils/crypto"
 import { requireMember } from "../../utils/identity"
 import { refuseDemoPerson } from "../../demo/mode"
@@ -86,7 +87,7 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
       .update(connection)
       .set({ credentials: await seal(credentials), status: "active", lastError: null, lastErrorCode: null })
       .where(eq(connection.id, existing.id))
-    await dispatchSync(existing.id, "link").catch((error) => console.error("[finance] Broker sync after new credentials failed", error))
+    await dispatchSync(existing.id, "link").catch((error) => useLogger(event).warn("Broker sync after new credentials failed", { connect: { syncError: errorMessage(error) } }))
     return connectionSummary(who, existing.id)
   }
   const id = crypto.randomUUID()
@@ -103,6 +104,6 @@ export default defineHandler(async (event): Promise<ConnectionSummary> => {
   })
   await rememberOrigin(event)
   // The sync records its own failures; the connection exists either way.
-  await dispatchSync(id, "link").catch((error) => console.error("[finance] First broker sync failed", error))
+  await dispatchSync(id, "link").catch((error) => useLogger(event).warn("First broker sync failed", { connect: { syncError: errorMessage(error) } }))
   return connectionSummary(who, id)
 })

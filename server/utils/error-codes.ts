@@ -97,6 +97,7 @@ const CODES: Record<string, string> = {
   "This connection no longer exists. Connect the bank again.": "errorThisConnectionNoLongerExistsConnectTheBankAgain",
   "Sign in as the person who started connecting this bank, then try again.": "errorSignInAsThePersonWhoStartedConnectingThis",
   "The bank didn't confirm access. Connect the bank again.": "errorTheBankDidnTConfirmAccessConnectTheBank",
+  "The bank didn't give access. Try again and approve it at your bank.": "bankAccessDenied",
   "Bank connections aren't set up on this server.": "errorBankConnectionsArenTSetUpOnThisServer",
   "The bank shared no accounts. Select at least one at the bank. If you did, link it in the Enable Banking control panel first.": "errorTheBankSharedNoAccountsSelectAtLeastOne",
   "Your bank allows about 4 syncs a day. Try again in a few hours.": "errorYourBankAllowsAbout4SyncsADayTry",

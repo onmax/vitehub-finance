@@ -5,7 +5,7 @@ import type { NuxtConfig } from "nuxt/schema"
 import { env, typesafeEnv } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
 import { markdownRequest, pagePath, withoutLiveBlocks } from "./server/utils/docs-markdown.ts"
-import { URL_QUERY } from "./server/utils/log-text.ts"
+import { DRIZZLE_PARAMS, URL_QUERY } from "./server/utils/log-text.ts"
 
 const target = deployment()
 // `nuxt dev` runs as a Node host whatever the target: local SQLite, KV files, inline syncs. It needs no Cloudflare
@@ -13,7 +13,7 @@ const target = deployment()
 const dev = process.argv.includes("dev")
 const host: Host = dev ? "node" : target.host
 const email = target.email
-// A public instance (FINANCE_DEMO=1): open sign-up plus the demo household. It has no Queue, so a Cloudflare account can
+// The public demo (FINANCE_DEMO=1): a fictional, read-only household and no sign-up. It has no Queue, so a Cloudflare account can
 // hold it beside a private instance (one queue per name); its people's syncs run inline from the daily Schedule.
 const demo = target.demo
 const queue = host === "cloudflare" && !demo
@@ -32,10 +32,11 @@ const EVLOG = {
   exclude: ["/_nuxt/**", "/_fonts/**", "/favicon.svg", "/__nuxt_error", "/api/_nuxt_icon/**"],
   redact: {
     // Built-in masks (emails, IBANs, card numbers, bearer tokens, JWTs, and keys ending in password, secret, or token)
-    // plus ViteHub Finance's own: submitted exchange keys, sealed credentials, PEM keys, fin_ API keys, and the query
-    // of any URL in any field (`path` is already the bare pathname; error messages and stacks may hold a full URL).
+    // plus ViteHub Finance's own: submitted exchange keys, sealed credentials, PEM keys, fin_ API keys, the query
+    // of any URL in any field (`path` is already the bare pathname; error messages and stacks may hold a full URL), and
+    // the bound values a failed Drizzle query lists after `params:` (transaction text, names).
     paths: ["**.key", "**.secret", "**.privateKey", "**.credentials", "**.apiKey"],
-    patterns: [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, /\bfin_[A-Za-z0-9_-]{8,}/g, URL_QUERY],
+    patterns: [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, /\bfin_[A-Za-z0-9_-]{8,}/g, URL_QUERY, DRIZZLE_PARAMS],
   },
 }
 

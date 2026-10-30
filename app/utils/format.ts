@@ -127,3 +127,8 @@ export function formatPercent(value: number | null, { signed = false, digits = 0
 }
 
 export const formatCount = (value: number) => new Intl.NumberFormat(locale()).format(value)
+
+export const formatList = (items: string[]) => new Intl.ListFormat(locale(), { type: "conjunction" }).format(items)
+
+/** A length of time in whole units, such as "30 days" or "1 year", in the person's language. */
+export const formatDuration = (value: number, unit: "day" | "year") => new Intl.NumberFormat(locale(), { style: "unit", unit, unitDisplay: "long" }).format(value)

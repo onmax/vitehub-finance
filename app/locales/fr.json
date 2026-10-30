@@ -1889,5 +1889,8 @@
   "setupStatusConnectTodo": "Aucune banque connectée pour l’instant.",
   "setupRedirectLabel": "URL de redirection",
   "setupControlPanel": "Ouvrir le panneau de contrôle",
-  "setupConnect": "Connecter une banque"
+  "setupConnect": "Connecter une banque",
+  "nameYou": "{name} (vous)",
+  "transferMovedTo": "Virement vers",
+  "transferMovedFrom": "Virement depuis"
 }

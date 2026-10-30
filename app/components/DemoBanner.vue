@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEMO_DOMAIN } from "#shared/demo"
 // The demo's one-line notice above the app, with a switch to the other person: visitors see what each of them sees,
 // including that a private account stays with its owner.
 const { data: me } = useMe()
@@ -6,7 +7,7 @@ const route = useRoute()
 const notify = useNotify()
 const pending = ref(false)
 
-const isPablo = computed(() => me.value?.user.email === "pablo@demo.vitehub.dev")
+const isPablo = computed(() => me.value?.user.email === `pablo@${DEMO_DOMAIN}`)
 
 async function switchPerson() {
   pending.value = true

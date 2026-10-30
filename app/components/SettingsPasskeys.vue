@@ -95,7 +95,7 @@ function deviceName() {
                 color="neutral"
                 variant="ghost"
                 icon="i-lucide-trash-2"
-                :aria-label="$t('delete4', { value1: passkey.name || 'passkey' })"
+                :aria-label="$t('delete4', { value1: passkey.name || $t('passkey') })"
                 :disabled="locked"
                 @click="remove(passkey)"
               />

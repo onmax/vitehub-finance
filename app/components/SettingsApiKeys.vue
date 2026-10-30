@@ -25,9 +25,9 @@ const { data: keys, status, error, refresh } = useAsyncData<ApiKey[]>(
 )
 
 const EXPIRY = [
-  { value: 30, label: "30 days" },
-  { value: 90, label: "90 days" },
-  { value: 365, label: "1 year" },
+  { value: 30, get label() { return formatDuration(30, "day") } },
+  { value: 90, get label() { return formatDuration(90, "day") } },
+  { value: 365, get label() { return formatDuration(1, "year") } },
   { value: 0, get label() { return translate('never') } },
 ]
 const open = ref(false)

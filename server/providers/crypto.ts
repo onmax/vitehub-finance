@@ -1,6 +1,6 @@
 // Exchanges and wallets through @vitehub-finance/crypto: one `crypto` account per connection, its coins as holdings, and
 // for wallets with a public history, what moved in and out.
-import { connect, type ChainId, type CryptoTransaction, type ExchangeCredentials, type ExchangeId } from "@vitehub-finance/crypto"
+import { connect, CryptoError, type ChainId, type CryptoTransaction, type ExchangeCredentials, type ExchangeId } from "@vitehub-finance/crypto"
 import { mapped, USER_AGENT, type FetchOptions, type ProviderCoinTransaction, type ProviderResult } from "./types"
 
 export interface WalletCredentials {
@@ -55,6 +55,9 @@ function coinTransaction(transaction: CryptoTransaction): ProviderCoinTransactio
   }
 }
 
+/** What a log may say about a failed read: the package's code, never the upstream text, which can name people. */
+const errorCode = (error: unknown) => (error instanceof CryptoError ? error.code : "unexpected")
+
 /**
  * Reads one exchange or wallet. Holdings are priced later, in the household's currency, and wallet transactions valued
  * at their day's price (server/utils/prices.ts).
@@ -68,14 +71,14 @@ export function cryptoProvider(id: ExchangeId | ChainId) {
       const read =
         options && provider.transactions
           ? await provider.transactions({ since: options.since }).catch((error) => {
-              console.warn(`[finance] ${provider.name} history unavailable`, error)
+              console.warn(`[finance] ${provider.name} history unavailable`, errorCode(error))
               return null
             })
           : null
       // Staking too: a read that fails leaves the last complete one in place rather than a partial history.
       const staking = provider.staking
         ? await provider.staking().catch((error) => {
-            console.warn(`[finance] ${provider.name} staking unavailable`, error)
+            console.warn(`[finance] ${provider.name} staking unavailable`, errorCode(error))
             return undefined
           })
         : undefined

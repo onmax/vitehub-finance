@@ -67,10 +67,10 @@ async function submit() {
             <USelect v-model="state.currency" :items="CURRENCIES" class="w-full" />
           </UFormField>
         </div>
-        <UFormField :label="$t('currentBalance')" name="balance" hint="Optional" :help="$t('negativeForWhatYouOweLike120000On')">
+        <UFormField :label="$t('currentBalance')" name="balance" :hint="$t('optionalHint')" :help="$t('negativeForWhatYouOweLike120000On')">
           <UInput v-model="state.balance" inputmode="decimal" :placeholder="$t('amountZeroPlaceholder')" class="w-full" :ui="{ base: 'tabular-nums' }" />
         </UFormField>
-        <UFormField :label="$t('bankOrProvider')" name="institution" hint="Optional">
+        <UFormField :label="$t('bankOrProvider')" name="institution" :hint="$t('optionalHint')">
           <UInput v-model="state.institution" :placeholder="$t('openbankMyinvestor')" class="w-full" />
         </UFormField>
         <UFormField v-if="shared" :label="$t('whoSeesIt')" name="visibility">

@@ -75,7 +75,7 @@ const items = [
         variant="ghost"
         size="sm"
         class="size-10 justify-center sm:size-8"
-        :aria-label="$t('actionsFor', { value1: category?.name ?? 'budget' })"
+        :aria-label="$t('actionsFor', { value1: category?.name ?? $t('budget') })"
       />
     </UDropdownMenu>
   </li>

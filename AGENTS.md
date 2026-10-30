@@ -4,7 +4,7 @@ Household finance on ViteHub. People sign up, get a household (a Better Auth org
 banks (Enable Banking, PSD2), Stripe, crypto exchanges, wallets, and Interactive Brokers, and see their money together: accounts, transactions,
 recurring payments, budgets, goals, and a cash-flow forecast. An MCP server lets their agents read it.
 
-Private by default (`FINANCE_ALLOWED_EMAILS`), or public (`FINANCE_DEMO=1`: anyone signs up, plus a demo household),
+Private by default (`FINANCE_ALLOWED_EMAILS`), or a public demo (`FINANCE_DEMO=1`: a fictional, read-only household and no sign-up),
 forkable, deployable to Cloudflare or any Node host.
 
 ## Stack
