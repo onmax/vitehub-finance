@@ -5,7 +5,9 @@ blockExoticSubdeps: false
 
 overrides:
   # Keep ViteHub auth and the app on one Better Auth type surface.
-  better-auth: 1.7.10
+  better-auth: 1.7.14
+  # @better-auth/oauth-provider pins utils 0.4.2 while better-auth pins 0.5.1, which splits @better-auth/core in two.
+  "@better-auth/utils": 0.5.1
   # Nuxt and Nuxt UI must share one Vue instance.
   vue: 3.5.44
   devalue: ^5.9.4
@@ -14,10 +16,6 @@ patchedDependencies:
   # Logs the error behind a JSON-RPC "Internal error" (upstream returns it without a trace), and puts the description,
   # icons, and website in modern serverInfo as legacy initialize does. Rebase or drop it when the okmcp pin moves.
   okmcp@0.2.1-main.2239349: patches/okmcp@0.2.1-main.2239349.patch
-  # `nuxt dev` on the nightly CLI gives Vite no httpServer, and virtual modules resolve bare imports from the root.
-  nitro@3.0.260610-beta: patches/nitro@3.0.260610-beta.patch
-  # Keeps Nuxt's dev-only module URL out of the Workers bundle.
-  nuxt-nightly@5.0.0-29766097.1e475df9: patches/nuxt-nightly@5.0.0-29766097.1e475df9.patch
   # Lets Workers builds resolve pkce-challenge (workerd and default targets), which the MCP SDK in vite-hub imports.
   # Upstream: https://github.com/crouchcd/pkce-challenge/pull/50, merged, unreleased. Drop it when a release has it.
   pkce-challenge@5.0.1: patches/pkce-challenge@5.0.1.patch
@@ -39,51 +37,58 @@ allowBuilds:
   workerd: true
 
 minimumReleaseAgeExclude:
-  - wrangler@4.148.0
+  - wrangler@4.156.0
   - "@better-auth/*"
-  - better-auth@1.7.10
-  - comark-annotate@0.7.2
-  - comark-badge@0.7.2
-  - comark-cards@0.7.2
-  - comark-carousel@0.7.2
-  - comark-cast@0.7.2
-  - comark-charts@0.7.2
-  - comark-chips@0.7.2
-  - comark-cjk@0.7.2
-  - comark-code-notes@0.7.2
-  - comark-code@0.7.2
-  - comark-colors@0.7.2
+  - better-auth@1.7.14
+  - comark-annotate@0.7.6
+  - comark-badge@0.7.6
+  - comark-cards@0.7.6
+  - comark-carousel@0.7.6
+  - comark-cast@0.7.6
+  - comark-charts@0.7.6
+  - comark-chips@0.7.6
+  - comark-cjk@0.7.6
+  - comark-code-notes@0.7.6
+  - comark-code@0.7.6
+  - comark-colors@0.7.6
   - comark-content@0.4.3
-  - comark-critic@0.7.2
-  - comark-deflist@0.7.2
-  - comark-details@0.7.2
-  - comark-diagrams@0.7.2
-  - comark-diff@0.7.2
-  - comark-embed@0.7.2
-  - comark-fields@0.7.2
-  - comark-figure@0.7.2
-  - comark-file-tree@0.7.2
-  - comark-footnotes@0.7.2
-  - comark-github@0.7.2
-  - comark-icon@0.7.2
-  - comark-include@0.7.2
-  - comark-keys@0.7.2
-  - comark-links@0.7.2
-  - comark-magic-move@0.7.2
-  - comark-mark@0.7.2
-  - comark-mathml@0.7.2
-  - comark-media@0.7.2
-  - comark-metrics@0.7.2
-  - comark-outline@0.7.2
-  - comark-properties@0.7.2
-  - comark-qr@0.7.2
-  - comark-quiz@0.7.2
-  - comark-reading-time@0.7.2
-  - comark-sources@0.7.2
-  - comark-steps@0.7.2
-  - comark-table@0.7.2
-  - comark-tabs@0.7.2
-  - comark-tests@0.7.2
-  - comark-ui@0.7.2
-  - comark-xref@0.7.2
-  - comark-zoom@0.7.2
+  - comark-critic@0.7.6
+  - comark-deflist@0.7.6
+  - comark-details@0.7.6
+  - comark-diagrams@0.7.6
+  - comark-diff@0.7.6
+  - comark-embed@0.7.6
+  - comark-fields@0.7.6
+  - comark-figure@0.7.6
+  - comark-file-tree@0.7.6
+  - comark-footnotes@0.7.6
+  - comark-github@0.7.6
+  - comark-icon@0.7.6
+  - comark-include@0.7.6
+  - comark-keys@0.7.6
+  - comark-links@0.7.6
+  - comark-magic-move@0.7.6
+  - comark-mark@0.7.6
+  - comark-mathml@0.7.6
+  - comark-media@0.7.6
+  - comark-metrics@0.7.6
+  - comark-outline@0.7.6
+  - comark-properties@0.7.6
+  - comark-qr@0.7.6
+  - comark-quiz@0.7.6
+  - comark-reading-time@0.7.6
+  - comark-sources@0.7.6
+  - comark-steps@0.7.6
+  - comark-table@0.7.6
+  - comark-tabs@0.7.6
+  - comark-tests@0.7.6
+  - comark-ui@0.7.6
+  - comark-xref@0.7.6
+  - comark-zoom@0.7.6
+  - '@nuxt/kit-nightly@5.0.0-2610292252-da55a91'
+  - '@nuxt/nitro-server-nightly@5.0.0-2610292252-da55a91'
+  - '@nuxt/schema-nightly@5.0.0-2610292252-da55a91'
+  - '@nuxt/vite-builder-nightly@5.0.0-2610292252-da55a91'
+  - '@nuxt/vite-server-nightly@5.0.0-2610292252-da55a91'
+  - nuxt-nightly@5.0.0-2610292252-da55a91
+  - comark-comments@0.7.6

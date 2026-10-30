@@ -14,7 +14,7 @@ forkable, deployable to Cloudflare or any Node host.
   Server code imports explicitly; nothing under `server/` is auto-imported.
 - ViteHub (`vite-hub/*`): `database` (Drizzle on SQLite: D1 on Cloudflare, a libsql file on Node and in `nuxt dev`),
   `kv`, `schedule`, `queue` (Cloudflare only, see `#dispatch`), `auth` (Better Auth), `email` (optional, see `#mailer`), `env`.
-- Better Auth 1.7.10 with `organization` (households), `passkey`, `twoFactor`, `magicLink`, `apiKey`, `lastLoginMethod`,
+- Better Auth 1.7.14 with `organization` (households), `passkey`, `twoFactor`, `magicLink`, `apiKey`, `lastLoginMethod`,
   `jwt` + `oauthProvider` (MCP OAuth). Client: `useNuxtApp().$auth` (app/plugins/auth.ts).
 - Nuxt UI 4 themed like shadcn/ui (app/assets/css/main.css, app/app.config.ts), VueUse, Lucide icons (`i-lucide-*`).
 - valibot for input validation.
@@ -269,7 +269,7 @@ npx wrangler tail vitehub-finance --format json
 npx wrangler tail vitehub-finance --format json | jq -c '.logs[]? | select(.level == "error") | .message[0]'
 npx wrangler tail vitehub-finance --format json | jq -c '.logs[]?.message[0] | select(.action? == "client-error")'
 
-# Past events: the Workers Observability query API (wrangler 4.148 has no command for it). The token needs the
+# Past events: the Workers Observability query API (wrangler 4.156 has no command for it). The token needs the
 # account's "Workers Observability" edit permission. Errors from the last 24 hours, newest first:
 curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/observability/telemetry/query" \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "content-type: application/json" \
