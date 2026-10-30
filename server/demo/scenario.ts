@@ -1,6 +1,5 @@
 // The demo household as plain data: Lucía and Pablo in Madrid, 13 months of bank statements up to `today`. Pure and
-// deterministic (a PRNG seeded with the date), so vitest checks the story without a database; server/demo/seed.ts
-// writes what this returns. Fictional people, companies, IBANs, and addresses throughout.
+// deterministic (a PRNG seeded with the date); server/demo/seed.ts writes what this returns. Fictional people, companies, IBANs, and addresses throughout.
 import { addDays, addMonths, daysInMonth, monthOf } from "../utils/dates"
 
 export type DemoPerson = "lucia" | "pablo"

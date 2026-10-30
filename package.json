@@ -12,9 +12,7 @@
     "db:migrate": "mkdir -p .vitehub/data/database && drizzle-kit migrate --config .vitehub/database/drizzle.config.ts",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote --config .output/server/wrangler.json",
     "deploy": "pnpm build && pnpm db:migrate:remote && wrangler deploy --config .output/server/wrangler.json",
-    "test": "vitest run",
-    "typecheck": "nuxt typecheck",
-    "check:privacy": "node scripts/privacy-check.mjs"
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@better-auth/api-key": "1.7.10",
@@ -67,12 +65,12 @@
     "nitro": "3.0.260610-beta",
     "typescript": "^6.0.3",
     "vite": "8.2.2",
-    "vitest": "^4.1.0",
     "vue-tsc": "^3.3.9",
     "wrangler": "4.148.0"
   },
   "engines": {
     "node": ">=24.15.0"
   },
-  "packageManager": "pnpm@11.28.6"
+  "packageManager": "pnpm@11.28.6",
+  "license": "MIT"
 }

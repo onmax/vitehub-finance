@@ -176,8 +176,9 @@ The bank, crypto, and broker clients are workspace packages you can use on their
 [`@vitehub-finance/banking`](./packages/banking), [`@vitehub-finance/crypto`](./packages/crypto), and
 [`@vitehub-finance/brokers`](./packages/brokers).
 
-- `pnpm test` — unit tests (sync mapping, dedupe, signatures, recurring detection, forecast, the demo scenario, what
-  erasing people may delete, translations).
-- `node scripts/privacy-check.mjs` — two members against a running server; fails if a private account leaks anywhere.
 - `pnpm typecheck`
 - [AGENTS.md](./AGENTS.md) has the architecture, the privacy rules, and the full API.
+
+## License
+
+[MIT](./LICENSE)

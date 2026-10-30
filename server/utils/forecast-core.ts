@@ -1,4 +1,4 @@
-// Cash-flow projection: the math behind GET /api/forecast. Pure, so vitest runs it directly; server/utils/forecast.ts
+// Cash-flow projection: the math behind GET /api/forecast. Pure; server/utils/forecast.ts
 // loads what it needs (accounts, recurring series, transactions, balances) already converted to the household currency.
 import type { Cadence, Forecast, ForecastAccount, ForecastConfidence, ForecastDay, ForecastKind, ForecastPayment, ForecastSeries } from "#shared/api"
 import { dailyShare, lowestOf, riskDateOf, summarizeMonths } from "../../shared/forecast"

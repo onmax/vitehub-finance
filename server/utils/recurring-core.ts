@@ -1,5 +1,5 @@
 import type { InsightTranslation } from "../../shared/api"
-// Finds repeating payments in one account's transactions. Pure (no database), so vitest runs it directly;
+// Finds repeating payments in one account's transactions. Pure (no database);
 // server/utils/recurring.ts loads the rows and stores what this returns.
 import type { Cadence } from "#shared/api"
 import { addDays, addMonths, daysBetween } from "./dates"

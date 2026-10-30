@@ -50,7 +50,7 @@ forkable, deployable to Cloudflare or any Node host.
   edits. Deleting accounts or connections, sharing or archiving an account, connecting, syncing, or re-linking, agents,
   and the household are the browser's (`isBrowserOnlyRoute` in server/utils/request-policy.ts, enforced by `identify`;
   `requireBrowser` for PATCH /api/accounts/:id's sharing fields). A new route that
-  changes something must be classified in test/security/request-policy.test.ts. An agent's token works only while its
+  changes something must be classified there. An agent's token works only while its
   approval (`oauth_consent`) exists, so disconnecting it stops it at once.
 - Cookie requests that change something (POST/PUT/PATCH/DELETE under /api) must come from this origin and carry JSON
   (`crossSiteProblem`, server/middleware/same-origin.ts); Better Auth's routes and /api/_evlog/ingest check their own.
@@ -74,7 +74,7 @@ forkable, deployable to Cloudflare or any Node host.
 
 - English copy is the source of truth in `app/locales/en.json`; every key must also exist in `es`, `fr`, `de`, and `pt`.
   Add whole messages with named interpolation and plural branches, then use `$t` in templates or `translate` in scripts.
-  Keep labels reactive. `pnpm test` checks key/parameter parity, message compilation, plural forms, and locale formatting.
+  Keep labels reactive, and keep each key's parameters and plural branches the same in every locale.
 - `app/lib/i18n.ts` lazy-loads the five catalogs through a client-only `vue-i18n` plugin. Routes have no locale prefix.
   `useLanguage` saves signed-in preferences to Better Auth's `user.language`; localStorage remembers signed-out/demo
   choices. Otherwise match the browser language, falling back to English. Use `useMoney` and `app/utils/format.ts` for display.
@@ -144,7 +144,7 @@ working in their own ViteHub Finance, alone or with a coding agent. The page and
 `setupSteps` (shared/setup-steps.ts), computed from `GET /api/setup/check` (server/utils/setup-check.ts, which asks
 Enable Banking's `GET /application`). Each step's heading carries `:::setup-status{step="…"}` (DocsSetupStatus.vue), and
 `::setup-prompt` (DocsSetupPrompt.vue) copies `setupPrompt` (shared/setup-prompt.ts): the guide's Markdown URL, every
-step by its number and heading (`SETUP_STEP_TITLES`, which test/setup checks against the guide), and how to guide the
+step by its number and heading (`SETUP_STEP_TITLES`, word for word as the guide's headings), and how to guide the
 person. A new step goes in all three. Any docs page also answers as Markdown, at its URL plus `.md` or with
 `Accept: text/markdown` (server/middleware/docs-markdown.ts), without the live blocks.
 
@@ -191,7 +191,7 @@ and out of staking stay out of transactions, since the holding counts staked coi
 AI categories come after rules and transfers, in the sync and the CSV import, and from `POST /api/transactions/categorize`
 (the button on /settings/categories): `server/utils/ai-categorize.ts` picks uncategorized, unlocked rows AI hasn't seen
 (`aiCheckedAt` null) among those `AiRows` allows (see the privacy rules) and writes `categorySource: "ai"`; `server/utils/ai-categorize-core.ts` is the pure part (questions,
-answers, thresholds, batches through an AI gateway's `ask()`), tested in test/ai with ViteHub's gateways on a stubbed fetch. It
+answers, thresholds, batches through an AI gateway's `ask()`). It
 runs only with a key (the household's or the server's), never in the demo, and not when the household turned `aiCategorize` off. `categorySource` is `rule` (rules, transfers), `ai`, or
 `manual` (also sets `categoryLocked`). Never log the transactions' text: the `ai` field has the route (`provider`,
 `keySource`), counts, tokens, and cost.
@@ -213,7 +213,7 @@ app/composables/useDemo.ts). So it never holds anyone's real data; keep it that 
 (`banksUnavailable()` in server/utils/connections.ts answers `public`), and on Cloudflare no Queue.
 
 The locks are per person. The demo's people are Lucía and Pablo, emails under `DEMO_DOMAIN` (shared/demo.ts,
-`isDemoEmail`). server/demo: `scenario.ts` is the pure, date-seeded household (tested in test/demo), `seed.ts` wipes and
+`isDemoEmail`). server/demo: `scenario.ts` is the pure, date-seeded household, `seed.ts` wipes and
 rebuilds it (`seedDemo`, `ensureDemo`), `mode.ts` has `isDemo()` (the build), `isDemoPerson(email)`,
 `refuseDemoPerson(who)` (403 "Not available in the demo."), and `DEMO_LOCKED_PATHS`, the Better Auth endpoints that
 server/auth.ts's `hooks.before` refuses for a demo person's session or for a request naming a demo email (sign-up, magic
@@ -230,7 +230,7 @@ demo." (`isDemoLocked` in app/utils/errors.ts), without reporting it as an error
 categories never run for the demo's household. The daily Schedule reseeds it and skips the demo's fake connections.
 
 Erasing goes through server/utils/erase.ts: `erasePeople` deletes people and only the households whose every member is
-being erased (`splitHouseholds` in erase-core.ts, tested in test/privacy). The nightly reset erases the demo domain's
+being erased (`splitHouseholds` in erase-core.ts). The nightly reset erases the demo domain's
 people; deleting your account (Better Auth's `/delete-user`, Settings › Security) erases you and your household, and
 waits until nobody else is in it. Demo users are only created by the seed
 (`seedingEmails` in `user.create.before`).
@@ -288,10 +288,7 @@ In `nuxt dev` they print as a readable tree in the terminal.
 
 ## Commands
 
-Run heavy commands through `heavy` (shared machine): `heavy pnpm typecheck`, `HEAVY_WAIT=0 heavy pnpm build`.
-Tests that need SQL (test/privacy) run server code against an in-memory SQLite with every migration (test/database.ts),
-mocking `vite-hub/database/drizzle` and the other ViteHub modules they reach; only synthetic data goes in them.
-`FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
+`pnpm typecheck` checks types. `FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
 
 `nuxt dev` serves the ViteHub Console at `/_vitehub` (no sign-in, this machine only). Its MCP client section
 (`/_vitehub/mcp-client`) finds `/mcp` through `/.well-known/oauth-protected-resource` and signs in with the app's own

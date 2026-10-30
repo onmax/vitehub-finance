@@ -6,6 +6,10 @@
   "description": "Read-only payment processor balances and ledger movements.",
   "license": "MIT",
   "sideEffects": false,
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "valibot": "^1.4.2" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "valibot": "^1.4.2"
+  }
 }

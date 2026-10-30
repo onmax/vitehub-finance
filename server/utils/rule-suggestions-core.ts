@@ -1,5 +1,5 @@
 // Rules worth adding, found in a household's own transactions, and what "apply to similar" matches on. Pure (no
-// database), so vitest runs it directly; server/api/rules/suggestions.get.ts loads the rows and rules it reads.
+// database); server/api/rules/suggestions.get.ts loads the rows and rules it reads.
 import type { RuleSuggestion } from "../../shared/api"
 import { ruleActions, startsWord, type Rule } from "../providers/dedupe"
 import { normalizedWords } from "./recurring-core"

@@ -11,8 +11,7 @@ type JsonSchemaOptions = Parameters<ReturnType<typeof toStandardJsonSchema>["~st
  * `tools/list` for every client. okmcp passes the converter no options, so this one converts with errorMode "ignore":
  * clients don't see those checks, and the validator still runs them. Conversion also stops at the first transformation
  * (`trim`, `toUpperCase`) or second schema in a pipe, so write a field as what clients see, then the app's validator:
- * `v.pipe(v.array(Row), v.description("…"), ImportRows)`. test/mcp/tools.test.ts converts every tool in throw mode, so
- * a check that would vanish from the listing fails there instead.
+ * `v.pipe(v.array(Row), v.description("…"), ImportRows)`.
  */
 export function toolInput<T extends v.GenericSchema>(schema: T) {
   const standard = toStandardJsonSchema(schema)
