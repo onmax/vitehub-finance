@@ -132,3 +132,21 @@ describe("Enable Banking consents", () => {
     expect(days[1]).toBeGreaterThan(89.9)
   })
 })
+
+describe("Enable Banking application", () => {
+  it("reads the environment, activation, and redirect URLs", async () => {
+    const { pem } = await rsaPem()
+    const stub = (async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe("https://api.enablebanking.com/application")
+      return Response.json({ name: "Finance", environment: "PRODUCTION", active: false, redirect_urls: ["https://app.example/api/connect/callback"] })
+    }) as typeof fetch
+    const app = await enableBanking({ appId: "app-application", privateKey: pem, fetch: stub }).application()
+    expect(app).toEqual({ name: "Finance", environment: "production", active: false, redirectUrls: ["https://app.example/api/connect/callback"] })
+  })
+
+  it("reports any refusal as the app's credentials", async () => {
+    const { pem } = await rsaPem()
+    const stub = (async () => Response.json({ message: "Unauthorized" }, { status: 401 })) as typeof fetch
+    await expect(enableBanking({ appId: "app-refused", privateKey: pem, fetch: stub }).application()).rejects.toMatchObject({ code: "invalid_credentials" })
+  })
+})

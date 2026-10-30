@@ -16,3 +16,4 @@ node_modules/
 .vercel
 .vite-hooks
 .data-dev.log
+*.pem

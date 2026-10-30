@@ -598,6 +598,41 @@ export interface ProviderInfo {
   reason?: "setup" | "public"
 }
 
+/**
+ * `GET /api/setup/check`: where the setup guide's steps stand (docs/1.guides/0.setup.md, shared/setup-steps.ts), plus
+ * what the prompt it copies tells an agent. Booleans and states only, never a credential or the Enable Banking app's
+ * own details.
+ */
+export interface SetupCheck {
+  /** `dev` is `nuxt dev`; otherwise the host the build targets. */
+  runs: "dev" | "cloudflare" | "node"
+  /** Where banks send people back to (this request's origin): the redirect URL to register with Enable Banking. */
+  callbackUrl: string
+  banks: BankCheck
+  /** Whether the caller has connected a bank of their own. */
+  bankConnected: boolean
+  /** Whether the build sends email (invitations, magic links, reconnect reminders). */
+  email: boolean
+  /** The app's own route for AI categories; each household can still set its own. */
+  ai: AiRoute | null
+  /** `allowed`: only FINANCE_ALLOWED_EMAILS and invited people sign up; `anyone`: the list is empty. */
+  signUp: "allowed" | "anyone"
+  /** Where links in emails point, and what set it: FINANCE_DOMAIN, FINANCE_ORIGIN, or the first address someone connected from. */
+  links: { origin: string | null; from: "domain" | "origin" | "first-visit" | null }
+  contactEmail: boolean
+}
+
+/**
+ * Enable Banking, as its own API answers: `missing`, no app ID or key set; `rejected`, it refused them; `unreachable`,
+ * it didn't answer; `ready`, the app it signs for. A production app is `active` once its owner linked an account in
+ * the control panel.
+ */
+export type BankCheck =
+  | { state: "missing" }
+  | { state: "rejected" }
+  | { state: "unreachable" }
+  | { state: "ready"; environment: "production" | "sandbox"; active: boolean; redirectRegistered: boolean }
+
 /** `GET /api/legal` (public): what the privacy page shows about this instance. */
 export interface LegalInfo {
   /** `FINANCE_CONTACT_EMAIL`, or null when the instance has none. */

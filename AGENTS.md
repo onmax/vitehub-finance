@@ -139,6 +139,15 @@ someone. `/connect` and `/connect/crypto#broker` redirect, keeping query and has
   the existing endpoint (`/api/connect/exchange`, `/wallet`, `/broker`, `/stripe`). New provider: add the entry and, if no step
   fits, a step component.
 
+The setup guide (docs/1.guides/0.setup.md, `/docs/guides/setup`; `/setup` redirects there) is how someone gets banks
+working in their own ViteHub Finance, alone or with a coding agent. The page and the agent share one list of steps,
+`setupSteps` (shared/setup-steps.ts), computed from `GET /api/setup/check` (server/utils/setup-check.ts, which asks
+Enable Banking's `GET /application`). Each step's heading carries `:::setup-status{step="…"}` (DocsSetupStatus.vue), and
+`::setup-prompt` (DocsSetupPrompt.vue) copies `setupPrompt` (shared/setup-prompt.ts): the guide's Markdown URL, every
+step by its number and heading (`SETUP_STEP_TITLES`, which test/setup checks against the guide), and how to guide the
+person. A new step goes in all three. Any docs page also answers as Markdown, at its URL plus `.md` or with
+`Accept: text/markdown` (server/middleware/docs-markdown.ts), without the live blocks.
+
 ## Sync
 
 `server/utils/sync.ts` `syncConnection(connectionId, trigger)` runs one connection: the provider fetches accounts,
@@ -324,6 +333,7 @@ Every route requires a member (`requireMember`) unless noted. `scope` is `me` | 
 | `GET /api/recurring` | `scope` | `RecurringResponse` |
 | `PATCH /api/recurring/:id` | `{ status }` | `Recurring` |
 | `GET /api/forecast` | `scope, months (1-24)` | `Forecast` |
+| `GET /api/setup/check` | | `SetupCheck` — what the setup guide checks: Enable Banking's answer about the app (key accepted, environment, active, this origin's callback registered), whether the caller connected a bank, email, AI route, sign-up, link origin; states only, never a value |
 | `GET /api/connect/providers` | | `ProviderInfo[]` — `available`, and `reason` (`setup`, `public`) when not |
 | `GET /api/connect/banks` | `country` (ISO 3166 alpha-2) | `Bank[]` |
 | `POST /api/connect/bank` | `{ name, country }` | `{ url }` — open it; the bank returns to `/api/connect/callback` |

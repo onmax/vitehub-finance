@@ -1,8 +1,10 @@
+import { readdir, readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import evlog from "evlog/nitro/v3"
 import type { NuxtConfig } from "nuxt/schema"
 import { env, typesafeEnv } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
+import { markdownRequest, pagePath, withoutLiveBlocks } from "./server/utils/docs-markdown.ts"
 import { URL_QUERY } from "./server/utils/log-text.ts"
 
 const target = deployment()
@@ -123,6 +125,8 @@ export default defineNuxtConfig({
   routeRules: {
     "/**": { headers: SECURITY_HEADERS },
     "/api/**": { headers: { ...SECURITY_HEADERS, "cache-control": "private, no-store" } },
+    // A short address for the setup guide.
+    "/setup": { redirect: "/docs/guides/setup" },
   },
 
   // OAuth discovery for MCP clients (server/handlers/oauth-metadata.ts), bare and path-suffixed (`.../mcp`).
@@ -323,6 +327,28 @@ export default defineNuxtConfig({
 
   vite: {
     define: { __VUE_I18N_LEGACY_API__: false, __INTLIFY_PROD_DEVTOOLS__: false },
+    plugins: [
+      // `nuxt dev` hands `.md` URLs to Vite as modules before Nitro sees them, so in dev this answers a docs page's
+      // `.md` from docs/ itself, as server/middleware/docs-markdown.ts does in builds (and for `Accept: text/markdown`).
+      {
+        name: "finance:docs-markdown-dev",
+        apply: "serve",
+        enforce: "pre",
+        configureServer(server) {
+          server.middlewares.use(async (req, res, next) => {
+            const pathname = req.url?.split(/[?#]/, 1)[0] ?? ""
+            const path = pathname.endsWith(".md") ? markdownRequest(pathname, null) : null
+            if (!path) return next()
+            const dir = here("./docs")
+            const key = (await readdir(dir, { recursive: true })).find((file) => file.endsWith(".md") && pagePath(file) === path)
+            res.setHeader("content-type", "text/markdown; charset=utf-8")
+            res.setHeader("vary", "accept")
+            if (!key) return void ((res.statusCode = 404), res.end("Not found\n"))
+            res.end(withoutLiveBlocks(await readFile(`${dir}/${key}`, "utf8")))
+          })
+        },
+      },
+    ],
     env: {
       server: {
         auth: {

@@ -60,6 +60,12 @@ with `public/samples/household-sample.csv`.
 3. Set `ENABLE_BANKING_APP_ID` and `ENABLE_BANKING_PRIVATE_KEY` (the app's PKCS#8 PEM; convert a PKCS#1 key with
    `openssl pkcs8 -topk8 -nocrypt -in key.pem`).
 
+The [setup guide](https://finance.onmax.me/docs/guides/setup) (`/docs/guides/setup` in your app, or `/setup`) shows
+whether each step is done, asking Enable Banking about your app (key accepted, production app, redirect URL registered,
+accounts linked). **Copy prompt** gives Claude Code, Codex, or another coding agent the same steps and where they stand;
+it reads the guide as Markdown (`/docs/guides/setup.md`, or any docs page with `Accept: text/markdown`) and walks you
+through it.
+
 Consent lasts up to 180 days per bank, and banks allow about four background fetches a day, so ViteHub Finance syncs once a day
 and emails a reminder a week before a consent expires (when the build has email).
 

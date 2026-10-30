@@ -22,6 +22,22 @@ export interface EnableBankingOptions extends ClientOptions {
 const MAX_CONSENT_DAYS = 180
 
 /**
+ * The app as Enable Banking registered it. A production app stays inactive until its owner links an account in the
+ * control panel; `redirectUrls` are the only places a bank may send people back to.
+ */
+export interface EnableBankingApplication {
+  name: string
+  environment: "production" | "sandbox"
+  active: boolean
+  redirectUrls: string[]
+}
+
+export interface EnableBankingClient extends BankingProvider {
+  /** Reads the app the JWT signs for. A wrong app ID or key fails here as `invalid_credentials`. */
+  application(): Promise<EnableBankingApplication>
+}
+
+/**
  * A bank refused the consent's length. Enable Banking's list can promise more than the bank takes (MyInvestor: 180 days
  * listed, 90 accepted), and the bank's answer names its limit: "ASPSP does not support consent validity more than
  * 7776000 seconds in the future".
@@ -51,7 +67,7 @@ export async function appToken(options: Pick<EnableBankingOptions, "appId" | "pr
   return jwt
 }
 
-export function enableBanking(options: EnableBankingOptions): BankingProvider {
+export function enableBanking(options: EnableBankingOptions): EnableBankingClient {
   const api = options.baseUrl ?? "https://api.enablebanking.com"
   const request = requester("enable_banking", "Enable Banking", options)
   const fail = (code: BankingErrorCode, message: string) => new BankingError(code, message, "enable_banking")
@@ -157,6 +173,20 @@ export function enableBanking(options: EnableBankingOptions): BankingProvider {
 
     async revoke(consentId) {
       await call("DELETE", `/sessions/${encodeURIComponent(consentId)}`).catch(() => undefined)
+    },
+
+    async application() {
+      // No session is involved, so any refusal is the app's ID or key.
+      const body = await call<{ name?: string; environment?: string; active?: boolean; redirect_urls?: string[] }>("GET", "/application").catch((error) => {
+        if (error instanceof BankingError && error.code === "expired") throw fail("invalid_credentials", "Enable Banking rejected the app ID or private key.")
+        throw error
+      })
+      return {
+        name: body.name ?? "",
+        environment: body.environment?.toUpperCase() === "SANDBOX" ? "sandbox" : "production",
+        active: body.active === true,
+        redirectUrls: body.redirect_urls ?? [],
+      }
     },
   }
 }

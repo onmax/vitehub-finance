@@ -4,8 +4,11 @@ import UContentSurround from "@nuxt/ui/components/content/ContentSurround.vue"
 import UContentToc from "@nuxt/ui/components/content/ContentToc.vue"
 import { MarkdownDocument } from "@comark/vue"
 import comarkUi, { criticCss } from "comark-ui/vue"
+import DocsSetupPrompt from "~/components/DocsSetupPrompt.vue"
+import DocsSetupStatus from "~/components/DocsSetupStatus.vue"
 
-const { components } = comarkUi({ chips: { download: false }, badge: { download: false } })
+// The setup guide's live blocks, `::setup-prompt` and each step's `:::setup-status`, beside Comark UI's own.
+const components = { ...comarkUi({ chips: { download: false }, badge: { download: false } }).components, SetupPrompt: DocsSetupPrompt, SetupStatus: DocsSetupStatus }
 useHead({ style: [{ key: "comark-critic", textContent: criticCss }] })
 definePageMeta({ layout: "docs" })
 const route = useRoute()

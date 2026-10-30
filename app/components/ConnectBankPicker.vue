@@ -112,6 +112,7 @@ const shownError = computed(() => connectError.value || props.error || "")
     <div v-else-if="!configured" class="rounded-lg bg-muted p-4">
       <p class="text-sm font-medium text-highlighted">{{ $t('bankConnectionsArenTSetUpOnThisServer') }}</p>
       <p class="mt-1.5 text-sm text-muted"> {{ $t('banksConnectThrough') }} <ULink to="https://enablebanking.com" target="_blank" class="font-medium text-highlighted underline underline-offset-2">Enable Banking</ULink>{{ $t('whichIsFreeForYourOwnAccountsCreateAnApp') }} <code class="font-mono text-xs">ENABLE_BANKING_APP_ID</code> {{ $t('and') }} <code class="font-mono text-xs">ENABLE_BANKING_PRIVATE_KEY</code> {{ $t('onTheServerAndRestartItUntilThenImportA') }} </p>
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-wrench" :label="$t('setupOpen')" to="/docs/guides/setup" class="mt-3" />
     </div>
 
     <template v-else>

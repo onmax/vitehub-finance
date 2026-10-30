@@ -39,6 +39,9 @@ export const listBanks = (config: EnableBankingConfig, country: string): Promise
 export const startAuth = (config: EnableBankingConfig, input: Parameters<ReturnType<typeof bankClient>["authorize"]>[0]) =>
   mapped(() => bankClient(config).authorize(input))
 
+/** The app these credentials sign for: its environment, whether it's active, and its redirect URLs. */
+export const bankApplication = (config: EnableBankingConfig) => mapped(() => bankClient(config).application())
+
 /** Trades the bank's `code` for a consent: the credentials to seal, its accounts, and how long it lasts. */
 export async function createSession(config: EnableBankingConfig, code: string) {
   const consent = await mapped(() => bankClient(config).completeAuthorization(code))
