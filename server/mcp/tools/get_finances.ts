@@ -1,13 +1,12 @@
 import { HTTPError } from "h3"
-import { defineTool } from "okmcp"
+import { defineMcpTool } from "vite-hub/mcp"
 import * as v from "valibot"
 import { requireMember } from "../../utils/identity"
 import { ScopeInput } from "../format"
 import { toolInput } from "../schema"
 import { accountsView, accountView, forecastView, overviewView, recurringView, spendingView } from "../views"
 
-export default defineTool({
-  name: "get_finances",
+export default defineMcpTool({
   title: "Household finances",
   description: [
     "Reads the household's finances, one view at a time. Start with view \"overview\" (the default).",
@@ -20,7 +19,7 @@ export default defineTool({
     "Totals are in the household's currency; each account's and payment's own amounts in its currency.",
   ].join(" "),
   annotations: { readOnlyHint: true },
-  inputSchema: toolInput(
+  input: toolInput(
     v.object({
       view: v.optional(v.pipe(v.picklist(["overview", "accounts", "account", "spending", "recurring", "forecast"]), v.description("What to read; overview by default."))),
       account: v.optional(v.pipe(v.string(), v.description("For view account: the account id, from view accounts."))),
@@ -30,7 +29,7 @@ export default defineTool({
       scope: ScopeInput,
     }),
   ),
-  handler: async ({ view, account, month, months, archived, scope }, event) => {
+  handler: async ({ view, account, month, months, archived, scope }, { event }) => {
     const who = await requireMember(event)
     const seen = scope ?? "me"
     switch (view ?? "overview") {

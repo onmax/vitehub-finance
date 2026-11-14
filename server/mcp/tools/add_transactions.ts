@@ -1,6 +1,6 @@
 import { HTTPError } from "h3"
 import { useLogger } from "evlog/nitro/v3"
-import { defineTool } from "okmcp"
+import { defineMcpTool } from "vite-hub/mcp"
 import * as v from "valibot"
 import { refuseDemoPerson } from "../../demo/mode"
 import { accountSummary } from "../../utils/accounts"
@@ -16,7 +16,7 @@ import { toolInput } from "../schema"
 const ROWS_PER_CALL = 1000
 
 // What clients see. JSON Schema can't say "a real calendar date" or "upper-case it", so each of these is followed by the
-// app's own validators (server/utils/import.ts, input.ts), which okmcp runs before the handler (see ../schema.ts).
+// app's own validators (server/utils/import.ts, input.ts), which ViteHub runs before the handler (see ../schema.ts).
 const Row = v.object({
   date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/), v.description("YYYY-MM-DD.")),
   amount: v.pipe(v.number(), v.description("In the account's currency, major units; negative for money out.")),
@@ -31,13 +31,12 @@ const NewAccount = v.object({
 })
 const Checked = v.object({ ...NewAccount.entries, name: Name, currency: Currency })
 
-export default defineTool({
-  name: "add_transactions",
+export default defineMcpTool({
   title: "Add transactions",
   description:
     "Adds transactions the user gave you, such as rows read from a bank or broker statement the app can't import, to an account the user may edit, or to a new manual account it creates for them (pass newAccount instead of account). Amounts are in the account's currency, major units, negative for money out. Rows already in the account (same date, amount, and description) are skipped, so sending a statement twice adds nothing. Household rules, transfer detection, and recurring detection run on the new rows. Only add what the user asked for.",
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-  inputSchema: toolInput(
+  input: toolInput(
     v.object({
       account: v.optional(v.pipe(v.string(), v.description("Account id from get_finances view accounts. Leave out with newAccount."))),
       newAccount: v.optional(v.pipe(NewAccount, v.description("Create a manual account owned by the user and add the rows to it."), Checked)),
@@ -50,7 +49,7 @@ export default defineTool({
       ),
     }),
   ),
-  handler: async ({ account: accountId, newAccount, rows }, event) => {
+  handler: async ({ account: accountId, newAccount, rows }, { event }) => {
     const who = await requireMember(event)
     // The demo is read-only for its people (server/demo/read-only.ts); /mcp isn't under /api/, so the tool checks.
     refuseDemoPerson(who)

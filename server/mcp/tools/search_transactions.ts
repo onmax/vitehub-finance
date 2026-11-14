@@ -1,4 +1,4 @@
-import { defineTool } from "okmcp"
+import { defineMcpTool } from "vite-hub/mcp"
 import * as v from "valibot"
 import { householdCurrency } from "../../utils/accounts"
 import { requireMember } from "../../utils/identity"
@@ -9,13 +9,12 @@ import { toolInput } from "../schema"
 
 const date = (what: string) => v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/), v.description(what)))
 
-export default defineTool({
-  name: "search_transactions",
+export default defineMcpTool({
   title: "Search transactions",
   description:
     "Transactions on the accounts the user can see, newest first, each in its account's currency. Also returns the count and the money in and out over every match, not only this page, in the household's currency, without excluded transactions. Filter by text in the description, counterparty, or note; a date range; an account id from get_finances view accounts; a category id or name, or \"none\" for uncategorized; and direction. Pass nextCursor back as cursor for the next page.",
   annotations: { readOnlyHint: true },
-  inputSchema: toolInput(
+  input: toolInput(
     v.object({
       q: v.optional(v.pipe(v.string(), v.maxLength(200), v.description("Text to find, case-insensitive: \"netflix\", \"rent\"."))),
       from: date("First date, YYYY-MM-DD, inclusive."),
@@ -28,7 +27,7 @@ export default defineTool({
       scope: ScopeInput,
     }),
   ),
-  handler: async ({ category, limit, scope, ...filters }, event) => {
+  handler: async ({ category, limit, scope, ...filters }, { event }) => {
     const who = await requireMember(event)
     const names = await categoryNames(who)
     const page = await searchTransactions(who, {

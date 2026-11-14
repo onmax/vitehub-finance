@@ -6,6 +6,7 @@ import { env, typesafeEnv } from "vite-hub/env"
 import { deployment, type Host } from "./scripts/deployment.ts"
 import { markdownRequest, pagePath, withoutLiveBlocks } from "./server/utils/docs-markdown.ts"
 import { DRIZZLE_PARAMS, URL_QUERY } from "./server/utils/log-text.ts"
+import { MCP_INSTRUCTIONS, MCP_SERVER_INFO } from "./server/mcp/info.ts"
 
 const target = deployment()
 // `nuxt dev` runs as a Node host whatever the target: local SQLite, KV files, inline syncs. It needs no Cloudflare
@@ -100,6 +101,16 @@ export default defineNuxtConfig({
   vitehub: {
     ...VITEHUB[host],
     auth: true,
+    // /mcp, one file per tool in server/mcp/tools. ViteHub answers the OAuth discovery documents.
+    mcp: {
+      instructions: MCP_INSTRUCTIONS,
+      serverInfo: {
+        ...MCP_SERVER_INFO,
+        description: "Household finance: accounts, holdings and staking, transactions, recurring payments, spending, and a cash-flow forecast.",
+        websiteUrl: "/",
+        icons: [{ src: "/favicon.svg", mimeType: "image/svg+xml", sizes: ["any"] }],
+      },
+    },
     // Builds take signed calls from the hosted ViteHub Console (console.vitehub.dev) and the CLI: each caller's public key
     // is a VITEHUB_CONSOLE_KEY_<NAME> variable on the host. `nuxt dev` answers `vitehub` commands from this machine.
     ...(dev ? {} : { console: true }),
@@ -180,12 +191,7 @@ export default defineNuxtConfig({
     "/setup": { redirect: "/docs/guides/setup" },
   },
 
-  // OAuth discovery for MCP clients (server/handlers/oauth-metadata.ts), bare and path-suffixed (`.../mcp`).
   serverHandlers: [
-    ...["oauth-protected-resource", "oauth-authorization-server", "openid-configuration"].flatMap((name) => [
-      { route: `/.well-known/${name}`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
-      { route: `/.well-known/${name}/**`, handler: here("./server/handlers/oauth-metadata.ts"), lazy: true },
-    ]),
     // Browser errors, sent by evlog's client transport (app/plugins/errors.client.ts) to its default endpoint.
     { route: "/api/_evlog/ingest", method: "POST" as const, handler: here("./server/handlers/client-errors.ts"), lazy: true },
   ],

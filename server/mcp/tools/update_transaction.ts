@@ -1,5 +1,5 @@
 import { HTTPError } from "h3"
-import { defineTool } from "okmcp"
+import { defineMcpTool } from "vite-hub/mcp"
 import * as v from "valibot"
 import { refuseDemoPerson } from "../../demo/mode"
 import { requireMember } from "../../utils/identity"
@@ -8,13 +8,12 @@ import { categoryNames, resolveCategory } from "../categories"
 import { ScopeInput, text, transactionLine } from "../format"
 import { toolInput } from "../schema"
 
-export default defineTool({
-  name: "update_transaction",
+export default defineMcpTool({
   title: "Update a transaction",
   description:
     "Sets a transaction's category (by id or name) and/or its note, on an account the user may edit. Rules won't change a category set here. With applyToSimilar it also saves a household rule that matches the counterparty, or the description's first words, and gives the category to similar uncategorized transactions. An empty note removes it. Take ids from search_transactions. Only change what the user asked for or clearly agreed to.",
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-  inputSchema: toolInput(
+  input: toolInput(
     v.object({
       id: v.pipe(v.string(), v.description("Transaction id from search_transactions.")),
       category: v.optional(v.pipe(v.string(), v.description("Category id, or its name (\"Groceries\")."))),
@@ -23,7 +22,7 @@ export default defineTool({
       scope: ScopeInput,
     }),
   ),
-  handler: async ({ id, category, note, applyToSimilar, scope }, event) => {
+  handler: async ({ id, category, note, applyToSimilar, scope }, { event }) => {
     const who = await requireMember(event)
     // The demo is read-only for its people (server/demo/read-only.ts); /mcp isn't under /api/, so the tool checks.
     refuseDemoPerson(who)

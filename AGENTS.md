@@ -18,9 +18,9 @@ forkable, deployable to Cloudflare or any Node host.
   `jwt` + `oauthProvider` (MCP OAuth). Client: `useNuxtApp().$auth` (app/plugins/auth.ts).
 - Nuxt UI 4 themed like shadcn/ui (app/assets/css/main.css, app/app.config.ts), VueUse, Lucide icons (`i-lucide-*`).
 - valibot for input validation.
-- okmcp (https://mcp.h3.dev, formerly h3-mcp) for the MCP server in `server/mcp/`: `defineTool` per tool, valibot
-  inputs through `toolInput` (server/mcp/schema.ts), the RFC 9728 document from `okmcp/oauth`. Not on npm yet, so it's
-  a tarball built from h3js/okmcp in `vendor/` (see vendor/README.md).
+- ViteHub MCP (`vitehub.mcp` in nuxt.config.ts) serves `/mcp`: one `defineMcpTool` per file in `server/mcp/tools/`,
+  valibot inputs through `toolInput` (server/mcp/schema.ts). ViteHub checks the OAuth access tokens of Better Auth's
+  `oauthProvider` and answers the OAuth discovery documents; `verifyToken` in `server/mcp.ts` accepts `fin_` API keys.
 
 ## Rules that keep data private
 
