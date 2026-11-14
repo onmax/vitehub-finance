@@ -3,7 +3,7 @@ import { HTTPError } from "./http-error"
 import { type H3Event } from "h3"
 import * as v from "valibot"
 import { CATEGORY_COLORS } from "#shared/categories"
-import { ACCOUNT_KINDS } from "../databases/config"
+import { ACCOUNT_KINDS } from "../databases/default"
 import { isIsoDate } from "./dates"
 
 /** The JSON body, checked against a valibot schema; a 400 that says what's wrong otherwise. */

@@ -1,6 +1,6 @@
 import { eq, isNull } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { financialAccount, holding } from "../databases/config"
+import { db } from "vite-hub/database"
+import { financialAccount, holding } from "../databases/default"
 import type { ProviderHolding } from "../providers/types"
 import { METALS, valueHoldings } from "./prices"
 import { recordSnapshot } from "./snapshots"

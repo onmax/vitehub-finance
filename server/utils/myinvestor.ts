@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { connection } from "../databases/config"
+import { db } from "vite-hub/database"
+import { connection } from "../databases/default"
 import type { MyInvestorCredentials } from "../providers/myinvestor"
 import { fail } from "./connections"
 import { seal, unseal } from "./crypto"

@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm"
 import { isLocale, type Locale } from "../../shared/locale"
 import { translator } from "./translate"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { DEFAULT_CATEGORIES } from "#shared/categories"
-import { category, householdSettings, member, organization, rule, user } from "../databases/config"
+import { category, householdSettings, member, organization, rule, user } from "../databases/default"
 
 const id = () => crypto.randomUUID()
 

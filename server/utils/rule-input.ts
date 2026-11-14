@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import * as v from "valibot"
-import { db } from "vite-hub/database/drizzle"
-import { category } from "../databases/config"
+import { db } from "vite-hub/database"
+import { category } from "../databases/default"
 import { HTTPError } from "./http-error"
 
 /** What a rule does, as the rules API reads it. */

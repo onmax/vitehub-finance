@@ -1,15 +1,15 @@
 import { HTTPError } from "./http-error"
 import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql, type SQL } from "drizzle-orm"
 
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { kv } from "vite-hub/kv"
 import * as v from "valibot"
 import type { TransactionBulkResult } from "#shared/review"
-import { transactionReview } from "../databases/review"
+import { transactionReview } from "../databases/default/review"
 import { Minor } from "./input"
 import type { Transaction, TransactionPage } from "#shared/api"
 import { canEdit, canHide, canSeeTransaction } from "#shared/access"
-import { category, financialAccount, member, transaction, user as users } from "../databases/config"
+import { category, financialAccount, member, transaction, user as users } from "../databases/default"
 import { requireAccount, visibleTransactions, type Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
 import { applyRule, ensureRule, textMatches } from "./categorize"
@@ -720,6 +720,6 @@ export async function undoTransactionBulk(who: Member, token: string) {
   }
   const [first, ...rest] = writes
   if (first) await db.batch([first, ...rest])
-  await kv.del(`transaction-undo:${token}`)
+  await kv.delete(`transaction-undo:${token}`)
   return { restored: record.snapshots.length }
 }

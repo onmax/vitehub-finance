@@ -1,4 +1,4 @@
-import { useServerEnv } from "#vitehub/env/server"
+import { useServerEnv } from "vite-hub/env"
 
 /**
  * Bank sessions and exchange keys at rest: AES-GCM with a key derived from `FINANCE_ENCRYPTION_KEY`. A database dump alone

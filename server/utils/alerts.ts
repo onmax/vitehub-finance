@@ -1,7 +1,7 @@
 import { and, eq, gte, isNull, lt, ne, or } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import type { Alert, AlertSettings, AlertsResponse } from "#shared/api"
-import { alertDismissal, alertPreference, category, financialAccount, transaction } from "../databases/config"
+import { alertDismissal, alertPreference, category, financialAccount, transaction } from "../databases/default"
 import { visibleTransactions } from "./access"
 import { baseCurrency, householdCurrency } from "./accounts"
 import {

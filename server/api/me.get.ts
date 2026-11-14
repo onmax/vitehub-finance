@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm"
 import { defineHandler } from "h3"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { useRuntimeConfig } from "nitro/runtime-config"
 import type { MeResponse } from "#shared/api"
-import { householdSettings, organization, user as users } from "../databases/config"
+import { householdSettings, organization, user as users } from "../databases/default"
 import { aiRouteFor } from "../utils/ai-categorize"
 import { householdMembers, requireMember } from "../utils/identity"
 

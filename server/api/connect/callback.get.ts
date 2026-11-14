@@ -2,10 +2,10 @@ import { errorCode } from "../../utils/error-codes"
 import { and, eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { defineHandler, redirect } from "h3"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { kv } from "vite-hub/kv"
 import { dispatchSync } from "#dispatch"
-import { connection } from "../../databases/config"
+import { connection } from "../../databases/default"
 import { createSession, deleteSession, sessionDigest, type EnableBankingCredentials } from "../../providers/enable-banking"
 import {
   bankConfig,
@@ -50,7 +50,7 @@ export default defineHandler(async (event) => {
     const key = `eb-state:${state}`
     const [, entry] = await kv.get<LinkState>(key)
     // One use only: a replayed redirect finds nothing.
-    await kv.del(key)
+    await kv.delete(key)
     if (!entry || Date.now() - entry.at > STATE_TTL) return failed("This bank link expired. Connect the bank again.")
 
     ;[row] = await db.select().from(connection).where(eq(connection.id, entry.connectionId)).limit(1)

@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNull } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { category, financialAccount, transaction, user as users } from "../databases/config"
+import { db } from "vite-hub/database"
+import { category, financialAccount, transaction, user as users } from "../databases/default"
 import { householdCurrency } from "./accounts"
 import { addDays, todayIso } from "./dates"
 import { converterTo } from "./fx"

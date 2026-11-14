@@ -46,7 +46,7 @@ const EVLOG = {
  */
 const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
   cloudflare: {
-    preset: "cloudflare",
+    host: "cloudflare",
     database: {
       driver: "d1",
       databaseName: process.env.CLOUDFLARE_D1_DATABASE_NAME || "vitehub-finance",
@@ -60,11 +60,13 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     ...(queue ? { queue: { provider: "cloudflare" as const } } : {}),
   },
   node: {
-    preset: "node",
+    host: "node",
     database: {
       connection: {
         url: env({ source: env.source("FINANCE_DATABASE_URL"), default: "file:.data/finance.db" }),
       },
+      // The server applies pending migrations before it answers.
+      migrateOnStart: true,
     },
     kv: { driver: "fs-lite", base: ".data/kv" },
     // Counted in memory, per server process.
@@ -98,10 +100,58 @@ export default defineNuxtConfig({
   vitehub: {
     ...VITEHUB[host],
     auth: true,
-    // The ViteHub Console in `nuxt dev` only, with its MCP client: it connects to this app's /mcp through the app's own
-    // OAuth, as several household members at once. A deployed build has no Console until someone decides who may open it.
-    ...(dev ? { console: { auth: false as const, mcpClient: true } } : {}),
+    // Builds take signed calls from the hosted ViteHub Console (console.vitehub.dev) and the CLI: each caller's public key
+    // is a VITEHUB_CONSOLE_KEY_<NAME> variable on the host. `nuxt dev` answers `vitehub` commands from this machine.
+    ...(dev ? {} : { console: true }),
+    // The origin signed Console calls name. A Node server can't trust its Host header, so it needs this.
+    ...(target.domain ? { publicUrl: `https://${target.domain}` } : {}),
     ...(email ? { email: EMAIL[email] } : {}),
+    env: {
+      server: {
+        auth: {
+          secret: env({ secret: true, source: env.source("BETTER_AUTH_SECRET") }),
+        },
+        finance: {
+          // Emails allowed to create an account, comma-separated. Empty lets anyone sign up. Invited people always may.
+          // A public build (FINANCE_DEMO=1) ignores it.
+          allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), default: "" }),
+          // Encrypts bank sessions and exchange keys at rest (AES-GCM). Any long random string; changing it disconnects
+          // every connection.
+          encryptionKey: env({ secret: true, source: env.source("FINANCE_ENCRYPTION_KEY") }),
+          // The sender for invitations and reminders, when the build has Email.
+          emailFrom: env({ source: env.source("FINANCE_EMAIL_FROM"), default: "ViteHub Finance <finance@example.com>" }),
+          // Optional. Where people write about their data; /privacy shows it (server/api/legal.get.ts) and omits the line when empty.
+          contactEmail: env({ source: env.source("FINANCE_CONTACT_EMAIL"), default: "" }),
+          // Optional, for hosts built without FINANCE_DOMAIN (a Node server): the public origin links in emails use,
+          // like https://finance.example.com. Unset, they use the first origin someone connected from.
+          origin: env({ source: env.source("FINANCE_ORIGIN"), default: "" }),
+        },
+        // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
+        enableBanking: {
+          appId: env({ source: env.source("ENABLE_BANKING_APP_ID"), default: "" }),
+          privateKey: env({ secret: true, source: env.source("ENABLE_BANKING_PRIVATE_KEY"), default: "" }),
+        },
+        // Optional. A CoinGecko demo key raises the price API's rate limit.
+        coingecko: {
+          apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
+        },
+        // Optional. The server's own route for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
+        // (server/utils/ai-categorize.ts). Each group sits where ViteHub's AI gateway presets read it
+        // (env.server.<preset>.<field>); server/utils/ai-gateway.ts uses the first one set: Cloudflare AI Gateway, TypeSafe,
+        // then Vercel AI Gateway. Households without their own key use it.
+        typesafe: typesafeEnv(),
+        vercel: {
+          apiKey: env({ secret: true, source: env.source("AI_GATEWAY_API_KEY"), default: "" }),
+        },
+        cloudflare: {
+          // The TypeSafe key that the gateway forwards is typesafe.apiKey.
+          accountId: env({ source: env.source("CLOUDFLARE_ACCOUNT_ID"), default: "" }),
+          gatewayId: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_ID"), default: "" }),
+          token: env({ secret: true, source: env.source("CLOUDFLARE_AI_GATEWAY_TOKEN"), default: "" }),
+          slug: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_SLUG"), default: "typesafe" }),
+        },
+      },
+    },
   },
 
   alias: {
@@ -276,14 +326,8 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    plugins: [
-      here("./server/observability.ts"),
-      // Local SQLite applies the migration journal before the server answers its first request.
-      ...(host === "node" ? [here("./server/database-migrate.ts")] : []),
-    ],
+    plugins: [here("./server/observability.ts")],
     modules: [evlog(EVLOG)],
-    // The docs' Markdown, bundled with the server so a Worker can read it (server/content.ts).
-    serverAssets: [{ baseName: "docs", dir: here("./docs") }],
     cloudflare: {
       wrangler: {
         name: worker,
@@ -350,51 +394,5 @@ export default defineNuxtConfig({
         },
       },
     ],
-    env: {
-      server: {
-        auth: {
-          secret: env({ secret: true, source: env.source("BETTER_AUTH_SECRET") }),
-        },
-        finance: {
-          // Emails allowed to create an account, comma-separated. Empty lets anyone sign up. Invited people always may.
-          // A public build (FINANCE_DEMO=1) ignores it.
-          allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), default: "" }),
-          // Encrypts bank sessions and exchange keys at rest (AES-GCM). Any long random string; changing it disconnects
-          // every connection.
-          encryptionKey: env({ secret: true, source: env.source("FINANCE_ENCRYPTION_KEY") }),
-          // The sender for invitations and reminders, when the build has Email.
-          emailFrom: env({ source: env.source("FINANCE_EMAIL_FROM"), default: "ViteHub Finance <finance@example.com>" }),
-          // Optional. Where people write about their data; /privacy shows it (server/api/legal.get.ts) and omits the line when empty.
-          contactEmail: env({ source: env.source("FINANCE_CONTACT_EMAIL"), default: "" }),
-          // Optional, for hosts built without FINANCE_DOMAIN (a Node server): the public origin links in emails use,
-          // like https://finance.example.com. Unset, they use the first origin someone connected from.
-          origin: env({ source: env.source("FINANCE_ORIGIN"), default: "" }),
-        },
-        // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
-        enableBanking: {
-          appId: env({ source: env.source("ENABLE_BANKING_APP_ID"), default: "" }),
-          privateKey: env({ secret: true, source: env.source("ENABLE_BANKING_PRIVATE_KEY"), default: "" }),
-        },
-        // Optional. A CoinGecko demo key raises the price API's rate limit.
-        coingecko: {
-          apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
-        },
-        // Optional. The server's own route for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
-        // (server/utils/ai-categorize.ts). Each group sits where ViteHub's AI gateway presets read it
-        // (env.server.<preset>.<field>); server/utils/ai-gateway.ts uses the first one set: Cloudflare AI Gateway, TypeSafe,
-        // then Vercel AI Gateway. Households without their own key use it.
-        typesafe: typesafeEnv(),
-        vercel: {
-          apiKey: env({ secret: true, source: env.source("AI_GATEWAY_API_KEY"), default: "" }),
-        },
-        cloudflare: {
-          // The TypeSafe key that the gateway forwards is typesafe.apiKey.
-          accountId: env({ source: env.source("CLOUDFLARE_ACCOUNT_ID"), default: "" }),
-          gatewayId: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_ID"), default: "" }),
-          token: env({ secret: true, source: env.source("CLOUDFLARE_AI_GATEWAY_TOKEN"), default: "" }),
-          slug: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_SLUG"), default: "typesafe" }),
-        },
-      },
-    },
   },
 })

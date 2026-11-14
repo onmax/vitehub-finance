@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { user } from "../databases/config"
+import { db } from "vite-hub/database"
+import { user } from "../databases/default"
 import { isLocale, preferredLocale, type Locale } from "../../shared/locale"
 
 export function requestLanguage(headers?: Headers): Locale {

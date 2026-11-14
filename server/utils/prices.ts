@@ -1,6 +1,6 @@
 import { log } from "evlog"
 import { kv } from "vite-hub/kv"
-import { useServerEnv } from "#vitehub/env/server"
+import { useServerEnv } from "vite-hub/env"
 import { currencyDigits } from "#shared/money"
 import { USER_AGENT } from "../providers/types"
 import { addDays } from "./dates"

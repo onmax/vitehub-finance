@@ -12,9 +12,8 @@ RUN pnpm run postinstall && FINANCE_HOST=node pnpm build
 FROM node:24-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0
+# The server bundles its migrations and applies them on start.
 COPY --from=build /app/.output ./.output
-# Migrations apply on start (server/database-migrate.ts reads them from here).
-COPY --from=build /app/server/databases/migrations ./server/databases/migrations
 VOLUME /app/.data
 EXPOSE 3000
 CMD ["node", ".output/server/index.mjs"]

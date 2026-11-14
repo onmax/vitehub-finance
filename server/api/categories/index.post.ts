@@ -1,8 +1,8 @@
 import { defineHandler } from "h3"
 import * as v from "valibot"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import type { Category } from "#shared/api"
-import { category, CATEGORY_KINDS } from "../../databases/config"
+import { category, CATEGORY_KINDS } from "../../databases/default"
 import { requireMember } from "../../utils/identity"
 import { Color, Icon, Name, readInput } from "../../utils/input"
 

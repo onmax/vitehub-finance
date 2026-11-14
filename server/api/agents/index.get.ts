@@ -1,8 +1,8 @@
 import { and, desc, eq, sql } from "drizzle-orm"
 import { defineHandler } from "h3"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import type { ConnectedAgent } from "#shared/api"
-import { oauthClient, oauthConsent, oauthRefreshToken } from "../../databases/config"
+import { oauthClient, oauthConsent, oauthRefreshToken } from "../../databases/default"
 import { requireMember } from "../../utils/identity"
 
 /** The agents (MCP clients) the caller allowed, newest first. A refresh token is issued every time one reconnects. */

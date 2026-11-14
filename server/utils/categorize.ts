@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { financialAccount, rule, transaction } from "../databases/config"
+import { db } from "vite-hub/database"
+import { financialAccount, rule, transaction } from "../databases/default"
 import type { Member } from "./identity"
 import { ruleActions, sqliteLowerForms } from "../providers/dedupe"
 

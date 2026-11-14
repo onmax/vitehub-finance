@@ -1,8 +1,8 @@
 import { HTTPError } from "../../utils/http-error"
 import { and, eq, gt } from "drizzle-orm"
 import { defineHandler, getRouterParam } from "h3"
-import { db } from "vite-hub/database/drizzle"
-import { invitation, organization, user as users } from "../../databases/config"
+import { db } from "vite-hub/database"
+import { invitation, organization, user as users } from "../../databases/default"
 
 /**
  * What a signed-out invitee sees before creating an account: the household, who invited them, and the email to use.

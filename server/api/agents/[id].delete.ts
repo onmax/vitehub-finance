@@ -1,8 +1,8 @@
 import { HTTPError } from "../../utils/http-error"
 import { and, eq } from "drizzle-orm"
 import { defineHandler } from "h3"
-import { db } from "vite-hub/database/drizzle"
-import { oauthAccessToken, oauthConsent, oauthRefreshToken } from "../../databases/config"
+import { db } from "vite-hub/database"
+import { oauthAccessToken, oauthConsent, oauthRefreshToken } from "../../databases/default"
 import { requireMember } from "../../utils/identity"
 import { param } from "../../utils/input"
 

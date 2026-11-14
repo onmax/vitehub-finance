@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { HTTPError } from "h3"
-import { db } from "vite-hub/database/drizzle"
-import { category } from "../databases/config"
+import { db } from "vite-hub/database"
+import { category } from "../databases/default"
 import type { Member } from "../utils/identity"
 
 export async function categoryNames(who: Member) {

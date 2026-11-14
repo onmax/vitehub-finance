@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { balanceSnapshot, financialAccount, transaction } from "../databases/config"
+import { db } from "vite-hub/database"
+import { balanceSnapshot, financialAccount, transaction } from "../databases/default"
 import { currencyDigits } from "#shared/money"
 import { addDays, todayIso } from "./dates"
 import { quantityTimeline, valueTimeline, type CoinHistory } from "./holdings-history"

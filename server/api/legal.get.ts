@@ -1,5 +1,5 @@
 import { defineHandler } from "h3"
-import { useServerEnv } from "#vitehub/env/server"
+import { useServerEnv } from "vite-hub/env"
 import type { LegalInfo } from "#shared/api"
 import { aiRouteFor } from "../utils/ai-categorize"
 import { serverRoute } from "../utils/ai-gateway"

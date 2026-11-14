@@ -1,5 +1,5 @@
 import { inArray } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import {
   account as authAccount,
   apikey,
@@ -26,7 +26,7 @@ import {
   transactionReview,
   twoFactor,
   user as users,
-} from "../databases/config"
+} from "../databases/default"
 import { splitHouseholds } from "./erase-core"
 import { chunks, eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./finance-lifecycle"
 

@@ -1,6 +1,6 @@
 import { and, eq, gt } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
-import { invitation, user as users } from "../databases/config"
+import { db } from "vite-hub/database"
+import { invitation, user as users } from "../databases/default"
 import { isAllowedEmail } from "./allowed"
 
 const SIGN_UP_NEEDS_INVITATION =

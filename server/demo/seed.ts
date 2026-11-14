@@ -1,9 +1,8 @@
 import { and, eq, inArray, like, or } from "drizzle-orm"
-import type { Auth } from "better-auth"
 import { getAuth } from "vite-hub/auth/server"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { kv } from "vite-hub/kv"
-import { useServerEnv } from "#vitehub/env/server"
+import { useServerEnv } from "vite-hub/env"
 import {
   balanceSnapshot,
   budget,
@@ -22,8 +21,7 @@ import {
   transaction,
   transactionReview,
   user as users,
-} from "../databases/config"
-import type auth from "../auth"
+} from "../databases/default"
 import { detectRecurring } from "../utils/recurring"
 import { backfillSnapshots, recordSnapshot } from "../utils/snapshots"
 import { detectTransfers } from "../utils/transfers"
@@ -32,8 +30,6 @@ import { DEMO_DOMAIN } from "../../shared/demo"
 import { addDays, todayIso } from "../utils/dates"
 import { seedingEmails } from "./mode"
 import { DEMO_HOUSEHOLD, DEMO_PEOPLE, demoScenario, type DemoPerson } from "./scenario"
-
-type FinanceAuth = Auth<ReturnType<typeof auth.options>>
 
 const DAY = 24 * 60 * 60 * 1000
 const SEEDED = "demo:seeded"
@@ -90,7 +86,7 @@ async function signUp(person: DemoPerson) {
   const { name, email } = DEMO_PEOPLE[person]
   seedingEmails.add(email)
   try {
-    await (getAuth() as unknown as FinanceAuth).api.signUpEmail({ body: { name, email, password: await demoPassword(person) } })
+    await getAuth().api.signUpEmail({ body: { name, email, password: await demoPassword(person) } })
   } finally {
     seedingEmails.delete(email)
   }

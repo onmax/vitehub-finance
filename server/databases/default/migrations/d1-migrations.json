@@ -1,0 +1,18 @@
+{
+  "20261026072757_init": "0000_init.sql",
+  "20261026121248_transfers": "0001_transfers.sql",
+  "20261026192951_hidden_ai_categories": "0002_hidden_ai_categories.sql",
+  "20261027060540_user_language": "0003_user_language.sql",
+  "20261027062249_provider_error_codes": "0004_provider_error_codes.sql",
+  "20261027085645_ai_gateway": "0005_ai_gateway.sql",
+  "20261027113703_user_display_currency": "0006_user_display_currency.sql",
+  "20261027114847_alerts": "0007_alerts.sql",
+  "20261027120036_ai_guess": "0008_ai_guess.sql",
+  "20261027124025_rule_exclude": "0009_rule_exclude.sql",
+  "20261027125735_rule_actions": "0010_rule_actions.sql",
+  "20261027193940_staking": "0011_staking.sql",
+  "20261027201554_sync_reservation": "0012_sync_reservation.sql",
+  "20261028182357_finance_planning_review": "0013_finance_planning_review.sql",
+  "20261028182702_budget_household_unique": "0014_budget_household_unique.sql",
+  "20261028192512_stripe_payment_ledger": "0015_stripe_payment_ledger.sql"
+}

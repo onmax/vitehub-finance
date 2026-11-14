@@ -2,11 +2,11 @@
 // the account page and agents read. Nothing here sets a balance: the holdings already count every staked coin, and
 // rewards sit inside them. Values in money are today's price for the coins, not what they were worth when they arrived.
 import { and, asc, eq, isNotNull } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import { formatUnits, summarizeStaking, type StakingEventKind, type StakingLedger } from "@vitehub-finance/crypto"
 import { currencyDigits } from "#shared/money"
 import type { StakingView } from "#shared/api"
-import { stakingEvent, stakingPosition, transaction } from "../databases/config"
+import { stakingEvent, stakingPosition, transaction } from "../databases/default"
 import type { Member } from "./identity"
 import { quotes } from "./prices"
 

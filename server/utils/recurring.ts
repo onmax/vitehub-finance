@@ -1,11 +1,11 @@
 import { HTTPError } from "./http-error"
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm"
 
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import type { Recurring, RecurringResponse } from "#shared/api"
 import { canEdit } from "#shared/access"
 import { formatMoney } from "#shared/money"
-import { category, financialAccount, recurring, transaction, user as users } from "../databases/config"
+import { category, financialAccount, recurring, transaction, user as users } from "../databases/default"
 import { requireAccount, visibleAccounts, type Scope } from "./access"
 import { baseCurrency, type Converter } from "./accounts"
 import { addDays, todayIso } from "./dates"

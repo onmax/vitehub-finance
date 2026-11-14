@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm"
 import * as v from "valibot"
 import { cloudflare, type AiGateway, typesafe, vercel } from "vite-hub/gateways"
-import { db } from "vite-hub/database/drizzle"
-import { useServerEnv } from "#vitehub/env/server"
+import { db } from "vite-hub/database"
+import { useServerEnv } from "vite-hub/env"
 import type { AiGatewayInput, AiGatewaySettings, AiRoute, AiTestResult, SecretHint } from "#shared/api"
-import { householdSettings } from "../databases/config"
+import { householdSettings } from "../databases/default"
 import { isDemo } from "../demo/mode"
 import { seal, unseal } from "./crypto"
 import { HTTPError } from "./http-error"
@@ -87,7 +87,8 @@ export function gatewayFor(route: AiRoute, credentials: Credentials): AiGateway<
   if (route === "typesafe") return typesafe({ apiKey: credentials.apiKey })
   if (route === "vercel") return vercel({ apiKey: credentials.apiKey })
   return cloudflare({
-    apiKey: credentials.apiKey,
+    // The TypeSafe key the gateway forwards for ask().
+    typesafeApiKey: credentials.apiKey,
     accountId: credentials.accountId ?? "",
     gatewayId: credentials.gatewayId ?? "",
     // An open gateway has no token; the preset then leaves out cf-aig-authorization.

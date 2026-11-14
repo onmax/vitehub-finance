@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm"
 import type { RequestLogger } from "evlog"
 import * as v from "valibot"
-import { financialAccount } from "../databases/config"
+import { financialAccount } from "../databases/default"
 import { decimalToMinor, isDate } from "../providers/dedupe"
 import { categorizeWithAi, SYNC_LIMIT } from "./ai-categorize"
 import { errorMessage, fail } from "./connections"

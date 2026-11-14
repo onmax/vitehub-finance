@@ -1,6 +1,6 @@
 import { HTTPError } from "./http-error"
 import { and, eq, inArray, isNull, sql } from "drizzle-orm"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import {
   budget,
   category,
@@ -12,7 +12,7 @@ import {
   session,
   transaction,
   user as users,
-} from "../databases/config"
+} from "../databases/default"
 import { applyRulesTo } from "./categorize"
 import { createHousehold } from "./household"
 import { chunks, eraseBudgets, movePlanningData } from "./finance-lifecycle"

@@ -1,8 +1,8 @@
 import { asc, eq, sql } from "drizzle-orm"
 import { defineHandler } from "h3"
-import { db } from "vite-hub/database/drizzle"
+import { db } from "vite-hub/database"
 import type { Category } from "#shared/api"
-import { category } from "../../databases/config"
+import { category } from "../../databases/default"
 import { requireMember } from "../../utils/identity"
 
 /** The household's categories: spending first, then income, then transfers, each by name. */

@@ -1,16 +1,12 @@
 import { HTTPError } from "./http-error"
-import type { Auth } from "better-auth"
 import { verifyJwsAccessToken } from "better-auth/oauth2"
 import { and, asc, desc, eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { type H3Event } from "h3"
-import { getAuthForRequest } from "vite-hub/auth/server"
-import { db } from "vite-hub/database/drizzle"
-import { member, oauthClient, oauthConsent, user as users } from "../databases/config"
-import type auth from "../auth"
+import { useAuth } from "vite-hub/auth/server"
+import { db } from "vite-hub/database"
+import { member, oauthClient, oauthConsent, user as users } from "../databases/default"
 import { bearerFrom, isBrowserOnlyRoute, requireBrowser } from "./request-policy"
-
-type FinanceAuth = Auth<ReturnType<typeof auth.options>>
 
 /** Who is calling, in which household, and how: in the browser, through an MCP client, or with an API key. */
 export interface Member {
@@ -24,7 +20,7 @@ export interface Member {
   clientName?: string
 }
 
-export const authFor = (event: H3Event) => getAuthForRequest(event.req, undefined, event) as unknown as FinanceAuth
+export const authFor = (event: H3Event) => useAuth(event)
 
 /**
  * Resolved once per request. Null when nobody is signed in or they belong to no household. The request's wide event
