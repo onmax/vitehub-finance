@@ -6,7 +6,11 @@ import comarkUi from "comark-ui/html"
 import { contentSource, defineContent } from "vite-hub/content"
 import { docs } from "./utils/docs-source"
 
+/** The setup guide's live blocks only mean something in a browser, so agents read the page without them. */
+const withoutLiveBlocks = (markdown: string) => markdown.replace(/^(:{2,})setup-(?:prompt|status)(?:\{[^}\n]*\})?\n\1\n\n?/gm, "")
+
 export default defineContent({
-  source: contentSource(docs, { prefix: "/docs" }),
+  source: contentSource(docs, { prefix: "/docs", url: "/:id", markdown: ({ text }) => withoutLiveBlocks(text) }),
+  seo: { markdown: true },
   markdown: { plugins: [...comarkUi({ chips: { download: false }, badge: { download: false } }).plugins, toc()] },
 })

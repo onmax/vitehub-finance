@@ -150,7 +150,7 @@ Enable Banking's `GET /application`). Each step's heading carries `:::setup-stat
 `::setup-prompt` (DocsSetupPrompt.vue) copies `setupPrompt` (shared/setup-prompt.ts): the guide's Markdown URL, every
 step by its number and heading (`SETUP_STEP_TITLES`, word for word as the guide's headings), and how to guide the
 person. A new step goes in all three. Any docs page also answers as Markdown, at its URL plus `.md` or with
-`Accept: text/markdown` (server/middleware/docs-markdown.ts), without the live blocks.
+`Accept: text/markdown` (ViteHub Content's `seo: { markdown: true }`, server/content.ts), without the live blocks.
 
 ## Sync
 
