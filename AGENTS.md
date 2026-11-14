@@ -62,8 +62,12 @@ forkable, deployable to Cloudflare or any Node host.
 
 ## Data
 
-- Schema: `server/databases/{auth,oauth,finance}.ts`, registered in `server/databases/config.ts`. After a schema change
-  run `npx drizzle-kit generate --name <what>`; `nuxt dev` and Node builds apply migrations on start.
+- Schema: `server/databases/default/{auth,oauth,finance,...}.ts`, registered in `server/databases/default/index.ts`
+  (Drizzle 1.0). After a schema change run `pnpm db:generate --name <what>`; it adds a folder under
+  `server/databases/default/migrations/` and its Wrangler file name to `d1-migrations.json` (commit both: production's
+  `d1_migrations` keys on those names). `pnpm db:migrate` applies them to the `nuxt dev` database, Node builds apply them
+  on start (`migrateOnStart`), and Cloudflare deploys run `pnpm db:migrate:remote`. Declare unique columns as
+  `uniqueIndex(...)`, as the existing tables do, so the schema matches the indexes the first migration made.
 - Money is integer minor units (`amountMinor`, `balanceMinor`) plus a `currency`. `shared/money.ts` formats and parses.
   Totals across accounts convert to the household currency with `server/utils/fx.ts` (`converterTo(base)`).
 - Dates are `YYYY-MM-DD` strings in transactions, snapshots, and recurring rows.
@@ -200,7 +204,7 @@ Jev is reached through ViteHub's AI gateways (`typesafe()`, `vercel()`, `cloudfl
 and their `ask()`: TypeSafe directly, Vercel AI Gateway, or Cloudflare AI Gateway. `server/utils/ai-gateway.ts` `routeFor(householdId)`
 picks the household's own route (`householdSettings.aiGateway`, its key and Cloudflare fields sealed in `aiCredentials`
 with crypto.ts) when its owner set one in Settings › Categories, else the server's own route from nuxt.config.ts
-`vite.env.server` (`cloudflare` when the TypeSafe key, account, and gateway are set, else `typesafe`, else `vercel`), else none. It passes every credential to the preset explicitly, so a
+`vitehub.env.server` (`cloudflare` when the TypeSafe key, account, and gateway are set, else `typesafe`, else `vercel`), else none. It passes every credential to the preset explicitly, so a
 household's route never picks up the server's variables, and the server's comes from its typed `useServerEnv()`. The browser gets only `{ last4 }` of a secret; `GET/PUT
 /api/household/ai` and `POST /api/household/ai/test` are owner-only, in the browser, and refused in the demo.
 
@@ -290,11 +294,12 @@ In `nuxt dev` they print as a readable tree in the terminal.
 
 `pnpm typecheck` checks types. `FINANCE_HOST=node pnpm build` checks the Node output; plain `pnpm build` checks Cloudflare's.
 
-`nuxt dev` serves the ViteHub Console at `/_vitehub` (no sign-in, this machine only). Its MCP client section
-(`/_vitehub/mcp-client`) finds `/mcp` through `/.well-known/oauth-protected-resource` and signs in with the app's own
-OAuth, as whoever is signed in to the app in that browser. To hold two household members at once, connect, sign in to
-the app as the other person, then use "Add an account". A `fin_` API key works too, as a bearer token. Deployed builds
-have no Console.
+`pnpm db:migrate` applies pending migrations to the local SQLite file `nuxt dev` uses (`.data/finance.db`).
+
+Deployed builds take signed calls from the hosted ViteHub Console (console.vitehub.dev) at `POST /_vitehub/rpc`
+(`console: true`): linking the app there shows a `VITEHUB_CONSOLE_KEY_CONSOLE_<ID>` public key to set on the host.
+`nuxt dev` answers `vitehub` commands (`pnpm vitehub kv list`) from this machine only. A Node host needs `FINANCE_DOMAIN`
+at build time, which sets `vitehub({ publicUrl })`: signed calls name the origin they were signed for.
 
 ## API
 

@@ -46,10 +46,11 @@ Built on [ViteHub](https://vitehub.dev) and Nuxt 5, with [Comark UI](https://com
 ```bash
 pnpm install
 cp .env.example .env   # set BETTER_AUTH_SECRET and FINANCE_ENCRYPTION_KEY (openssl rand -hex 32)
+pnpm db:migrate
 pnpm dev
 ```
 
-`pnpm dev` uses a local SQLite file in `.data/`, whatever host you deploy to. Sign up at `/signup`; try the importer
+`pnpm dev` uses a local SQLite file in `.data/`, whatever host you deploy to; run `pnpm db:migrate` again after pulling new migrations. Sign up at `/signup`; try the importer
 with `public/samples/household-sample.csv`.
 
 ## Connect banks
@@ -96,13 +97,18 @@ docker run -p 3000:3000 -v finance-data:/app/.data \
   -e BETTER_AUTH_SECRET=... -e FINANCE_ENCRYPTION_KEY=... vitehub-finance
 ```
 
-Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server/index.mjs` with
-`server/databases/migrations` beside `.output`. SQLite and KV live in `.data/`; the daily sync runs in-process. Logs are
-JSON lines on stdout.
+Or without Docker: `FINANCE_HOST=node pnpm build`, then run `node .output/server/index.mjs`. The server applies its
+migrations on start. SQLite and KV live in `.data/`; the daily sync runs in-process. Logs are JSON lines on stdout.
 
 Set `FINANCE_ORIGIN=https://finance.example.com` (or build with `FINANCE_DOMAIN`) so reminder emails link to your
 public address. Without either, they use the first address someone connected a bank, exchange, or wallet from, and no
 later request changes it; to change it, set `FINANCE_ORIGIN`.
+
+## ViteHub Console
+
+Builds take signed calls from the hosted [ViteHub Console](https://console.vitehub.dev): add the app's URL there, set the
+`VITEHUB_CONSOLE_KEY_CONSOLE_<ID>` variable it shows on the host (`wrangler secret put` on Cloudflare), and select
+**Check connection**. A Node host also needs `FINANCE_DOMAIN` at build time, so the server knows its public origin.
 
 ## AI categories
 
