@@ -2,13 +2,13 @@ import { HTTPError } from "../../utils/http-error"
 import { defineHandler } from "h3"
 import * as v from "valibot"
 import type { Auth } from "better-auth"
-import { checkRateLimit } from "vite-hub/rate-limit"
+import { requireRateLimit } from "vite-hub/rate-limit"
 import { DEMO_PEOPLE } from "../../demo/scenario"
 import { isDemo } from "../../demo/mode"
 import { demoPassword, ensureDemo } from "../../demo/seed"
 import { fail, readValid } from "../../utils/connections"
 import { authFor } from "../../utils/identity"
-import { refuseOverLimit } from "../../utils/rate-limit"
+import { TOO_MANY_TRIES, TOO_MANY_TRIES_CODE } from "../../utils/rate-limit"
 
 const Body = v.object({ as: v.picklist(["lucia", "pablo"]) })
 
@@ -19,7 +19,7 @@ const Body = v.object({ as: v.picklist(["lucia", "pablo"]) })
  */
 export default defineHandler(async (event) => {
   if (!isDemo()) throw new HTTPError({ status: 404, statusText: "Not Found" })
-  refuseOverLimit(await checkRateLimit(event, "demo-session", { limit: 10, window: "1m" }))
+  await requireRateLimit(event, "demo-session", { limit: 10, window: "1m", message: TOO_MANY_TRIES, code: TOO_MANY_TRIES_CODE })
   const { as } = await readValid(event, Body)
   await ensureDemo()
   const auth = authFor(event) as unknown as Auth
