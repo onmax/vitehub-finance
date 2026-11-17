@@ -163,8 +163,9 @@ Schedule (`server/schedules/daily.ts`) dispatches every active connection throug
 
 A manual sync (`POST /api/connections/:id/sync`) first takes `reserveSync`, one conditional UPDATE of
 `connection.syncReservedUntil`, so of two at once only one runs; the sync releases it when it ends (or it lapses after ten
-minutes). Rate limits use ViteHub's `checkRateLimit` with literal options at the call site (ViteHub reads them at build
-time; Cloudflare windows are `10s` or `1m`), then `refuseOverLimit` (server/utils/rate-limit.ts) for a translated 429.
+minutes). Rate limits use ViteHub's `requireRateLimit` with literal options at the call site (ViteHub reads them at build
+time; Cloudflare windows are `10s` or `1m`) and `message: TOO_MANY_TRIES, code: TOO_MANY_TRIES_CODE`
+(server/utils/rate-limit.ts) for a translated 429.
 
 A bank connection's `externalId` is `sessionDigest(sessionId)` (`sha256:<hex>`, server/providers/enable-banking.ts);
 the session id itself lives only in the sealed credentials. The sync replaces a raw id it still finds.
