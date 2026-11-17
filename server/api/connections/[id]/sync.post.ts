@@ -1,12 +1,12 @@
 import { and, desc, eq, gte } from "drizzle-orm"
 import { defineHandler, getRouterParam } from "h3"
 import { db } from "vite-hub/database"
-import { checkRateLimit } from "vite-hub/rate-limit"
+import { requireRateLimit } from "vite-hub/rate-limit"
 import { dispatchSync } from "#dispatch"
 import { syncRun } from "../../../databases/default"
 import { errorMessage, fail, requireOwnConnection } from "../../../utils/connections"
 import { requireMember } from "../../../utils/identity"
-import { refuseOverLimit } from "../../../utils/rate-limit"
+import { errorCode, TOO_MANY_TRIES } from "../../../utils/error-codes"
 import { releaseSync, reserveSync } from "../../../utils/sync"
 import { refuseDemoPerson } from "../../../demo/mode"
 
@@ -31,7 +31,7 @@ export default defineHandler(async (event) => {
       "syncAfter", { time: next.toISOString().slice(11, 16) },
     )
   }
-  refuseOverLimit(await checkRateLimit(event, "manual-sync", { limit: 3, window: "1m", key: row.id }))
+  await requireRateLimit(event, "manual-sync", { limit: 3, window: "1m", key: row.id, message: TOO_MANY_TRIES, code: errorCode(TOO_MANY_TRIES) })
   if (!(await reserveSync(row.id))) throw fail(409, "This connection is already syncing. Wait for it to finish.")
   const started = new Date(Date.now() - 1000)
   try {

@@ -21,6 +21,10 @@ export default defineHandler(async (event): Promise<FundMatch[]> => {
   const found = await searchFunds(term).catch((error) => {
     throw providerHttpError(error)
   })
-  if (isin && found.length) await kv.set(`funds:${isin}`, { at: Date.now(), found })
+  if (isin && found.length) {
+    // A failed cache write only costs a later search.
+    const [cacheError] = await kv.set(`funds:${isin}`, { at: Date.now(), found })
+    if (cacheError) console.warn("[finance] Couldn't cache the fund search.", cacheError.code)
+  }
   return found
 })

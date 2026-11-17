@@ -50,7 +50,8 @@ export default defineHandler(async (event) => {
     const key = `eb-state:${state}`
     const [, entry] = await kv.get<LinkState>(key)
     // One use only: a replayed redirect finds nothing.
-    await kv.delete(key)
+    const [deleteError] = await kv.delete(key)
+    if (deleteError) throw deleteError
     if (!entry || Date.now() - entry.at > STATE_TTL) return failed("This bank link expired. Connect the bank again.")
 
     ;[row] = await db.select().from(connection).where(eq(connection.id, entry.connectionId)).limit(1)

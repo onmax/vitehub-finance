@@ -256,6 +256,7 @@ async function build(today: string) {
       .set({ status: "dismissed" })
       .where(and(eq(recurring.householdId, householdId), eq(recurring.categoryId, transfers)))
 
-  await kv.set(SEEDED, { date: today, at: Date.now(), version: 2 })
+  const [markError] = await kv.set(SEEDED, { date: today, at: Date.now(), version: 2 })
+  if (markError) throw markError
   console.info(`[finance] Demo household seeded for ${today}: ${rows.length} transactions.`)
 }

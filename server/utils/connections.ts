@@ -46,7 +46,7 @@ export async function readValid<S extends v.GenericSchema>(event: H3Event, schem
 export function bankConfig(): EnableBankingConfig | null {
   const env = useServerEnv()
   const appId = env.enableBanking.appId?.trim()
-  const privateKey = env.enableBanking.privateKey.unseal()?.trim()
+  const privateKey = env.enableBanking.privateKey?.unseal()?.trim()
   return appId && privateKey ? { appId, privateKey } : null
 }
 
@@ -93,7 +93,10 @@ async function originSettings(): Promise<OriginSettings> {
  * one people connect something from; later requests never replace it (server/utils/origin.ts).
  */
 export async function rememberOrigin(event: H3Event) {
-  if (remembersRequestOrigin(await originSettings())) await kv.set("app:origin", event.url.origin)
+  if (!remembersRequestOrigin(await originSettings())) return
+  // Not saved yet: the next request that connects something tries again.
+  const [saveError] = await kv.set("app:origin", event.url.origin)
+  if (saveError) console.warn("[finance] Couldn't remember the app origin.", saveError.code)
 }
 
 /** Where links in emails point, or null before anyone connected anything on a host that doesn't know its origin. */
@@ -109,7 +112,8 @@ export async function banksIn(config: EnableBankingConfig, country: string): Pro
   const [, cached] = await kv.get<{ at: number; banks: Institution[] }>(key)
   if (cached && Date.now() - cached.at < BANKS_TTL) return cached.banks
   const banks = await listBanks(config, country)
-  await kv.set(key, { at: Date.now(), banks })
+  const [cacheError] = await kv.set(key, { at: Date.now(), banks })
+  if (cacheError) console.warn("[finance] Couldn't cache the bank list.", cacheError.code)
   return banks
 }
 
@@ -135,7 +139,8 @@ export const STATE_TTL = 30 * 60 * 1000
 export async function startBankLink(event: H3Event, who: Member, row: ConnectionRow, bank: Institution) {
   const config = requireBankConfig()
   const state = crypto.randomUUID().replace(/-/g, "")
-  await kv.set(`eb-state:${state}`, { connectionId: row.id, userId: who.userId, at: Date.now() } satisfies LinkState)
+  const [stateError] = await kv.set(`eb-state:${state}`, { connectionId: row.id, userId: who.userId, at: Date.now() } satisfies LinkState)
+  if (stateError) throw stateError
   await rememberOrigin(event)
   return startAuth(config, {
     institution: { name: bank.name, country: bank.country },

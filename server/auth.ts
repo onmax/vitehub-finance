@@ -87,7 +87,7 @@ export default defineAuth(({ env, requestOrigin }) => ({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-up/email" && !sendsEmail && !isDemo()) {
-        const refusal = await signUpRefusal(ctx.body, env.finance.allowedEmails.unseal())
+        const refusal = await signUpRefusal(ctx.body, env.finance.allowedEmails?.unseal() ?? "")
         if (refusal) throw new APIError("FORBIDDEN", refusal)
       }
       // The demo's people, and any request about one of their emails, can't change sign-in or households.
@@ -108,7 +108,7 @@ export default defineAuth(({ env, requestOrigin }) => ({
           // The demo has only its two made-up people, so it never holds anyone's real data. A private instance is open to
           // its allowed emails and the people a household invited.
           if (isDemo()) return false
-          if (!isAllowedEmail(person.email, env.finance.allowedEmails.unseal()) && !(await pendingInvitation(person.email))) return false
+          if (!isAllowedEmail(person.email, env.finance.allowedEmails?.unseal() ?? "") && !(await pendingInvitation(person.email))) return false
           const language = "language" in person && isLocale(person.language) ? person.language : requestLanguage(context?.headers)
           return { data: { ...person, language } }
         },
