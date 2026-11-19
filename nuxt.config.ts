@@ -55,6 +55,8 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
       migrateOnDeploy: true,
     },
     kv: true,
+    // Nitro's cache (server/utils/fx.ts) lives in the KV store, under `nitro-cache:`.
+    cache: { driver: "kv" },
     // Caps client error reports (server/handlers/client-errors.ts) with a Workers Rate Limiting binding.
     rateLimit: true,
     schedule: true,
@@ -71,6 +73,7 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
       migrateOnStart: true,
     },
     kv: { driver: "fs-lite", base: ".data/kv" },
+    cache: { driver: "kv" },
     // Counted in memory, per server process.
     rateLimit: true,
     // An in-process cron.
