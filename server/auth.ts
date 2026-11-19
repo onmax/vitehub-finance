@@ -57,8 +57,10 @@ export default defineAuth(({ env, requestOrigin }) => ({
     },
   },
   // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day. After
-  // `beforeDelete`, ViteHub deletes the sign-in rows (passkeys, two-factor, API keys, MCP tokens, memberships).
+  // `beforeDelete`, ViteHub deletes the sign-in rows (passkeys, two-factor, MCP tokens, memberships), and the API keys
+  // of `userApiKeyConfigIds`: `apiKey()` below makes only "default" ones, owned by the user.
   deleteAccount: {
+    userApiKeyConfigIds: ["default"],
     beforeDelete: async (person) => {
       const { shared } = await householdsOf([person.id])
       if (shared.length)

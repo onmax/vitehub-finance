@@ -75,7 +75,8 @@ async function eraseHouseholds(households: string[]) {
  * whatever they made: API keys, passkeys, agents' tokens, two-factor. Households they share with anyone else stay as
  * they are; callers that must not leave someone half-removed check `householdsOf(...).shared` first.
  *
- * `keepLogin` leaves the user row, sessions, and sign-in methods for Better Auth's own `deleteUser` to remove.
+ * `keepLogin` leaves the user row and every sign-in row (sessions, accounts, passkeys, two-factor, API keys, agents'
+ * tokens, memberships) to ViteHub Auth `deleteAccount`, which deletes them after this.
  */
 export async function erasePeople(userIds: string[], options: { keepLogin?: boolean } = {}) {
   if (!userIds.length) return
@@ -85,6 +86,7 @@ export async function erasePeople(userIds: string[], options: { keepLogin?: bool
   await db.delete(financeSetup).where(inArray(financeSetup.userId, userIds))
   await db.update(transactionReview).set({ reviewedBy: null, revision: crypto.randomUUID() }).where(inArray(transactionReview.reviewedBy, userIds))
   await db.update(transactionReview).set({ assignedTo: null, revision: crypto.randomUUID() }).where(inArray(transactionReview.assignedTo, userIds))
+  if (options.keepLogin) return
   await db.delete(member).where(inArray(member.userId, userIds))
   await db.delete(apikey).where(inArray(apikey.referenceId, userIds))
   await db.delete(oauthAccessToken).where(inArray(oauthAccessToken.userId, userIds))
@@ -92,7 +94,6 @@ export async function erasePeople(userIds: string[], options: { keepLogin?: bool
   await db.delete(oauthConsent).where(inArray(oauthConsent.userId, userIds))
   await db.delete(passkey).where(inArray(passkey.userId, userIds))
   await db.delete(twoFactor).where(inArray(twoFactor.userId, userIds))
-  if (options.keepLogin) return
   await db.delete(session).where(inArray(session.userId, userIds))
   await db.delete(authAccount).where(inArray(authAccount.userId, userIds))
   await db.delete(users).where(inArray(users.id, userIds))
