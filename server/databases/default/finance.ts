@@ -67,9 +67,6 @@ export const connection = sqliteTable(
     // The last reminder sent about an expiring consent, so the daily check sends one per window.
     remindedAt: integer("reminded_at", { mode: "timestamp_ms" }),
     lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
-    // A manual sync holds the connection until it finishes or this passes, so two at once can't both run
-    // (server/api/connections/[id]/sync.post.ts).
-    syncReservedUntil: integer("sync_reserved_until", { mode: "timestamp_ms" }),
     lastError: text("last_error"),
     lastErrorCode: text("last_error_code"),
     createdAt: createdAt(),

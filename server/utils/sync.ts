@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNull, lt, min, or } from "drizzle-orm"
+import { and, eq, inArray, min } from "drizzle-orm"
 import { createLogger, type RequestLogger } from "evlog"
-import { db } from "vite-hub/database"
+import { db, useLeases } from "vite-hub/database"
 import { balanceSnapshot, connection, financialAccount, householdSettings, rule, syncRun, transaction } from "../databases/default"
 import { dedupeKeys, isDate, ruleActions, type Rule } from "../providers/dedupe"
 import { sessionDigest, type EnableBankingCredentials } from "../providers/enable-banking"
@@ -233,38 +233,29 @@ const loggable = (failures: AccountFailure[]) => failures.map(({ accountId, code
  */
 export async function syncConnection(connectionId: string, trigger: SyncTrigger) {
   const log = createLogger({ action: "sync", sync: { connectionId, trigger } })
+  // A manual sync holds the connection's lease while it runs, so of two at once only one runs.
+  const [leaseError, lease] = trigger === "manual" ? await useLeases().acquire(syncLeaseKey(connectionId), { ttl: SYNC_LEASE_TTL }) : []
   try {
+    if (leaseError) throw leaseError
+    if (lease === null) {
+      log.set({ sync: { skipped: "syncing" } })
+      return { added: 0, error: null }
+    }
     return await runSync(connectionId, trigger, log)
   } catch (error) {
     log.set({ sync: { retry: true } })
     throw error
   } finally {
-    // The request that started a manual sync reserved the connection (`reserveSync`); the next one may start now.
-    if (trigger === "manual") await releaseSync(connectionId).catch(() => undefined)
+    await lease?.release()
     log.emit()
   }
 }
 
 // Long enough for a wallet's whole history; a sync that dies without releasing holds the connection this long.
-const RESERVATION = 10 * 60 * 1000
+const SYNC_LEASE_TTL = 10 * 60
 
-/**
- * Holds a connection for one manual sync. A single conditional UPDATE, so of two requests at once only one gets it,
- * on D1 and SQLite alike. False while another manual sync holds it.
- */
-export async function reserveSync(connectionId: string) {
-  const now = new Date()
-  const held = await db
-    .update(connection)
-    .set({ syncReservedUntil: new Date(now.getTime() + RESERVATION) })
-    .where(and(eq(connection.id, connectionId), or(isNull(connection.syncReservedUntil), lt(connection.syncReservedUntil, now))))
-    .returning({ id: connection.id })
-  return held.length > 0
-}
-
-export async function releaseSync(connectionId: string) {
-  await db.update(connection).set({ syncReservedUntil: null }).where(eq(connection.id, connectionId))
-}
+/** The lease a manual sync of the connection holds. `useLeases().get()` on it tells whether one runs now. */
+export const syncLeaseKey = (connectionId: string) => `sync:${connectionId}`
 
 async function runSync(connectionId: string, trigger: SyncTrigger, log: RequestLogger) {
   const [row] = await db.select().from(connection).where(eq(connection.id, connectionId)).limit(1)
