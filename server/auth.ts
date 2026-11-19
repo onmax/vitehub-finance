@@ -1,10 +1,10 @@
 import { apiKey } from "@better-auth/api-key"
-import { oauthProvider } from "@better-auth/oauth-provider"
 import { passkey } from "@better-auth/passkey"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { jwt, lastLoginMethod, magicLink, organization, twoFactor } from "better-auth/plugins"
+import { lastLoginMethod, magicLink, organization, twoFactor } from "better-auth/plugins"
 import { and, eq, isNull } from "drizzle-orm"
 import { defineAuth } from "vite-hub/auth"
+import { mcpOAuth } from "vite-hub/auth/mcp"
 import { db, schema } from "vite-hub/database"
 import { send, sendsEmail } from "#mailer"
 import { member, session } from "./databases/default"
@@ -41,7 +41,7 @@ import { createHousehold } from "./utils/household"
  *
  * Deleting your account erases the household with it, which is why it waits until nobody else is in that household.
  *
- * MCP clients connect through OAuth 2.1 (`oauthProvider`, tokens signed by `jwt`, scoped to `<origin>/mcp`). Scripts
+ * MCP clients connect through OAuth 2.1 (ViteHub's `mcpOAuth`: tokens signed by `jwt`, scoped to `<origin>/mcp`). Scripts
  * that can't do OAuth use a personal API key (`apiKey`) as a bearer token instead.
  */
 export default defineAuth(({ env, requestOrigin }) => ({
@@ -173,18 +173,12 @@ export default defineAuth(({ env, requestOrigin }) => ({
       rateLimit: { enabled: true, timeWindow: 60 * 1000, maxRequests: 120 },
     }),
     lastLoginMethod({ storeInDatabase: true }),
-    jwt(),
-    oauthProvider({
+    // `jwt` and `oauthProvider` for `<origin>/mcp`, with open client registration, so `requireCaller()`
+    // (server/utils/identity.ts) also reads MCP access tokens.
+    ...mcpOAuth({
+      resource: `${requestOrigin}/mcp`,
       loginPage: "/oauth",
-      consentPage: "/oauth",
-      codeExpiresIn: 30 * 60,
-      scopes: ["openid", "profile", "email", "offline_access"],
-      resources: [`${requestOrigin}/mcp`],
-      enforcePerClientResources: false,
-      allowDynamicClientRegistration: true,
-      allowUnauthenticatedClientRegistration: true,
-      // MCP clients register loopback or private-use redirects without `application_type`; register them as native.
-      clientRegistrationDefaultApplicationType: "infer",
+      provider: { codeExpiresIn: 30 * 60, enforcePerClientResources: false },
     }),
   ],
 }))
