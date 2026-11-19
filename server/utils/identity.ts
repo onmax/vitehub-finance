@@ -1,11 +1,10 @@
 import { HTTPError } from "./http-error"
-import { verifyJwsAccessToken } from "better-auth/oauth2"
 import { and, asc, desc, eq } from "drizzle-orm"
 import { useLogger } from "evlog/nitro/v3"
 import { type H3Event } from "h3"
-import { useAuth } from "vite-hub/auth/server"
+import { requireCaller, useAuth } from "vite-hub/auth/server"
 import { db } from "vite-hub/database"
-import { member, oauthClient, oauthConsent, user as users } from "../databases/default"
+import { member, oauthConsent, user as users } from "../databases/default"
 import { bearerFrom, isBrowserOnlyRoute, requireBrowser } from "./request-policy"
 
 /** Who is calling, in which household, and how: in the browser, through an MCP client, or with an API key. */
@@ -63,42 +62,40 @@ export async function requireOwner(event: H3Event): Promise<Member> {
 
 async function resolve(event: H3Event): Promise<Member | null> {
   const token = bearerFrom(event.req.headers)
-  if (token) return token.startsWith("fin_") ? fromApiKey(event, token) : fromAccessToken(event, token)
-  const session = await authFor(event)
-    .api.getSession({ headers: event.req.headers })
-    .catch(() => null)
-  if (!session?.user) return null
-  const active = (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
-  return withHousehold({ userId: session.user.id, via: "browser" }, active)
-}
-
-// Signing keys read in-process (a Worker fetching its own hostname loops). Better Auth caches them per isolate.
-const signingKeys = {}
-
-/** An MCP client's OAuth access token: a JWT this ViteHub Finance issued for its own `/mcp`. */
-async function fromAccessToken(event: H3Event, token: string) {
-  const origin = event.url.origin
-  const payload = await verifyJwsAccessToken(token, {
-    jwksFetch: () => authFor(event).api.getJwks(),
-    jwksCacheKey: signingKeys,
-    verifyOptions: { issuer: `${origin}/api/auth`, audience: `${origin}/mcp` },
-  }).catch(() => null)
-  if (!payload?.sub) return null
-  const clientId = typeof payload.client_id === "string" ? payload.client_id : null
-  if (!clientId) return null
+  if (token?.startsWith("fin_")) return fromApiKey(event, token)
+  // A session, or an MCP client's OAuth access token for this ViteHub Finance, checked with the signing keys read
+  // in-process (a Worker fetching its own hostname loops).
+  const result = await requireCaller(event).catch(() => null)
+  if (!result) return null
+  const [error, caller] = result
+  if (error) return null
+  if (caller.kind === "browser") {
+    const active = (caller.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
+    return withHousehold({ userId: caller.user.id, via: "browser" }, active)
+  }
   // The token is signed for an hour; the person's approval is checked on every request, so disconnecting the agent
-  // (server/api/agents/[id].delete.ts) or disabling its client stops it at once. A token older than the approval it
-  // finds (both in whole seconds) was issued under one that was withdrawn before the agent was connected again.
+  // (server/api/agents/[id].delete.ts) stops it at once. A token older than the approval it finds (both in whole
+  // seconds) was issued under one that was withdrawn before the agent was connected again.
   const [grant] = await db
-    .select({ name: oauthClient.name, disabled: oauthClient.disabled, grantedAt: oauthConsent.createdAt })
+    .select({ grantedAt: oauthConsent.createdAt })
     .from(oauthConsent)
-    .innerJoin(oauthClient, eq(oauthClient.clientId, oauthConsent.clientId))
-    .where(and(eq(oauthConsent.clientId, clientId), eq(oauthConsent.userId, payload.sub)))
+    .where(and(eq(oauthConsent.clientId, caller.client.id), eq(oauthConsent.userId, caller.user.id)))
     .orderBy(desc(oauthConsent.createdAt))
     .limit(1)
-  if (!grant || grant.disabled) return null
-  if (grant.grantedAt && typeof payload.iat === "number" && payload.iat * 1000 < grant.grantedAt.getTime()) return null
-  return withHousehold({ userId: payload.sub, via: "agent", clientName: grant.name || "MCP client" }, null)
+  if (!grant) return null
+  const issuedAt = token ? issuedAtOf(token) : undefined
+  if (grant.grantedAt && issuedAt !== undefined && issuedAt * 1000 < grant.grantedAt.getTime()) return null
+  return withHousehold({ userId: caller.user.id, via: "agent", clientName: caller.client.name || "MCP client" }, null)
+}
+
+/** The `iat` claim of an access token that requireCaller already verified. */
+function issuedAtOf(token: string): number | undefined {
+  try {
+    const payload: unknown = JSON.parse(atob((token.split(".")[1] ?? "").replace(/-/g, "+").replace(/_/g, "/")))
+    return typeof payload === "object" && payload !== null && "iat" in payload && typeof payload.iat === "number" ? payload.iat : undefined
+  } catch {
+    return undefined
+  }
 }
 
 async function fromApiKey(event: H3Event, key: string) {
