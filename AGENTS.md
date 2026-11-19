@@ -13,7 +13,7 @@ forkable, deployable to Cloudflare or any Node host.
   read JSON with `await event.req.json()`, query with `event.url.searchParams`, throw `new HTTPError({ status, statusText })`.
   Server code imports explicitly; nothing under `server/` is auto-imported.
 - ViteHub (`vite-hub/*`): `database` (Drizzle on SQLite: D1 on Cloudflare, a libsql file on Node and in `nuxt dev`),
-  `kv`, `schedule`, `queue` (Cloudflare only, see `#dispatch`), `auth` (Better Auth), `email` (optional, see `#mailer`), `env`.
+  `kv`, `schedule`, `queue` (Cloudflare only, see `#dispatch`), `auth` (Better Auth), `email` (the `log` driver when the build has no provider; `email.canSend` tells which), `env`.
 - Better Auth 1.7.14 with `organization` (households), `passkey`, `twoFactor`, `magicLink`, `apiKey`, `lastLoginMethod`,
   `jwt` + `oauthProvider` (MCP OAuth). Client: `useNuxtApp().$auth` (app/plugins/auth.ts).
 - Nuxt UI 4 themed like shadcn/ui (app/assets/css/main.css, app/app.config.ts), VueUse, Lucide icons (`i-lucide-*`).
@@ -56,8 +56,8 @@ forkable, deployable to Cloudflare or any Node host.
   (`crossSiteProblem`, server/middleware/same-origin.ts); Better Auth's routes and /api/_evlog/ingest check their own.
 - Households change members only through the app's endpoints (`moveOut`): Better Auth's organization routes that
   would remove, leave, or delete are off (`DISABLED_AUTH_PATHS`, server/utils/disabled-auth-paths.ts).
-- A password sign-up has to prove the mailbox: with Email, Better Auth's email verification; without (`sendsEmail`
-  from `#mailer`), only the instance's first allowed person or someone sending the invitation's id for that email
+- A password sign-up has to prove the mailbox: with Email, Better Auth's email verification; without (`email.canSend`
+  is false), only the instance's first allowed person or someone sending the invitation's id for that email
   (`signUpRefusal`, server/utils/sign-up.ts). Passkeys and existing accounts sign in as before.
 
 ## Data

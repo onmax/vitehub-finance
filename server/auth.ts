@@ -6,12 +6,13 @@ import { jwt, lastLoginMethod, magicLink, organization, twoFactor } from "better
 import { and, eq, isNull } from "drizzle-orm"
 import { defineAuth } from "vite-hub/auth"
 import { db, schema } from "vite-hub/database"
-import { send, sendsEmail } from "#mailer"
+import { email } from "vite-hub/email"
 import { member, session } from "./databases/default"
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
 import { DEMO_LOCKED, DEMO_LOCKED_PATHS, isDemo, isDemoPerson, seedingEmails } from "./demo/mode"
 import { isDemoEmail } from "../shared/demo"
 import { isAllowedEmail } from "./utils/allowed"
+import { sendEmail } from "./utils/mail"
 import { DISABLED_AUTH_PATHS } from "./utils/disabled-auth-paths"
 import { pendingInvitation, signUpRefusal } from "./utils/sign-up"
 import { erasePeople, householdsOf } from "./utils/erase"
@@ -69,24 +70,24 @@ export default defineAuth(({ env, requestOrigin }) => ({
       await erasePeople([person.id], { keepLogin: true })
     },
   },
-  emailAndPassword: { enabled: true, minPasswordLength: 10, requireEmailVerification: sendsEmail },
+  emailAndPassword: { enabled: true, minPasswordLength: 10, requireEmailVerification: email.canSend },
   // Only a build with Email confirms addresses; without one, `signUpRefusal` decides (hooks.before).
   emailVerification: {
-    sendOnSignUp: sendsEmail,
+    sendOnSignUp: email.canSend,
     // Signing in before confirming sends a fresh link.
-    sendOnSignIn: sendsEmail,
+    sendOnSignIn: email.canSend,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user: person, url }, request) => {
       // The demo's people are made up (and created verified); nothing goes to their domain.
       if (isDemoEmail(person.email)) return
       const t = await translator(await emailLanguage(person.email, requestLanguage(request?.headers)))
-      await send({ to: person.email, subject: t("emailVerifySubject"), text: t("emailVerifyBody", { url }) })
+      await sendEmail({ to: person.email, subject: t("emailVerifySubject"), text: t("emailVerifyBody", { url }) })
     },
   },
   disabledPaths: DISABLED_AUTH_PATHS,
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === "/sign-up/email" && !sendsEmail && !isDemo()) {
+      if (ctx.path === "/sign-up/email" && !email.canSend && !isDemo()) {
         const refusal = await signUpRefusal(ctx.body, env.finance.allowedEmails?.unseal() ?? "")
         if (refusal) throw new APIError("FORBIDDEN", refusal)
       }
@@ -148,7 +149,7 @@ export default defineAuth(({ env, requestOrigin }) => ({
       sendInvitationEmail: async ({ id, email, inviter, organization: household }, request) => {
         const language = await emailLanguage(email, await emailLanguage(inviter.user.email, requestLanguage(request?.headers)))
         const t = await translator(language)
-        await send({
+        await sendEmail({
           to: email,
           subject: t("emailInviteSubject", { name: inviter.user.name, household: household.name }),
           text: t("emailInviteBody", { name: inviter.user.name, url: `${requestOrigin}/invite/${id}` }),
@@ -164,7 +165,7 @@ export default defineAuth(({ env, requestOrigin }) => ({
     magicLink({
       sendMagicLink: async ({ email, url }, context) => {
         const t = await translator(await emailLanguage(email, requestLanguage(context?.headers)))
-        await send({ to: email, subject: t("emailMagicSubject"), text: t("emailMagicBody", { url }) })
+        await sendEmail({ to: email, subject: t("emailMagicSubject"), text: t("emailMagicBody", { url }) })
       },
     }),
     apiKey({

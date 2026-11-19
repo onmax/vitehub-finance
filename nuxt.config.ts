@@ -120,8 +120,8 @@ export default defineNuxtConfig({
     console: true,
     // The origin signed Console calls name. A Node server can't trust its Host header, so it needs this.
     ...(target.domain ? { publicUrl: `https://${target.domain}` } : {}),
-    // Without a provider the build has no Email; ViteHub would otherwise turn it on and fail a Node build.
-    email: email ? EMAIL[email] : false,
+    // Without a provider, the log driver prints each message and `email.canSend` is false (server/auth.ts).
+    email: email ? EMAIL[email] : { driver: "log" },
     env: {
       server: {
         auth: {
@@ -173,8 +173,6 @@ export default defineNuxtConfig({
   alias: {
     // How a sync request reaches the sync: a Queue message on Cloudflare, a direct call elsewhere (and in public builds).
     "#dispatch": here(`./server/dispatch/${queue ? "queue" : "inline"}.ts`),
-    // Sends through ViteHub Email when the build has a provider, otherwise returns the link for the UI to show.
-    "#mailer": here(`./server/mailer/${email ? "email" : "none"}.ts`),
   },
 
   ssr: false,
