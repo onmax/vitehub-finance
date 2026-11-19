@@ -5,7 +5,7 @@ import { defineSchedule } from "vite-hub/schedule"
 import { dispatchSync } from "#dispatch"
 import { isLocale, FORMAT_LOCALES } from "../../shared/locale"
 import { translator } from "../utils/translate"
-import { send } from "#mailer"
+import { sendEmail } from "../utils/mail"
 import { connection, householdSettings, user as users } from "../databases/default"
 import { isDemo } from "../demo/mode"
 import { seedDemo } from "../demo/seed"
@@ -85,7 +85,7 @@ async function daily(scheduledAt: Date, log: RequestLogger) {
       const t = await translator(language)
       const until = language === "en" ? row.until!.toISOString().slice(0, 10) : new Intl.DateTimeFormat(FORMAT_LOCALES[language], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(row.until!)
       await step(async () => {
-        await send({
+        await sendEmail({
           to: row.email,
           subject: t("emailReconnectSubject", { name: row.name }),
           text: [
