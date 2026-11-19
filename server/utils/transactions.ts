@@ -720,6 +720,8 @@ export async function undoTransactionBulk(who: Member, token: string) {
   }
   const [first, ...rest] = writes
   if (first) await db.batch([first, ...rest])
-  await kv.delete(`transaction-undo:${token}`)
+  // The undo ran; a token left behind would let it run again.
+  const [deleteError] = await kv.delete(`transaction-undo:${token}`)
+  if (deleteError) throw deleteError
   return { restored: record.snapshots.length }
 }

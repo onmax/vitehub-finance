@@ -66,7 +66,7 @@ forkable, deployable to Cloudflare or any Node host.
   (Drizzle 1.0). After a schema change run `pnpm db:generate --name <what>`; it adds a folder under
   `server/databases/default/migrations/` and its Wrangler file name to `d1-migrations.json` (commit both: production's
   `d1_migrations` keys on those names). `pnpm db:migrate` applies them to the `nuxt dev` database, Node builds apply them
-  on start (`migrateOnStart`), and Cloudflare deploys run `pnpm db:migrate:remote`. Declare unique columns as
+  on start (`migrateOnStart`), and Cloudflare deploys (`pnpm deploy`, `nitro deploy --prebuilt`) apply them before the Worker deploys (`migrateOnDeploy`). Declare unique columns as
   `uniqueIndex(...)`, as the existing tables do, so the schema matches the indexes the first migration made.
 - Money is integer minor units (`amountMinor`, `balanceMinor`) plus a `currency`. `shared/money.ts` formats and parses.
   Totals across accounts convert to the household currency with `server/utils/fx.ts` (`converterTo(base)`).
@@ -163,8 +163,9 @@ Schedule (`server/schedules/daily.ts`) dispatches every active connection throug
 
 A manual sync (`POST /api/connections/:id/sync`) first takes `reserveSync`, one conditional UPDATE of
 `connection.syncReservedUntil`, so of two at once only one runs; the sync releases it when it ends (or it lapses after ten
-minutes). Rate limits use ViteHub's `checkRateLimit` with literal options at the call site (ViteHub reads them at build
-time; Cloudflare windows are `10s` or `1m`), then `refuseOverLimit` (server/utils/rate-limit.ts) for a translated 429.
+minutes). Rate limits use ViteHub's `requireRateLimit` with literal `limit` and `window` at the call site (ViteHub reads
+them at build time; Cloudflare windows are `10s` or `1m`) and `message: TOO_MANY_TRIES` with its code
+(server/utils/error-codes.ts), so the browser translates the 429.
 
 A bank connection's `externalId` is `sessionDigest(sessionId)` (`sha256:<hex>`, server/providers/enable-banking.ts);
 the session id itself lives only in the sealed credentials. The sync replaces a raw id it still finds.

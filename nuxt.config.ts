@@ -8,7 +8,7 @@ import { MCP_INSTRUCTIONS, MCP_SERVER_INFO } from "./server/mcp/info.ts"
 
 const target = deployment()
 // `nuxt dev` runs as a Node host whatever the target: local SQLite, KV files, inline syncs. It needs no Cloudflare
-// account, and Queue has no local provider. Build with FINANCE_HOST to check a host's output.
+// account. Build with FINANCE_HOST to check a host's output.
 const dev = process.argv.includes("dev")
 const host: Host = dev ? "node" : target.host
 const email = target.email
@@ -47,16 +47,19 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
   cloudflare: {
     host: "cloudflare",
     database: {
-      driver: "d1",
+      driver: "cloudflare",
       databaseName: process.env.CLOUDFLARE_D1_DATABASE_NAME || "vitehub-finance",
-      // `nuxt dev` and `nuxt prepare` run against a local D1; deploys read the real id from the environment.
-      databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID || "00000000-0000-4000-8000-000000000000",
+      // A Cloudflare build fails without it (DATABASE_MISSING_D1_RESOURCE); `nuxt prepare` doesn't need it.
+      databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID,
+      // `pnpm deploy` (`nitro deploy --prebuilt`) applies pending migrations before the Worker deploys.
+      migrateOnDeploy: true,
     },
     kv: true,
     // Caps client error reports (server/handlers/client-errors.ts) with a Workers Rate Limiting binding.
     rateLimit: true,
     schedule: true,
-    ...(queue ? { queue: { provider: "cloudflare" as const } } : {}),
+    // server/queues/sync.ts turns Queue on by itself, so public builds turn it off.
+    queue: queue ? { driver: "cloudflare" } : false,
   },
   node: {
     host: "node",
@@ -70,7 +73,10 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     kv: { driver: "fs-lite", base: ".data/kv" },
     // Counted in memory, per server process.
     rateLimit: true,
-    schedule: { runtime: { driver: "process" } },
+    // An in-process cron.
+    schedule: true,
+    // Syncs run inline (server/dispatch/inline.ts), not from server/queues/sync.ts.
+    queue: false,
   },
 }
 
@@ -111,10 +117,11 @@ export default defineNuxtConfig({
     },
     // Builds take signed calls from the hosted ViteHub Console (console.vitehub.dev) and the CLI: each caller's public key
     // is a VITEHUB_CONSOLE_KEY_<NAME> variable on the host. `nuxt dev` answers `vitehub` commands from this machine.
-    ...(dev ? {} : { console: true }),
+    console: true,
     // The origin signed Console calls name. A Node server can't trust its Host header, so it needs this.
     ...(target.domain ? { publicUrl: `https://${target.domain}` } : {}),
-    ...(email ? { email: EMAIL[email] } : {}),
+    // Without a provider the build has no Email; ViteHub would otherwise turn it on and fail a Node build.
+    email: email ? EMAIL[email] : false,
     env: {
       server: {
         auth: {
@@ -123,7 +130,7 @@ export default defineNuxtConfig({
         finance: {
           // Emails allowed to create an account, comma-separated. Empty lets anyone sign up. Invited people always may.
           // A public build (FINANCE_DEMO=1) ignores it.
-          allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), default: "" }),
+          allowedEmails: env({ secret: true, source: env.source("FINANCE_ALLOWED_EMAILS"), optional: true }),
           // Encrypts bank sessions and exchange keys at rest (AES-GCM). Any long random string; changing it disconnects
           // every connection.
           encryptionKey: env({ secret: true, source: env.source("FINANCE_ENCRYPTION_KEY") }),
@@ -138,11 +145,11 @@ export default defineNuxtConfig({
         // Enable Banking (enablebanking.com): PSD2 access to EU banks. A restricted app is free for your own accounts.
         enableBanking: {
           appId: env({ source: env.source("ENABLE_BANKING_APP_ID"), default: "" }),
-          privateKey: env({ secret: true, source: env.source("ENABLE_BANKING_PRIVATE_KEY"), default: "" }),
+          privateKey: env({ secret: true, source: env.source("ENABLE_BANKING_PRIVATE_KEY"), optional: true }),
         },
         // Optional. A CoinGecko demo key raises the price API's rate limit.
         coingecko: {
-          apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), default: "" }),
+          apiKey: env({ secret: true, source: env.source("COINGECKO_API_KEY"), optional: true }),
         },
         // Optional. The server's own route for AI categories: Jev (typesafe.ai) categorizes what the rules didn't
         // (server/utils/ai-categorize.ts). Each group sits where ViteHub's AI gateway presets read it
@@ -150,13 +157,13 @@ export default defineNuxtConfig({
         // then Vercel AI Gateway. Households without their own key use it.
         typesafe: typesafeEnv(),
         vercel: {
-          apiKey: env({ secret: true, source: env.source("AI_GATEWAY_API_KEY"), default: "" }),
+          apiKey: env({ secret: true, source: env.source("AI_GATEWAY_API_KEY"), optional: true }),
         },
         cloudflare: {
           // The TypeSafe key that the gateway forwards is typesafe.apiKey.
           accountId: env({ source: env.source("CLOUDFLARE_ACCOUNT_ID"), default: "" }),
           gatewayId: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_ID"), default: "" }),
-          token: env({ secret: true, source: env.source("CLOUDFLARE_AI_GATEWAY_TOKEN"), default: "" }),
+          token: env({ secret: true, source: env.source("CLOUDFLARE_AI_GATEWAY_TOKEN"), optional: true }),
           slug: env({ source: env.source("CLOUDFLARE_AI_GATEWAY_SLUG"), default: "typesafe" }),
         },
       },
@@ -367,10 +374,6 @@ export default defineNuxtConfig({
       for (let index = components.length - 1; index >= 0; index--) {
         if (components[index]?.filePath.includes("@nuxt/ui/dist/runtime/components/prose/")) components.splice(index, 1)
       }
-    },
-    // The CLI nightly adds a dev-only socket-cleanup plugin that this Nuxt nightly's server import protection rejects.
-    "nitro:config": function (config) {
-      config.plugins = config.plugins?.filter((plugin) => !plugin.includes("dev-close-sockets"))
     },
   },
 

@@ -53,12 +53,12 @@ function serverCredentials(): { gateway: AiRoute; credentials: Credentials } | n
   const accountId = present(cloudflare.accountId)
   const gatewayId = present(cloudflare.gatewayId)
   if (typesafeKey && accountId && gatewayId) {
-    const token = present(cloudflare.token.unseal())
+    const token = present(cloudflare.token?.unseal())
     const slug = present(cloudflare.slug)
     return { gateway: "cloudflare", credentials: { apiKey: typesafeKey, accountId, gatewayId, ...(token ? { token } : {}), ...(slug ? { slug } : {}) } }
   }
   if (typesafeKey) return { gateway: "typesafe", credentials: { apiKey: typesafeKey } }
-  const gatewayKey = present(vercel.apiKey.unseal())
+  const gatewayKey = present(vercel.apiKey?.unseal())
   return gatewayKey ? { gateway: "vercel", credentials: { apiKey: gatewayKey } } : null
 }
 

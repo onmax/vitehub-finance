@@ -46,7 +46,7 @@ export async function setupCheck(event: H3Event, who: Pick<Member, "userId">): P
     bankConnected: Boolean(bank),
     email: sendsEmail,
     ai: serverRoute(),
-    signUp: env.finance.allowedEmails.unseal()?.trim() ? "allowed" : "anyone",
+    signUp: env.finance.allowedEmails?.unseal()?.trim() ? "allowed" : "anyone",
     links: built
       ? { origin: built, from: "domain" }
       : configured

@@ -32,7 +32,7 @@ interface Cached {
 }
 
 async function coingecko(symbols: string[], currency: string): Promise<Record<string, number | null> | null> {
-  const apiKey = useServerEnv().coingecko.apiKey.unseal()
+  const apiKey = useServerEnv().coingecko.apiKey?.unseal()
   const result: Record<string, number | null> = {}
   const vs = currency.toLowerCase()
   // Keep URLs short: CoinGecko answers a few dozen symbols per call comfortably.
@@ -142,7 +142,8 @@ export async function quotes(symbols: string[], currency: string): Promise<Recor
       const price = answered?.[symbol] ?? fallback[symbol] ?? null
       if (price !== null || answered) {
         out[symbol] = price
-        await kv.set(`price:${currency}:${symbol}`, { at: Date.now(), price } satisfies Cached)
+        const [cacheError] = await kv.set(`price:${currency}:${symbol}`, { at: Date.now(), price } satisfies Cached)
+        if (cacheError) console.warn("[finance] Couldn't cache a price.", cacheError.code)
       } else {
         // An old price beats none while both sources are down.
         out[symbol] = stale[symbol] ?? null
@@ -203,7 +204,7 @@ async function dailyPrices(symbol: string, currency: string): Promise<Record<str
   const key = `price-history:${currency}:${symbol}`
   const [, cached] = await kv.get<{ at: number; prices: Record<string, number> }>(key)
   if (cached && Date.now() - cached.at < HISTORY_TTL) return cached.prices
-  const apiKey = useServerEnv().coingecko.apiKey.unseal()
+  const apiKey = useServerEnv().coingecko.apiKey?.unseal()
   try {
     const response = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=${currency.toLowerCase()}&days=365&interval=daily`, {
       headers: { accept: "application/json", "user-agent": USER_AGENT, ...(apiKey ? { "x-cg-demo-api-key": apiKey } : {}) },
@@ -214,7 +215,8 @@ async function dailyPrices(symbol: string, currency: string): Promise<Record<str
     const prices: Record<string, number> = {}
     for (const [time, price] of body.prices ?? [])
       if (Number.isFinite(price) && price > 0) prices[new Date(time).toISOString().slice(0, 10)] ??= price
-    await kv.set(key, { at: Date.now(), prices })
+    const [cacheError] = await kv.set(key, { at: Date.now(), prices })
+    if (cacheError) console.warn("[finance] Couldn't cache a price history.", cacheError.code)
     return prices
   } catch (error) {
     console.warn(`[finance] Price history for ${symbol} unavailable`, error)

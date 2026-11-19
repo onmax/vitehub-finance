@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Deleting your account: your sign-in, and your household with everything in it (server/auth.ts `deleteUser`). It waits
+// Deleting your account: your sign-in, and your household with everything in it (server/auth.ts `deleteAccount`). It waits
 // until nobody else is in the household, so nobody loses shared accounts by surprise. Better Auth asks for a sign-in
 // from the last day.
 const { $auth } = useNuxtApp()
