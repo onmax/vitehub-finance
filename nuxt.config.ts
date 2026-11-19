@@ -58,7 +58,8 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     // Caps client error reports (server/handlers/client-errors.ts) with a Workers Rate Limiting binding.
     rateLimit: true,
     schedule: true,
-    ...(queue ? { queue: { provider: "cloudflare" as const } } : {}),
+    // server/queues/sync.ts turns Queue on by itself, so public builds turn it off.
+    queue: queue ? { driver: "cloudflare" } : false,
   },
   node: {
     host: "node",
@@ -72,7 +73,10 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
     kv: { driver: "fs-lite", base: ".data/kv" },
     // Counted in memory, per server process.
     rateLimit: true,
-    schedule: { runtime: { driver: "process" } },
+    // An in-process cron.
+    schedule: true,
+    // Syncs run inline (server/dispatch/inline.ts), not from server/queues/sync.ts.
+    queue: false,
   },
 }
 
@@ -116,7 +120,8 @@ export default defineNuxtConfig({
     console: true,
     // The origin signed Console calls name. A Node server can't trust its Host header, so it needs this.
     ...(target.domain ? { publicUrl: `https://${target.domain}` } : {}),
-    ...(email ? { email: EMAIL[email] } : {}),
+    // Without a provider the build has no Email; ViteHub would otherwise turn it on and fail a Node build.
+    email: email ? EMAIL[email] : false,
     env: {
       server: {
         auth: {

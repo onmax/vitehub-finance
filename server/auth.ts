@@ -55,18 +55,18 @@ export default defineAuth(({ env, requestOrigin }) => ({
       // Better Auth checks neither value against its list, so the currency gets a validator; null follows the household.
       displayCurrency: { type: [...CURRENCIES], required: false, input: true, validator: { input: v.nullable(v.picklist(CURRENCIES)) } },
     },
-    // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day.
-    deleteUser: {
-      enabled: true,
-      beforeDelete: async (person) => {
-        const { shared } = await householdsOf([person.id])
-        if (shared.length)
-          throw new APIError("BAD_REQUEST", {
-            message: "Leave your household, or remove its other members, before deleting your account.",
-            code: "HOUSEHOLD_NOT_EMPTY",
-          })
-        await erasePeople([person.id], { keepLogin: true })
-      },
+  },
+  // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day. After
+  // `beforeDelete`, ViteHub deletes the sign-in rows (passkeys, two-factor, API keys, MCP tokens, memberships).
+  deleteAccount: {
+    beforeDelete: async (person) => {
+      const { shared } = await householdsOf([person.id])
+      if (shared.length)
+        throw new APIError("BAD_REQUEST", {
+          message: "Leave your household, or remove its other members, before deleting your account.",
+          code: "HOUSEHOLD_NOT_EMPTY",
+        })
+      await erasePeople([person.id], { keepLogin: true })
     },
   },
   emailAndPassword: { enabled: true, minPasswordLength: 10, requireEmailVerification: sendsEmail },
