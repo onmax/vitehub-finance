@@ -14,5 +14,6 @@
   "20261027201554_sync_reservation": "0012_sync_reservation.sql",
   "20261028182357_finance_planning_review": "0013_finance_planning_review.sql",
   "20261028182702_budget_household_unique": "0014_budget_household_unique.sql",
-  "20261028192512_stripe_payment_ledger": "0015_stripe_payment_ledger.sql"
+  "20261028192512_stripe_payment_ledger": "0015_stripe_payment_ledger.sql",
+  "20261117132318_drop_sync_reservation": "0016_drop_sync_reservation.sql"
 }
