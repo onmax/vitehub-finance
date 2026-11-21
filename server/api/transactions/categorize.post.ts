@@ -1,11 +1,11 @@
 import { HTTPError } from "../../utils/http-error"
 import { useLogger } from "evlog/nitro/v3"
 import { defineHandler } from "h3"
-import { checkRateLimit } from "vite-hub/rate-limit"
+import { requireRateLimit } from "vite-hub/rate-limit"
 import type { AiCategorizeResult } from "#shared/api"
 import { ACTION_LIMIT, aiRouteFor, categorizeWithAi } from "../../utils/ai-categorize"
 import { requireMember } from "../../utils/identity"
-import { refuseOverLimit } from "../../utils/rate-limit"
+import { errorCode, TOO_MANY_TRIES } from "../../utils/error-codes"
 
 /**
  * "Categorize uncategorized with AI": asks Jev about up to ACTION_LIMIT of the caller's uncategorized transactions, those
@@ -17,7 +17,7 @@ export default defineHandler(async (event): Promise<AiCategorizeResult> => {
   const who = await requireMember(event)
   if (!(await aiRouteFor(who)))
     throw new HTTPError({ status: 404, statusText: "AI categories aren't set up. The household's owner can add a key in Settings, Categories." })
-  refuseOverLimit(await checkRateLimit(event, "ai-categorize", { limit: 10, window: "1m", key: who.userId }))
+  await requireRateLimit(event, "ai-categorize", { limit: 10, window: "1m", key: who.userId, message: TOO_MANY_TRIES, code: errorCode(TOO_MANY_TRIES) })
   const log = useLogger(event)
   log.set({ action: "ai-categorize" })
   const outcome = await categorizeWithAi(who.householdId, { caller: who }, { limit: ACTION_LIMIT, log }).catch((error) => {

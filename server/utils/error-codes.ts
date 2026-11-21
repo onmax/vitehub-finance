@@ -106,3 +106,6 @@ const CODES: Record<string, string> = {
 }
 
 export const errorCode = (message: string) => CODES[message] ?? "providerUnavailable"
+
+/** The 429 of the app's rate limits (`requireRateLimit`), translated in the browser by its code. */
+export const TOO_MANY_TRIES = "Too many tries. Wait a minute and try again."

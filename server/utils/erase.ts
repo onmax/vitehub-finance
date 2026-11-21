@@ -32,7 +32,7 @@ import { chunks, eraseAccounts, eraseBudgets, eraseTransactionReviews } from "./
 
 /**
  * Erasing people and their money: the demo's nightly reset (server/demo/seed.ts) and someone deleting their own account
- * (server/auth.ts `deleteUser`). Both go through `splitHouseholds` (erase-core.ts), so a household with anyone else in it
+ * (server/auth.ts `deleteAccount`). Both go through `splitHouseholds` (erase-core.ts), so a household with anyone else in it
  * is never touched.
  */
 

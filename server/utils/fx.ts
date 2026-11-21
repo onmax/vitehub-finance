@@ -27,7 +27,8 @@ export async function ratesWithTime(base: string): Promise<Cached> {
     if (!response.ok) throw new Error(`Frankfurter answered ${response.status}`)
     const body = (await response.json()) as { rates: Record<string, number> }
     const fresh = { at: Date.now(), rates: { ...body.rates, [base]: 1 } } satisfies Cached
-    await kv.set(key, fresh)
+    const [cacheError] = await kv.set(key, fresh)
+    if (cacheError) console.warn("[finance] Couldn't cache exchange rates.", cacheError.code)
     return fresh
   } catch (error) {
     // A stale rate beats no total; with nothing cached, other currencies count at 1:1 until the API answers.

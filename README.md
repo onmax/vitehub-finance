@@ -79,9 +79,9 @@ npx wrangler d1 create vitehub-finance                       # note the database
 export CLOUDFLARE_D1_DATABASE_ID=<id> FINANCE_DOMAIN=finance.example.com
 npx wrangler kv namespace create KV               # then add its id to the generated wrangler.json, or let wrangler provision it
 npx wrangler queues create vitehub-finance-queue--73796e63   # ViteHub names it <package name>-queue--<hex of "sync">
-pnpm build && pnpm db:migrate:remote
+pnpm build
 npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json   # and FINANCE_ENCRYPTION_KEY, ENABLE_BANKING_*, FINANCE_ALLOWED_EMAILS
-npx wrangler deploy --config .output/server/wrangler.json
+pnpm exec nitro deploy --prebuilt                 # applies pending D1 migrations, then deploys the Worker
 ```
 
 The Worker gets D1, KV, a daily Cron Trigger, a Queue that syncs one connection per message, rate limits (browser error
@@ -163,9 +163,9 @@ Queue and needs no Enable Banking keys.
 npx wrangler d1 create vitehub-finance-demo                # note the database id
 export FINANCE_DEMO=1 CLOUDFLARE_WORKER_NAME=vitehub-finance-demo CLOUDFLARE_D1_DATABASE_NAME=vitehub-finance-demo \
   CLOUDFLARE_D1_DATABASE_ID=<id> FINANCE_DOMAIN=finance.vitehub.dev
-pnpm build && pnpm db:migrate:remote
+pnpm build
 npx wrangler secret put BETTER_AUTH_SECRET --config .output/server/wrangler.json   # and FINANCE_ENCRYPTION_KEY
-npx wrangler deploy --config .output/server/wrangler.json
+pnpm exec nitro deploy --prebuilt
 ```
 
 - **Read-only** for the demo's people, on the server and in the UI, since every visitor shares them: no edits,
