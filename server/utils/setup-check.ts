@@ -4,7 +4,7 @@ import { db } from "vite-hub/database"
 import { kv } from "vite-hub/kv"
 import { useRuntimeConfig } from "nitro/runtime-config"
 import { useServerEnv } from "vite-hub/env"
-import { sendsEmail } from "#mailer"
+import { email } from "vite-hub/email"
 import type { BankCheck, SetupCheck } from "#shared/api"
 import { connection } from "../databases/default"
 import { bankApplication, type EnableBankingConfig } from "../providers/enable-banking"
@@ -44,7 +44,7 @@ export async function setupCheck(event: H3Event, who: Pick<Member, "userId">): P
     callbackUrl,
     banks: await bankCheck(bankConfig(), callbackUrl),
     bankConnected: Boolean(bank),
-    email: sendsEmail,
+    email: email.canSend,
     ai: serverRoute(),
     signUp: env.finance.allowedEmails?.unseal()?.trim() ? "allowed" : "anyone",
     links: built
