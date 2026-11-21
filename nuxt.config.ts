@@ -83,17 +83,6 @@ const VITEHUB: Record<Host, NonNullable<NuxtConfig["vitehub"]>> = {
   },
 }
 
-/**
- * On every page and API response. The CSP only stops framing, `<base>` rewrites, and plugins: the SPA, Nuxt UI, the
- * OAuth consent page, and passkeys load scripts and styles the CSP doesn't restrict.
- */
-const SECURITY_HEADERS = {
-  "content-security-policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
-  "x-frame-options": "DENY",
-  "x-content-type-options": "nosniff",
-  "referrer-policy": "strict-origin-when-cross-origin",
-}
-
 const EMAIL = {
   resend: {
     driver: "resend" as const,
@@ -108,6 +97,15 @@ export default defineNuxtConfig({
   vitehub: {
     ...VITEHUB[host],
     auth: true,
+    // Added to ViteHub's default headers (nosniff, Referrer-Policy, HSTS) on pages, API routes and static files. The CSP
+    // only stops framing, `<base>` rewrites, and plugins: the SPA, Nuxt UI, the OAuth consent page, and passkeys load
+    // scripts and styles the CSP doesn't restrict.
+    security: {
+      headers: {
+        "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+        "X-Frame-Options": "DENY",
+      },
+    },
     // /mcp, one file per tool in server/mcp/tools. ViteHub answers the OAuth discovery documents.
     mcp: {
       instructions: MCP_INSTRUCTIONS,
@@ -191,8 +189,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    "/**": { headers: SECURITY_HEADERS },
-    "/api/**": { headers: { ...SECURITY_HEADERS, "cache-control": "private, no-store" } },
+    "/api/**": { headers: { "cache-control": "private, no-store" } },
     // A short address for the setup guide.
     "/setup": { redirect: "/docs/guides/setup" },
   },
