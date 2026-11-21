@@ -1,7 +1,7 @@
 import { activeLocale, i18n } from "../lib/i18n"
 
 /**
- * The sentence an error carries for people: an h3 HTTPError's `statusText`/`message` (through ofetch's `data`), a
+ * The sentence an error carries for people: an h3 HTTPError's `message`/`statusText` (through ofetch's `data`), a
  * Better Auth error's `message`, or a thrown Error's. Falls back to `fallback` for anything else.
  */
 export function errorText(error: unknown, fallback = translate('somethingWentWrongTryAgain')) {
@@ -9,7 +9,7 @@ export function errorText(error: unknown, fallback = translate('somethingWentWro
   if (typeof error === "string") return error
   const value = error as {
     code?: string
-    data?: { code?: string; statusText?: string; message?: string; statusMessage?: string; data?: { code?: string; params?: Record<string, string | number>; issues?: Array<{ message?: string }> } }
+    data?: { code?: string; statusText?: string; message?: string; unhandled?: boolean; statusMessage?: string; data?: { code?: string; params?: Record<string, string | number>; issues?: Array<{ message?: string }> } }
     statusText?: string
     statusMessage?: string
     message?: string
@@ -21,9 +21,10 @@ export function errorText(error: unknown, fallback = translate('somethingWentWro
   }
   const candidates = [
     value.data?.data?.issues?.[0]?.message,
+    // The message before the status text: a ViteHub 429 keeps "Too Many Requests" as its status text.
+    value.data?.unhandled ? undefined : value.data?.message,
     value.data?.statusText,
     value.data?.statusMessage,
-    value.data?.message,
     value.statusMessage,
     value.statusText,
     value.message,
