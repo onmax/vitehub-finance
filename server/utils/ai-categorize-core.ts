@@ -213,7 +213,8 @@ export async function classify(rows: AiRow[], categories: AiCategory[], options:
       const batch = batches[next++]!
       try {
         // ViteHub retries 429s and 5xx itself, and reports each request's model and tokens.
-        const answers = await options.gateway.ask(batch.state, batch.questions, { onUsage: (record) => count(usage, record) })
+        const [error, answers] = await options.gateway.ask(batch.state, batch.questions, { onUsage: (record) => count(usage, record) })
+        if (error) throw error
         usage.calls++
         decisions.push(...readAnswers(batch, answers))
       } catch (error) {

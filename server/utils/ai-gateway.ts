@@ -182,11 +182,12 @@ export async function testRoute(gateway: AiGateway<{ ask: true }>): Promise<AiTe
   const started = Date.now()
   let model: string | null = null
   try {
-    await gateway.ask(
+    const [failure] = await gateway.ask(
       { description: "SUPERMARKET 24.10", direction: "money out" },
       { groceries: { type: "chance", instructions: "Is this a grocery purchase?" } },
       { onUsage: (record) => (model ??= record.model ?? null), signal: AbortSignal.timeout(20_000) },
     )
+    if (failure) return { ok: false, message: describeFailure(failure) }
     return { ok: true, model, ms: Date.now() - started }
   } catch (error) {
     return { ok: false, message: describeFailure(error) }

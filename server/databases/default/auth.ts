@@ -24,6 +24,8 @@ export const user = sqliteTable(
     image: text("image"),
     twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" }).default(false),
     lastLoginMethod: text("last_login_method"),
+    /** Roles that ViteHub Console Site access gives, comma-separated. Null for people who signed up. */
+    role: text("role"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

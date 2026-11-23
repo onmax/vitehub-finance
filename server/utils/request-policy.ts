@@ -60,7 +60,7 @@ const JSON_TYPE = /^application\/([\w.-]+\+)?json\s*(;|$)/i
  * Bearer requests (agents, API keys) send no cookie and are skipped; so are Better Auth's own routes, which check
  * origins themselves, and the browser error reports, which check theirs (server/handlers/client-errors.ts).
  */
-export function crossSiteProblem(request: Request, origin: string): { status: number; message: string } | null {
+export function crossSiteProblem(request: Pick<Request, "method" | "url" | "headers">, origin: string): { status: number; message: string } | null {
   if (!UNSAFE.has(request.method.toUpperCase())) return null
   const { pathname } = new URL(request.url)
   if (!loosePath(pathname).startsWith("/api/")) return null
