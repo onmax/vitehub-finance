@@ -55,6 +55,8 @@ export default defineAuth(({ env, requestOrigin }) => ({
       language: { type: ["en", "es", "fr", "de", "pt"], required: false, input: true },
       // Better Auth checks neither value against its list, so the currency gets a validator; null follows the household.
       displayCurrency: { type: [...CURRENCIES], required: false, input: true, validator: { input: v.nullable(v.picklist(CURRENCIES)) } },
+      // The roles that ViteHub Console Site access gives. `input: false`: nobody sets their own at sign-up or later.
+      role: { type: "string", required: false, input: false },
     },
   },
   // Without a password or an email to confirm with, Better Auth wants a session signed in within the last day. After

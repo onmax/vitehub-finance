@@ -1,5 +1,5 @@
 import { and, eq, inArray, like, or } from "drizzle-orm"
-import { getAuth } from "vite-hub/auth/server"
+import { useAuth } from "vite-hub/auth/server"
 import { db } from "vite-hub/database"
 import { kv } from "vite-hub/kv"
 import { useServerEnv } from "vite-hub/env"
@@ -86,7 +86,7 @@ async function signUp(person: DemoPerson) {
   const { name, email } = DEMO_PEOPLE[person]
   seedingEmails.add(email)
   try {
-    await getAuth().api.signUpEmail({ body: { name, email, password: await demoPassword(person) } })
+    await useAuth().api.signUpEmail({ body: { name, email, password: await demoPassword(person) } })
   } finally {
     seedingEmails.delete(email)
   }

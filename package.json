@@ -26,7 +26,7 @@
     "@internationalized/date": "^3.12.4",
     "@nuxt/ui": "4.12.0",
     "@valibot/to-json-schema": "^1.8.0",
-    "@vite-hub/mcp": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/mcp@1d30313",
+    "@vite-hub/mcp": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/mcp@df62e6d",
     "@vitehub-finance/banking": "workspace:*",
     "@vitehub-finance/brokers": "workspace:*",
     "@vitehub-finance/crypto": "workspace:*",
@@ -48,7 +48,7 @@
     "ofetch": "2.0.0-alpha.3",
     "tailwindcss": "4.3.3",
     "valibot": "^1.5.0",
-    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@1d30313",
+    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@df62e6d",
     "vue": "3.5.44",
     "vue-i18n": "^11.4.16",
     "vue-router": "5.4.0"

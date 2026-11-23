@@ -8,5 +8,5 @@ export default defineQueue<{ connectionId: string; trigger: SyncTrigger }>({
   },
   concurrency: 3,
   // A bank that's down now is often up in a few minutes; the sync run records the failure either way.
-  onError: () => ({ retry: { delaySeconds: 300 } }),
+  onError: () => ({ retry: { delay: "5m" } }),
 })
